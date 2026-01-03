@@ -1,0 +1,134 @@
+{
+  "ASTER": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 1113,
+      "bovedilla_12_losa_17": 1307,
+      "bovedilla_16_5_losa_21_5": 1745
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 1855,
+      "bovedilla_12_losa_17": 2179,
+      "bovedilla_16_5_losa_21_5": 2908
+    }
+  },
+  "A1": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 1113,
+      "bovedilla_12_losa_17": 1307,
+      "bovedilla_16_5_losa_21_5": 1745
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 1855,
+      "bovedilla_12_losa_17": 2179,
+      "bovedilla_16_5_losa_21_5": 2908
+    }
+  },
+  "A2": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 1365,
+      "bovedilla_12_losa_17": 1603,
+      "bovedilla_16_5_losa_21_5": 2140
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 2275,
+      "bovedilla_12_losa_17": 2672,
+      "bovedilla_16_5_losa_21_5": 3566
+    }
+  },
+  "B1": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 1745,
+      "bovedilla_12_losa_17": 2036,
+      "bovedilla_16_5_losa_21_5": 2692
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 2908,
+      "bovedilla_12_losa_17": 3394,
+      "bovedilla_16_5_losa_21_5": 4487
+    }
+  },
+  "B2": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 1745,
+      "bovedilla_12_losa_17": 2036,
+      "bovedilla_16_5_losa_21_5": 2692
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 2908,
+      "bovedilla_12_losa_17": 3394,
+      "bovedilla_16_5_losa_21_5": 4487
+    }
+  },
+  "C": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 2377,
+      "bovedilla_12_losa_17": 2765,
+      "bovedilla_16_5_losa_21_5": 3640
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 3961,
+      "bovedilla_12_losa_17": 4609,
+      "bovedilla_16_5_losa_21_5": 6067
+    }
+  },
+  "D": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 2322,
+      "bovedilla_12_losa_17": 2702,
+      "bovedilla_16_5_losa_21_5": 3556
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 3871,
+      "bovedilla_12_losa_17": 4503,
+      "bovedilla_16_5_losa_21_5": 5927
+    }
+  },
+  "E": {
+    "vigueta_simple": {
+      "bovedilla_10_losa_15": 2953,
+      "bovedilla_12_losa_17": 3430,
+      "bovedilla_16_5_losa_21_5": 4503
+    },
+    "vigueta_doble": {
+      "bovedilla_10_losa_15": 4922,
+      "bovedilla_12_losa_17": 5716,
+      "bovedilla_16_5_losa_21_5": 7504
+    }
+  },
+
+  "largo_a_serie": {
+    "1": "ASTER",
+    "1.2": "ASTER",
+    "1.4": "ASTER",
+    "1.6": "ASTER",
+    "1.8": "ASTER",
+    "2": "ASTER",
+    "2.2": "ASTER",
+    "2.4": "ASTER",
+    "2.6": "ASTER",
+    "2.8": "ASTER",
+    "3": "ASTER",
+    "3.2": "A1",
+    "3.4": "A1",
+    "3.6": "A2",
+    "3.8": "A2",
+    "4": "B1",
+    "4.2": "B1",
+    "4.4": "B2",
+    "4.6": "B2",
+    "4.8": "C",
+    "5": "C",
+    "5.2": "C",
+    "5.4": "C",
+    "5.6": "D",
+    "5.8": "D",
+    "6": "D",
+    "6.2": "D",
+    "6.4": "E",
+    "6.6": "E",
+    "6.8": "E",
+    "7": "E",
+    "7.2": "E"
+  }
+
+}

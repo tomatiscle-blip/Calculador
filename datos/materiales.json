@@ -1,0 +1,321 @@
+{
+  "Hormigon": [
+    {
+      "nombre": "Hormigon armado",
+      "tipo": "volumetrico",
+      "valor": 25,
+      "unidad": "kN/m3",
+      "notas": "Incluye áridos, cemento y armaduras"
+    },
+    {
+      "nombre": "Hormigon sin armar",
+      "tipo": "volumetrico",
+      "valor": 23.5,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Hormigon alivianado (EPS alta densidad)",
+      "tipo": "volumetrico",
+      "valor": 12,
+      "unidad": "kN/m3"
+    }
+  ],
+  "Madera": [
+    {
+        "nombre": "Pino",
+        "tipo": "volumetrico",
+        "valor": 6,
+        "unidad": "kN/m3"
+    },
+    {
+        "nombre": "Eucalipto",
+        "tipo": "volumetrico",
+        "valor": 8,
+        "unidad": "kN/m3"
+    },
+    {
+        "nombre": "Cedro",
+        "tipo": "volumetrico",
+        "valor": 5.5,
+        "unidad": "kN/m3"
+    },
+    {
+        "nombre": "Quebracho",
+        "tipo": "volumetrico",
+        "valor": 9,
+        "unidad": "kN/m3"
+    },
+    {
+        "nombre": "Contrachapado / OSB",
+        "tipo": "volumetrico",
+        "valor": 6.5,
+        "unidad": "kN/m3"
+    }
+],
+
+  "Mamposteria": [
+    {
+      "nombre": "Ladrillo comun revocado",
+      "tipo": "volumetrico",
+      "valor": 17,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Ladrillo comun",
+      "tipo": "volumetrico",
+      "valor": 16,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Ladrillo hueco revocado (no portante)",
+      "tipo": "volumetrico",
+      "valor": 10.5,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Ladrillo hueco (no portante)",
+      "tipo": "volumetrico",
+      "valor": 8,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Ladrillo hueco revocado (portante)",
+      "tipo": "volumetrico",
+      "valor": 12,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Ladrillo hueco (portante)",
+      "tipo": "volumetrico",
+      "valor": 10,
+      "unidad": "kN/m3"
+    }
+],
+
+  "Pisos": [
+    {
+      "nombre": "Ceramica 12mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.28,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Mosaico granitico",
+      "tipo": "superficial",
+      "valor": 0.6,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Porcelanato 10mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.20,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Madera maciza 18mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.50,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Piso flotante 8mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.25,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Alfombra 10mm + base de goma espuma",
+      "tipo": "superficial",
+      "valor": 0.15,
+      "unidad": "kN/m2"
+    }
+  ],
+  "Contrapiso": [
+    {
+        "nombre": "Contrapiso alivianado 5cm",
+        "tipo": "superficial",
+        "valor": 0.392,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Carpeta nivelacion 3cm",
+        "tipo": "superficial",
+        "valor": 0.588,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Contrapiso tradicional 5cm",
+        "tipo": "superficial",
+        "valor": 1.05,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Contrapiso tradicional 7cm",
+        "tipo": "superficial",
+        "valor": 1.47,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Contrapiso tradicional 10cm",
+        "tipo": "superficial",
+        "valor": 2.1,
+        "unidad": "kN/m2"
+    }
+],
+  "Cielorrasos": [
+    {
+      "nombre": "Cielorraso modular EPS",
+      "tipo": "superficial",
+      "valor": 0.05,
+      "unidad": "kN/m2",
+      "notas": "Incluye estructura de sostén"
+    },
+    {
+      "nombre": "Mezcla de cemento, cal y arena",
+      "tipo": "superficial",
+      "valor": 0.5,
+      "unidad": "kN/m2",
+      "notas": "Con metal desplegado"
+    },
+    {
+      "nombre": "Yeso con metal desplegado",
+      "tipo": "superficial",
+      "valor": 0.18,
+      "unidad": "kN/m2"
+    }
+],
+
+  "Cubiertas": [
+    {
+      "nombre": "Chapa acanalada sinusoidal",
+      "tipo": "superficial",
+      "valor": 0.05,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Chapa trapezoidal T101",
+      "tipo": "superficial",
+      "valor": 0.07,
+      "unidad": "kN/m2"
+    }
+  ],
+  "Morteros_Revoques": [
+    {
+      "nombre": "Mortero de cal y arena",
+      "tipo": "volumetrico",
+      "valor": 17,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Mortero de cemento y arena",
+      "tipo": "volumetrico",
+      "valor": 21,
+      "unidad": "kN/m3",
+      "notas": "Carga superficial 0,63 kN/m2"
+    },
+    {
+      "nombre": "Enlucido de cal (fino)",
+      "tipo": "volumetrico",
+      "valor": 17,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Enlucido de cal y cemento",
+      "tipo": "volumetrico",
+      "valor": 19,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Enlucido de cemento",
+      "tipo": "volumetrico",
+      "valor": 21,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Enlucido de yeso",
+      "tipo": "volumetrico",
+      "valor": 13,
+      "unidad": "kN/m3"
+    }
+],
+"Sobrecargas": [
+    {
+        "uso": "Vivienda / habitación",
+        "valor_kNm2": 2
+    },
+    {
+        "uso": "Oficina / aula",
+        "valor_kNm2": 3
+    },
+    {
+        "uso": "Pasillo / circulación",
+        "valor_kNm2": 4
+    },
+    {
+        "uso": "Terraza accesible",
+        "valor_kNm2": 4
+    },
+    {
+        "uso": "Garaje",
+        "valor_kNm2": 5
+    },
+    {
+        "uso": "Cubierta de acceso poco frecuente",
+        "valor_kNm2": 1.5
+    }
+],
+"Viguetas_Bovedillas": [
+    {
+      "tipo_vigueta": "simple",
+      "bovedilla": 10,
+      "imagen": "vigueta_simple_bovedilla_10.png",
+      "viguetas_por_m2": 2.00,
+      "bloques_por_m2": 2.00,
+      "hormigon_m3_m2": 0.058
+    },
+    {
+      "tipo_vigueta": "doble",
+      "bovedilla": 10,
+      "imagen": "vigueta_doble_bovedilla_10.png",
+      "viguetas_por_m2": 3.17,
+      "bloques_por_m2": 1.59,
+      "hormigon_m3_m2": 0.066
+    },
+    {
+      "tipo_vigueta": "simple",
+      "bovedilla": 12,
+      "imagen": "vigueta_simple_bovedilla_12.png",
+      "viguetas_por_m2": 2.00,
+      "bloques_por_m2": 2.00,
+      "hormigon_m3_m2": 0.064
+    },
+    {
+      "tipo_vigueta": "doble",
+      "bovedilla": 12,
+      "imagen": "vigueta_doble_bovedilla_12.png",
+      "viguetas_por_m2": 3.17,
+      "bloques_por_m2": 1.59,
+      "hormigon_m3_m2": 0.075
+    },
+    {
+      "tipo_vigueta": "simple",
+      "bovedilla": 16,
+      "imagen": "vigueta_simple_bovedilla_16.png",
+      "viguetas_por_m2": 2.00,
+      "bloques_por_m2": 2.00,
+      "hormigon_m3_m2": 0.079
+    },
+    {
+      "tipo_vigueta": "doble",
+      "bovedilla": 16,
+      "imagen": "vigueta_doble_bovedilla_16.png",
+      "viguetas_por_m2": 3.17,
+      "bloques_por_m2": 1.59,
+      "hormigon_m3_m2": 0.096
+    }
+  ]
+
+
+
+}
+

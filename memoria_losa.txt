@@ -1,0 +1,52 @@
+MEMORIA DE CÁLCULO - LOSA ALIVIANADA
+=================================
+
+Losa: L01
+Luz libre: 5.70 m
+Luz de cálculo (con tolerancia): 5.80 m
+
+Cómputo de materiales:
+ - Área de losa: 33.06 m²
+ - Viguetas: 18 unidades de 5.80 m
+ - Bovedillas: 53 unidades EPS n°12
+ - Hormigón: 2.480 m³ (capa de compresión)
+
+Malla electrosoldada:
+ - Paño: 2x6 m (solape 0.20 m)
+ - Disposición: 1 filas × 4 columnas
+ - Cantidad de paños: 4 unidades
+ - Área total de paños: 48.00 m² (desperdicio ≈ 45.2 %)
+
+Nervios de refuerzo:
+ - Tramo máximo: 1.80 m
+ - Nervios requeridos: 3 unidades
+ - Especificación por nervio: 2 barras Ø8 de 5.70 m
+ - Total barras: 6 unidades
+ - Longitud total de barras: 34.20 m
+
+Materiales seleccionados:
+ - Pisos: Porcelanato 10mm + pegamento → 0.200 kN/m²
+ - Contrapiso: Carpeta nivelacion 3cm → 0.588 kN/m²
+ - Contrapiso: Contrapiso tradicional 7cm → 1.470 kN/m²
+ - Cielorrasos: Yeso con metal desplegado → 0.180 kN/m²
+Subtotal cargas accesorias (D2): 2.438 kN/m²
+Total cargas permanentes (D1+D2): 4.319 kN/m²
+
+Cargas consideradas:
+ - D1 (peso propio): 1.881 kN/m²
+ - D2 (accesoria): 2.438 kN/m²
+ - D total: 4.319 kN/m²
+ - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
+ - Combinación crítica: 1.2D + 1.6L → 8.383 kN/m²
+
+Selección de vigueta:
+ - Serie de vigueta: D
+ - Tipo de vigueta seleccionada: vigueta_doble
+ - Combinación bovedilla/losa: bovedilla_12_losa_17
+ - Momento requerido (sin φ): 3594.41 kg·m
+ - Momento requerido para búsqueda (con φ aplicado): 3993.79 kg·m
+ - Momento disponible de la vigueta seleccionada: 4503.00 kg·m
+ - Momento reducido aplicado φ=0.9: 4052.70 kg·m (39.74 kN·m)
+
+=================================
+Fin de la memoria de cálculo
