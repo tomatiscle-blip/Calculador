@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "viga_nombre": "V01",
+    "timestamp": "2026-01-03T22:04:28",
+    "ancho_tributario_m": 2.5,
+    "luz_viga_m": 5.0
+  },
+  "cargas_lineales_kN_m": {
+    "qlosa1": {
+      "valor_kN_m": 0.5,
+      "origen": {
+        "categoria": "Pisos",
+        "nombre": "Porcelanato 10mm + pegamento",
+        "ancho_m": 2.5
+      }
+    },
+    "qlosa2": {
+      "valor_kN_m": 1.55,
+      "origen": {
+        "categoria": "Contrapiso",
+        "nombre": "Carpeta nivelacion 3cm",
+        "ancho_m": 2.5
+      }
+    },
+    "qcielorraso1": {
+      "valor_kN_m": 0.825,
+      "origen": {
+        "categoria": "Cielorrasos",
+        "nombre": "Yeso Suspendido",
+        "ancho_m": 2.5
+      }
+    },
+    "qmuro1": {
+      "valor_kN_m": 5.2,
+      "origen": {
+        "categoria": "Mamposteria",
+        "nombre": "Ladrillo hueco (portante)",
+        "espesor_m": 0.2,
+        "altura_m": 2.6
+      }
+    },
+    "qencadenado1": {
+      "valor_kN_m": 1.25,
+      "origen": {
+        "categoria": "Hormigon",
+        "nombre": "Hormigon armado",
+        "ancho_m": 0.2,
+        "alto_m": 0.25,
+        "cantidad": 1
+      }
+    },
+    "qtecho1": {
+      "valor_kN_m": 0.175,
+      "origen": {
+        "categoria": "Cubiertas",
+        "nombre": "Chapa trapezoidal T101",
+        "ancho_m": 2.5
+      }
+    }
+  },
+  "totales": {
+    "D_total_kN_m": 9.5,
+    "L_lineal_kN_m": 5.0,
+    "D_plus_L_kN_m": 14.5
+  },
+  "combinaciones_kN_m": {
+    "1.4D": 13.3,
+    "1.2D + 1.6L": 19.4,
+    "1.2D + 1.6Q": 11.4,
+    "0.9D + 1.6Q": 8.55
+  },
+  "esfuerzos_viga": {
+    "Mmax_kN_m": 60.625,
+    "Vmax_kN": 48.5
+  }
+}
