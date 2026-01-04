@@ -16,7 +16,13 @@
     {
       "nombre": "Hormigon alivianado (EPS alta densidad)",
       "tipo": "volumetrico",
-      "valor": 12,
+      "valor": 10,
+      "unidad": "kN/m3"
+    },
+    {
+      "nombre": "Hormigon alivianado (EPS 250kg/m3)",
+      "tipo": "volumetrico",
+      "valor": 2.45,
       "unidad": "kN/m3"
     }
   ],
@@ -102,7 +108,7 @@
     {
       "nombre": "Mosaico granitico",
       "tipo": "superficial",
-      "valor": 0.6,
+      "valor": 0.60,
       "unidad": "kN/m2"
     },
     {
@@ -112,53 +118,77 @@
       "unidad": "kN/m2"
     },
     {
-      "nombre": "Madera maciza 18mm + pegamento",
+      "nombre": "Porcelanato 15mm + pegamento",
       "tipo": "superficial",
-      "valor": 0.50,
+      "valor": 0.29,
       "unidad": "kN/m2"
     },
     {
-      "nombre": "Piso flotante 8mm + pegamento",
+      "nombre": "Madera maciza 14mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.15,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Madera maciza 22mm + pegamento",
       "tipo": "superficial",
       "valor": 0.25,
       "unidad": "kN/m2"
     },
     {
+      "nombre": "Piso flotante 8mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.10,
+      "unidad": "kN/m2"
+    },
+    {
       "nombre": "Alfombra 10mm + base de goma espuma",
       "tipo": "superficial",
-      "valor": 0.15,
+      "valor": 0.12,
       "unidad": "kN/m2"
     }
   ],
   "Contrapiso": [
     {
-        "nombre": "Contrapiso alivianado 5cm",
+        "nombre": "Carpeta nivelacion 2.5cm",
         "tipo": "superficial",
-        "valor": 0.392,
+        "valor": 0.52,
         "unidad": "kN/m2"
     },
     {
         "nombre": "Carpeta nivelacion 3cm",
         "tipo": "superficial",
-        "valor": 0.588,
+        "valor": 0.62,
         "unidad": "kN/m2"
     },
     {
-        "nombre": "Contrapiso tradicional 5cm",
+        "nombre": "Contrapiso alivianado EPS 5cm",
         "tipo": "superficial",
-        "valor": 1.05,
+        "valor": 0.123,
         "unidad": "kN/m2"
     },
     {
-        "nombre": "Contrapiso tradicional 7cm",
+        "nombre": "Contrapiso alivianado EPS 10cm",
         "tipo": "superficial",
-        "valor": 1.47,
+        "valor": 0.245,
         "unidad": "kN/m2"
     },
     {
-        "nombre": "Contrapiso tradicional 10cm",
+        "nombre": "Contrapiso de cascotes y cal 5cm",
         "tipo": "superficial",
-        "valor": 2.1,
+        "valor": 0.80,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Contrapiso de cascotes y cal 8cm",
+        "tipo": "superficial",
+        "valor": 1.28,
+        "unidad": "kN/m2"
+    },
+    {
+        "nombre": "Contrapiso de cascotes y cal 10cm",
+        "tipo": "superficial",
+        "valor": 1.60,
         "unidad": "kN/m2"
     }
 ],
@@ -178,9 +208,22 @@
       "notas": "Con metal desplegado"
     },
     {
-      "nombre": "Yeso con metal desplegado",
+      "nombre": "Yeso Suspendido",
+      "tipo": "superficial",
+      "valor": 0.33,
+      "unidad": "kN/m2",
+      "notas": "Con metal estructura de sostén"
+    },
+    {
+      "nombre": "Yeso Adherido",
       "tipo": "superficial",
       "valor": 0.18,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Madera machimbrada",
+      "tipo": "superficial",
+      "valor": 0.25,
       "unidad": "kN/m2"
     }
 ],
@@ -189,13 +232,19 @@
     {
       "nombre": "Chapa acanalada sinusoidal",
       "tipo": "superficial",
-      "valor": 0.05,
+      "valor": 0.07,
       "unidad": "kN/m2"
     },
     {
       "nombre": "Chapa trapezoidal T101",
       "tipo": "superficial",
       "valor": 0.07,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Tejas s/entablonado",
+      "tipo": "superficial",
+      "valor": 0.9,
       "unidad": "kN/m2"
     }
   ],
@@ -253,7 +302,7 @@
     },
     {
         "uso": "Terraza accesible",
-        "valor_kNm2": 4
+        "valor_kNm2": 5
     },
     {
         "uso": "Garaje",
@@ -261,7 +310,7 @@
     },
     {
         "uso": "Cubierta de acceso poco frecuente",
-        "valor_kNm2": 1.5
+        "valor_kNm2": 1.0
     }
 ],
 "Viguetas_Bovedillas": [

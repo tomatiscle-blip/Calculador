@@ -1,6 +1,7 @@
 import json
 from PIL import Image
 import xml.etree.ElementTree as ET
+import math
 
 # ==========================
 # Cargar archivos JSON
@@ -213,35 +214,34 @@ if datos:
 else:
     print("⚠️ No se encontraron datos en materiales.json para esa combinación")
 
-import math
-
-def computo_malla(ancho_losa, luz_calculo, tamanio_pano="2x6", solape_m=0.20):
+def computo_malla(ancho_losa, luz_calculo, tamanio_pano="2.40x6", solape_m=0.20):
     # Configurar tamaños comerciales
-    if tamanio_pano == "2x6":
-        pano_ancho, pano_largo = 2.0, 6.0
-    elif tamanio_pano == "2x3":
-        pano_ancho, pano_largo = 2.0, 3.0
+    if tamanio_pano == "2.40x6":
+        pano_ancho, pano_largo = 2.40, 6.00
+    elif tamanio_pano == "2.40x3":
+        pano_ancho, pano_largo = 2.40, 3.00
     else:
         raise ValueError(f"Tamaño de paño no reconocido: {tamanio_pano}")
 
-    # Dimensión útil por solapes
-    util_ancho = pano_ancho - solape_m
-    util_largo = pano_largo - solape_m
-    if util_ancho <= 0 or util_largo <= 0:
-        raise ValueError("Solape demasiado grande: dimensión útil negativa")
-
-    # Cantidad de paños (cobertura completa con discretización)
-    columnas = math.ceil(ancho_losa / util_ancho)
-    filas = math.ceil(luz_calculo / util_largo)
+    # Cantidad de paños (discretización con solape en uniones)
+    columnas = math.ceil(ancho_losa / (pano_ancho - solape_m))
+    filas = math.ceil(luz_calculo / (pano_largo - solape_m))
     n_panos = columnas * filas
 
-    # Área y desperdicio estimado
+    # Área de losa y paños
     area_losa = ancho_losa * luz_calculo
     area_pano = pano_ancho * pano_largo
     area_total_panos = n_panos * area_pano
+
+    # Área útil cubierta (considerando solapes en uniones)
+    area_util_cubierta = (pano_ancho * columnas - solape_m * (columnas - 1)) \
+                       * (pano_largo * filas - solape_m * (filas - 1))
+
+    # Desperdicio relativo
     desperdicio_relativo = (area_total_panos - area_losa) / area_losa
 
     return {
+        "modelo": "Malla electrosoldada Q-131 / R-131 (SIMA)",
         "tamanio_pano": tamanio_pano,
         "solape_m": solape_m,
         "columnas": columnas,
@@ -249,6 +249,7 @@ def computo_malla(ancho_losa, luz_calculo, tamanio_pano="2x6", solape_m=0.20):
         "n_panos": n_panos,
         "area_losa_m2": area_losa,
         "area_total_panos_m2": area_total_panos,
+        "area_util_cubierta_m2": area_util_cubierta,
         "desperdicio_relativo": desperdicio_relativo
     }
 
@@ -284,38 +285,13 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
     memoria = []
     memoria.append("MEMORIA DE CÁLCULO - LOSA ALIVIANADA\n")
     memoria.append("=================================\n\n")
+
+    # 1) Datos generales
     memoria.append(f"Losa: {losa_nombre}\n")
     memoria.append(f"Luz libre: {luz_libre:.2f} m\n")
     memoria.append(f"Luz de cálculo (con tolerancia): {luz_calculo:.2f} m\n\n")
 
-    # 1) Cómputo de materiales
-    memoria.append("Cómputo de materiales:\n")
-    memoria.append(f" - Área de losa: {area_losa:.2f} m²\n")
-    memoria.append(f" - Viguetas: {n_viguetas} unidades de {luz_calculo:.2f} m\n")
-    bovedilla_altura = combo.split("_")[1]
-    memoria.append(f" - Bovedillas: {n_bloques} unidades EPS n°{bovedilla_altura}\n")
-    memoria.append(f" - Hormigón: {vol_hormigon:.3f} m³ (capa de compresión)\n\n")
-
-    # 2) Malla electrosoldada
-    malla = computo_malla(ancho_losa, luz_calculo, tamanio_pano="2x6", solape_m=0.20)
-    memoria.append("Malla electrosoldada:\n")
-    memoria.append(f" - Paño: {malla['tamanio_pano']} m (solape {malla['solape_m']:.2f} m)\n")
-    memoria.append(f" - Disposición: {malla['filas']} filas × {malla['columnas']} columnas\n")
-    memoria.append(f" - Cantidad de paños: {malla['n_panos']} unidades\n")
-    memoria.append(f" - Área total de paños: {malla['area_total_panos_m2']:.2f} m² "
-                   f"(desperdicio ≈ {malla['desperdicio_relativo']*100:.1f} %)\n\n")
-
-    # 3) Nervios de refuerzo
-    nervios = computo_nervios_refuerzo(luz_calculo, ancho_losa)
-    memoria.append("Nervios de refuerzo:\n")
-    memoria.append(f" - Tramo máximo: 1.80 m\n")
-    memoria.append(f" - Nervios requeridos: {nervios['n_nervios']} unidades\n")
-    memoria.append(f" - Especificación por nervio: {nervios['barras_por_nervio']} barras Ø{nervios['diametro_mm']} "
-                   f"de {nervios['largo_por_nervio_m']:.2f} m\n")
-    memoria.append(f" - Total barras: {nervios['barras_total']} unidades\n")
-    memoria.append(f" - Longitud total de barras: {nervios['longitud_total_barras_m']:.2f} m\n\n")
-
-    # 4) Materiales seleccionados
+    # 2) Materiales seleccionados (cargas accesorias)
     subtotal_D2 = 0.0
     memoria.append("Materiales seleccionados:\n")
     for sel in seleccion:
@@ -326,16 +302,14 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
                 if mat["tipo"] == "volumetrico":
                     espesor = mat.get("espesor_m", 0.1)
                     carga = mat["valor"] * espesor
-                    subtotal_D2 += carga
-                    memoria.append(f" - {categoria}: {nombre} → {carga:.3f} kN/m²\n")
                 else:
                     carga = mat["valor"]
-                    subtotal_D2 += carga
-                    memoria.append(f" - {categoria}: {nombre} → {carga:.3f} kN/m²\n")
+                subtotal_D2 += carga
+                memoria.append(f" - {categoria}: {nombre} → {carga:.3f} kN/m²\n")
     memoria.append(f"Subtotal cargas accesorias (D2): {subtotal_D2:.3f} kN/m²\n")
     memoria.append(f"Total cargas permanentes (D1+D2): {D:.3f} kN/m²\n\n")
 
-    # 5) Cargas consideradas
+    # 3) Cargas consideradas
     memoria.append("Cargas consideradas:\n")
     memoria.append(f" - D1 (peso propio): {D1:.3f} kN/m²\n")
     memoria.append(f" - D2 (accesoria): {D2:.3f} kN/m²\n")
@@ -344,7 +318,7 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
     memoria.append(f" - Sobrecarga seleccionada: {uso} → {L:.3f} kN/m²\n")
     memoria.append(f" - Combinación crítica: {combo_critico} → {Q:.3f} kN/m²\n\n")
 
-    # 6) Selección de vigueta
+    # 4) Selección de vigueta
     memoria.append("Selección de vigueta:\n")
     memoria.append(f" - Serie de vigueta: {serie}\n")
     memoria.append(f" - Tipo de vigueta seleccionada: {tipo}\n")
@@ -352,12 +326,40 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
     memoria.append(f" - Momento requerido (sin φ): {momento_req:.2f} kg·m\n")
     memoria.append(f" - Momento requerido para búsqueda (con φ aplicado): {momento_para_busqueda:.2f} kg·m\n")
     memoria.append(f" - Momento disponible de la vigueta seleccionada: {mom_disponible:.2f} kg·m\n")
-    memoria.append(f" - Momento reducido aplicado φ={phi}: {momento_reducido_kgm:.2f} kg·m ({momento_reducido_kNm:.2f} kN·m)\n\n")
+    memoria.append(f" - Momento reducido aplicado φ={phi}: {momento_reducido_kgm:.2f} kg·m ({momento_reducido_kNm:.2f} kN·m)\n")
+    memoria.append(" - Referencia de capacidad: Tabla 4 – Tensolite\n\n")
+
+    # 5) Cómputo de materiales
+    memoria.append("Cómputo de materiales:\n")
+    memoria.append(f" - Área de losa: {area_losa:.2f} m²\n")
+    memoria.append(f" - Viguetas: {n_viguetas} unidades de {luz_calculo:.2f} m\n")
+    bovedilla_altura = combo.split("_")[1]
+    memoria.append(f" - Bovedillas: {n_bloques} unidades EPS n°{bovedilla_altura}\n")
+    memoria.append(f" - Hormigón: {vol_hormigon:.3f} m³ (capa de compresión)\n\n")
+
+    # Malla electrosoldada
+    malla = computo_malla(ancho_losa, luz_calculo, tamanio_pano="2.40x6", solape_m=0.20)
+    memoria.append("Malla electrosoldada SIMA Q-131 / R-131:\n")
+    memoria.append(f" - Paño comercial: {malla['tamanio_pano']} m (solape {malla['solape_m']:.2f} m)\n")
+    memoria.append(f" - Disposición: {malla['filas']} filas × {malla['columnas']} columnas\n")
+    memoria.append(f" - Cantidad de paños: {malla['n_panos']} unidades\n")
+    memoria.append(f" - Área total de paños: {malla['area_total_panos_m2']:.2f} m²\n")
+    memoria.append(f" - Área útil cubierta: {malla['area_util_cubierta_m2']:.2f} m²\n")
+    memoria.append(f" - Desperdicio ≈ {malla['desperdicio_relativo']*100:.1f} %\n\n")
+
+    # Nervios de refuerzo
+    nervios = computo_nervios_refuerzo(luz_calculo, ancho_losa)
+    memoria.append("Nervios de refuerzo:\n")
+    memoria.append(f" - Tramo máximo: 1.80 m\n")
+    memoria.append(f" - Nervios requeridos: {nervios['n_nervios']} unidades\n")
+    memoria.append(f" - Especificación por nervio: {nervios['barras_por_nervio']} barras Ø{nervios['diametro_mm']} "
+                   f"de {nervios['largo_por_nervio_m']:.2f} m\n")
+    memoria.append(f" - Total barras: {nervios['barras_total']} unidades\n")
+    memoria.append(f" - Longitud total de barras: {nervios['longitud_total_barras_m']:.2f} m\n\n")
 
     memoria.append("=================================\n")
     memoria.append("Fin de la memoria de cálculo\n")
-    return memoria   # 👈 este return es obligatorio
-
+    return memoria
 # ==========================
 # Generar memoria técnica con la función
 # ==========================
