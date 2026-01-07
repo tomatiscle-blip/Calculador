@@ -2,6 +2,9 @@ import json
 from PIL import Image
 import xml.etree.ElementTree as ET
 import math
+import os
+from datetime import datetime
+
 
 # ==========================
 # Cargar archivos JSON
@@ -214,8 +217,17 @@ if datos:
 else:
     print("⚠️ No se encontraron datos en materiales.json para esa combinación")
 
-def computo_malla(ancho_losa, luz_calculo, tamanio_pano="2.40x6", solape_m=0.20):
-    # Configurar tamaños comerciales
+# ==========================
+# Cómputo de malla electrosoldada (criterio por m²)
+
+def computo_malla(
+    ancho_losa,
+    lc,
+    tamanio_pano="2.40x6",
+    solape_m=0.15,
+    umbral_fraccion=0.50
+):
+    # --- Tamaños comerciales ---
     if tamanio_pano == "2.40x6":
         pano_ancho, pano_largo = 2.40, 6.00
     elif tamanio_pano == "2.40x3":
@@ -223,35 +235,45 @@ def computo_malla(ancho_losa, luz_calculo, tamanio_pano="2.40x6", solape_m=0.20)
     else:
         raise ValueError(f"Tamaño de paño no reconocido: {tamanio_pano}")
 
-    # Cantidad de paños (discretización con solape en uniones)
-    columnas = math.ceil(ancho_losa / (pano_ancho - solape_m))
-    filas = math.ceil(luz_calculo / (pano_largo - solape_m))
-    n_panos = columnas * filas
+    # --- Áreas ---
+    area_losa = ancho_losa * lc
 
-    # Área de losa y paños
-    area_losa = ancho_losa * luz_calculo
-    area_pano = pano_ancho * pano_largo
-    area_total_panos = n_panos * area_pano
+    # Área efectiva del paño (descontando solape)
+    area_pano_efectiva = (pano_ancho - solape_m) * (pano_largo - solape_m)
 
-    # Área útil cubierta (considerando solapes en uniones)
-    area_util_cubierta = (pano_ancho * columnas - solape_m * (columnas - 1)) \
-                       * (pano_largo * filas - solape_m * (filas - 1))
+    # --- Cómputo teórico ---
+    n_teorico = area_losa / area_pano_efectiva
+    n_enteros = int(n_teorico)
+    fraccion = n_teorico - n_enteros
 
-    # Desperdicio relativo
-    desperdicio_relativo = (area_total_panos - area_losa) / area_losa
+    # --- Regla de decisión ---
+    if n_enteros == 0:
+        n_mallas = 1
+        nota = None
+    elif fraccion <= umbral_fraccion:
+        n_mallas = n_enteros
+        nota = (
+            "Área remanente de malla a completar con barras Ø6 "
+            "según criterio habitual de obra."
+        )
+    else:
+        n_mallas = n_enteros + 1
+        nota = None
+
+    area_total_mallas = n_mallas * (pano_ancho * pano_largo)
 
     return {
         "modelo": "Malla electrosoldada Q-131 / R-131 (SIMA)",
         "tamanio_pano": tamanio_pano,
         "solape_m": solape_m,
-        "columnas": columnas,
-        "filas": filas,
-        "n_panos": n_panos,
-        "area_losa_m2": area_losa,
-        "area_total_panos_m2": area_total_panos,
-        "area_util_cubierta_m2": area_util_cubierta,
-        "desperdicio_relativo": desperdicio_relativo
+        "area_losa_m2": round(area_losa, 2),
+        "area_pano_efectiva_m2": round(area_pano_efectiva, 2),
+        "cantidad_mallas": n_mallas,
+        "area_total_mallas_m2": round(area_total_mallas, 2),
+        "criterio": "Cómputo por área (m²)",
+        "nota": nota
     }
+# ==========================
 
 def computo_nervios_refuerzo(luz_calculo, ancho_losa,
                              max_tramo_m=1.80, barras_por_nervio=2, diametro_mm=8):
@@ -339,14 +361,19 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
 
     # Malla electrosoldada
     malla = computo_malla(ancho_losa, luz_calculo, tamanio_pano="2.40x6", solape_m=0.20)
+
     memoria.append("Malla electrosoldada SIMA Q-131 / R-131:\n")
     memoria.append(f" - Paño comercial: {malla['tamanio_pano']} m (solape {malla['solape_m']:.2f} m)\n")
-    memoria.append(f" - Disposición: {malla['filas']} filas × {malla['columnas']} columnas\n")
-    memoria.append(f" - Cantidad de paños: {malla['n_panos']} unidades\n")
-    memoria.append(f" - Área total de paños: {malla['area_total_panos_m2']:.2f} m²\n")
-    memoria.append(f" - Área útil cubierta: {malla['area_util_cubierta_m2']:.2f} m²\n")
-    memoria.append(f" - Desperdicio ≈ {malla['desperdicio_relativo']*100:.1f} %\n\n")
+    memoria.append(f" - Área losa: {malla['area_losa_m2']:.2f} m²\n")
+    memoria.append(f" - Área efectiva de paño: {malla['area_pano_efectiva_m2']:.2f} m²\n")
+    memoria.append(f" - Cantidad adoptada: {malla['cantidad_mallas']} unidad(es)\n")
 
+    #  Nota opcional si el área remanente se completa con barras Ø6
+    if malla.get("nota"):
+        memoria.append(f" - Nota: {malla['nota']}\n")
+
+    memoria.append("\n")
+    
     # Nervios de refuerzo
     nervios = computo_nervios_refuerzo(luz_calculo, ancho_losa)
     memoria.append("Nervios de refuerzo:\n")
@@ -361,20 +388,32 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
     memoria.append("Fin de la memoria de cálculo\n")
     return memoria
 # ==========================
-# Generar memoria técnica con la función
+# Generar memoria técnica
 # ==========================
-memoria = generar_memoria(losa_nombre, luz_libre, luz_calculo,
-                          D1, D2, D, L, Q,
-                          serie, tipo, combo,
-                          momento_req, momento_para_busqueda,
-                          mom_disponible, phi,
-                          momento_reducido_kgm, momento_reducido_kNm,
-                          seleccion, materiales, seleccion_sobrecarga,
-                          area_losa, n_viguetas, n_bloques, vol_hormigon,
-                          combo_critico, ancho_losa)   # 👈 acá agregamos ancho_losa
+memoria = generar_memoria(
+    losa_nombre, luz_libre, luz_calculo,
+    D1, D2, D, L, Q,
+    serie, tipo, combo,
+    momento_req, momento_para_busqueda,
+    mom_disponible, phi,
+    momento_reducido_kgm, momento_reducido_kNm,
+    seleccion, materiales, seleccion_sobrecarga,
+    area_losa, n_viguetas, n_bloques, vol_hormigon,
+    combo_critico, ancho_losa
+)
 
-with open("memoria_losa.txt", "w", encoding="utf-8") as f:
+# --------------------------
+# Guardado en carpeta salidas (sin sobreescribir)
+# --------------------------
+SALIDAS_DIR = "salidas"
+os.makedirs(SALIDAS_DIR, exist_ok=True)
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+nombre_archivo = f"memoria_losa_{losa_nombre}_{timestamp}.txt"
+ruta_salida = os.path.join(SALIDAS_DIR, nombre_archivo)
+
+with open(ruta_salida, "w", encoding="utf-8") as f:
     f.writelines(memoria)
 
-print("📄 Memoria técnica generada en 'memoria_losa.txt'")
+print(f"📄 Memoria técnica generada en '{ruta_salida}'")
 # ==========================

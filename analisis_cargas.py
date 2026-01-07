@@ -26,8 +26,9 @@ GAMMA = {
         "cedro": {"nombre": "Cedro", "gamma": 5.5}
     },
     "Mamposteria": {
-        "ladrillo_hueco_portante": {"nombre": "Ladrillo hueco portante", "gamma": 10.0},
-        "ladrillo_comun": {"nombre": "Ladrillo común", "gamma": 16.0}
+        "ladrillo_hueco_portante": {"nombre": "Ladrillo hueco portante", "gamma": 12.0},
+        "ladrillo_hueco": {"nombre": "Ladrillo hueco", "gamma": 10.5},
+        "ladrillo_comun": {"nombre": "Ladrillo cerámico común", "gamma": 17.0}
     },
     "Morteros": {
         "cemento_arena": {"nombre": "Mortero cemento–arena", "gamma": 21.0},
@@ -59,19 +60,29 @@ SISTEMAS = {
 
     "Cubiertas": {
         "chapa_ondulada": {
-            "nombre": "Chapa ondulada + fijaciones",
-            "q": 0.10
+            "nombre": "Cubierta liviana (chapa ondulada + fijaciones + correas)",
+            "q": 0.15
         },
         "teja": {
             "nombre": "Teja cerámica con entablonado",
-            "q": 1.00
+            "q": 0.65
         }
     },
 
     "Cielorrasos": {
         "yeso_suspendido": {
-            "nombre": "Cielorraso suspendido de yeso",
-            "q": 0.35
+            "nombre": "Cielorraso de yeso suspendido",
+            "q": 0.33
+        },
+        "yeso_adherido": {
+            "nombre": "Cielorraso de yeso adherido",
+            "q": 0.18
+        }
+    },
+    "Forjados": {
+        "Losa_alivianada": {
+            "nombre": "Losa alivianada EPS P.P estimado",
+            "q": 1.81
         }
     }
 }
@@ -193,23 +204,22 @@ class AnalisisCargas:
 # Cubiertas completas con componentes y sobrecarga
 CUBIERTAS = {
     1: {
-        "nombre": "Cubierta liviana",
+        "nombre": "Cubierta liviana de chapa con correas y cielorraso suspendido",
         "activo": 1,
-        "b": 3.0,
+        "b": 2.025,
         "componentes": [
             (SISTEMAS["Cubiertas"]["chapa_ondulada"]["nombre"], SISTEMAS["Cubiertas"]["chapa_ondulada"]["q"]),
-            (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"]),
-            (GAMMA["Madera"]["pino"]["nombre"] + " 0.04 m", carga_superficial(GAMMA["Madera"]["pino"]["gamma"], 0.04))
+            (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
         ],
         "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"]
     },
     2: {
-        "nombre": "Cubierta pesada",
+        "nombre": "Cubierta de teja cerámica con cielorraso incorporado",
         "activo": 0,
         "b": 3.0,
         "componentes": [
-            ("Teja cerámica con entablonado", SISTEMAS["Cubiertas"]["teja"]["q"]),
-            ("Estructura de madera 0.05 m", carga_superficial(GAMMA["Madera"]["pino"]["gamma"], 0.05))
+            ("Teja cerámica tipo Marsella con entablonado", SISTEMAS["Cubiertas"]["teja"]["q"]),
+            ("Cabios de madera (espesor equivalente 0.02 m)",carga_superficial(GAMMA["Madera"]["pino"]["gamma"], 0.02))
         ],
         "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"]
     },
@@ -228,62 +238,141 @@ CUBIERTAS = {
 # Forjados completos con componentes y sobrecarga
 FORJADOS = {
     1: {
-        "nombre": "Forjado completo",
-        "activo": 1,
-        "b": 3.0,
+        "nombre": "Losa Maciza completa",
+        "activo": 0,# 1si, 0 no
+        "b": 2.90, # ancho tributario
         "componentes": [
             (SISTEMAS["Pisos"]["ceramica"]["nombre"], SISTEMAS["Pisos"]["ceramica"]["q"]),
             carpeta_nivelacion(0.025),  # 2.5 cm
-            contrapiso_cascotes(0.05),  # 5 cm
-            (GAMMA["Hormigon"]["armado"]["nombre"] + " 0.08 m",
-             carga_superficial(GAMMA["Hormigon"]["armado"]["gamma"], 0.08))
+            #contrapiso_cascotes(0.05),  # 5 cm, elegir contrapiso de cascotes o alivianado
+            (GAMMA["Hormigon"]["alivianado_eps_250"]["nombre"] + " 0.08 m", carga_superficial(GAMMA["Hormigon"]["alivianado_eps_250"]["gamma"], 0.08)),
+            (GAMMA["Hormigon"]["armado"]["nombre"] + " 0.12 m", carga_superficial(GAMMA["Hormigon"]["armado"]["gamma"], 0.12)),
+            (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
         ],
         "sobrecarga": SOBRECARGAS["vivienda"]
     },
     2: {
-        "nombre": "Losa simple",
-        "activo": 0, #1si, 0no
-        "b": 4.0,
+        "nombre": "Losa Alivianada completa",
+        "activo": 1, #1si, 0no
+        "b": 2.88,  # ancho tributario
         "componentes": [
-            ("Losa hormigón armado 0.10 m", carga_superficial(GAMMA["Hormigon"]["armado"]["gamma"], 0.10))
+            (SISTEMAS["Pisos"]["porcelanato"]["nombre"], SISTEMAS["Pisos"]["porcelanato"]["q"]),
+            #(SISTEMAS["Pisos"]["ceramica"]["nombre"], SISTEMAS["Pisos"]["ceramica"]["q"]),
+            carpeta_nivelacion(0.03),  # 3 cm
+            contrapiso_cascotes(0.08),  # 8cm
+            #GAMMA["Hormigon"]["alivianado_eps_250"]["nombre"] + " 0.08 m", carga_superficial(GAMMA["Hormigon"]["alivianado_eps_250"]["gamma"], 0.08)),
+            (SISTEMAS["Forjados"]["Losa_alivianada"]["nombre"], SISTEMAS["Forjados"]["Losa_alivianada"]["q"]),
+            (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
+        ],
+        "sobrecarga": SOBRECARGAS["vivienda"]
+    },
+    3: {
+        "nombre": "Losa Alivianada completa",
+        "activo": 1, #1si, 0no
+        "b": 1.10,  # ancho tributario
+        "componentes": [
+            (SISTEMAS["Pisos"]["porcelanato"]["nombre"], SISTEMAS["Pisos"]["porcelanato"]["q"]),
+            #(SISTEMAS["Pisos"]["ceramica"]["nombre"], SISTEMAS["Pisos"]["ceramica"]["q"]),
+            carpeta_nivelacion(0.03),  # 3 cm
+            contrapiso_cascotes(0.08),  # 8cm
+            #GAMMA["Hormigon"]["alivianado_eps_250"]["nombre"] + " 0.08 m", carga_superficial(GAMMA["Hormigon"]["alivianado_eps_250"]["gamma"], 0.08)),
+            (SISTEMAS["Forjados"]["Losa_alivianada"]["nombre"], SISTEMAS["Forjados"]["Losa_alivianada"]["q"]),
+            (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
         ],
         "sobrecarga": SOBRECARGAS["vivienda"]
     }
 }
 
-
 # Muros reutilizables (plantillas)
-def M1(e, h):
-    gamma = GAMMA["Mamposteria"]["ladrillo_comun"]["gamma"]
+def muro(tipo, e, h):
+    gamma = GAMMA["Mamposteria"][tipo]["gamma"]
+    nombre_base = GAMMA["Mamposteria"][tipo]["nombre"]
+
     return {
-        "nombre": "Muro de ladrillo común",
+        "tipo": tipo,
+        "nombre": f"Muro de {nombre_base} (e={int(e*100)} cm · h={h:.2f} m)",
         "valor": carga_lineal_muro(gamma, e, h),
         "unidad": "kN/m",
         "detalle": f"γ={gamma} kN/m3 · e={e} m · h={h} m"
     }
 
-def M2(e, h):
-    gamma = GAMMA["Mamposteria"]["ladrillo_hueco_portante"]["gamma"]
-    return {
-        "nombre": "Muro de ladrillo hueco",
-        "valor": carga_lineal_muro(gamma, e, h),
-        "unidad": "kN/m",
-        "detalle": f"γ={gamma} kN/m3 · e={e} m · h={h} m"
-    }
 
 # Lista de muros del proyecto
 MUROS = {
-    "M1": {"func": M1, "activo": 1, "e": 0.24, "h": 2.60},
-    "M2": {"func": M2, "activo": 1, "e": 0.20, "h": 2.60},
-}
+    "muro_comun_24": {
+        "activo": 0,
+        "tipo": "ladrillo_comun",
+        "e": 0.24,
+        "h": 1.33
+    },
 
+    "muro_comun_18": {
+        "activo": 1,
+        "tipo": "ladrillo_comun",
+        "e": 0.18,
+        "h": 1.33
+    },
+
+    "muro_comun_12": {
+        "activo": 0,
+        "tipo": "ladrillo_comun",
+        "e": 0.12,
+        "h": 2.65
+    },
+
+    "muro_hueco_port_20": {
+        "activo": 0,
+        "tipo": "ladrillo_hueco_portante",
+        "e": 0.20,
+        "h": 2.60
+    },
+
+    "muro_hueco_np_8": {
+        "activo": 0,
+        "tipo": "ladrillo_hueco",
+        "e": 0.08,
+        "h": 2.65
+    },
+    "muro_hueco_np_18": {
+        "activo": 1,
+        "tipo": "ladrillo_hueco",
+        "e": 0.18,
+        "h": 2.80
+    },
+}
+# Encadenados (carga lineal)
+def encadenado(b, h):
+    gamma = GAMMA["Hormigon"]["armado"]["gamma"]
+    nombre = GAMMA["Hormigon"]["armado"]["nombre"]
+
+    return {
+        "nombre": f"Encadenado de {nombre} ({int(b*100)}x{int(h*100)} cm)",
+        "valor": gamma * b * h,
+        "unidad": "kN/m",
+        "detalle": f"γ={gamma} kN/m3 · b={b} m · h={h} m"
+    }
+ENCADENADOS = {
+    "enc_20x30": {
+        "activo": 0,
+        "b": 0.20,
+        "h": 0.30,
+        "cantidad": 1
+    },
+
+    "enc_20x20": {
+        "activo": 1,
+        "b": 0.20,
+        "h": 0.20,
+        "cantidad": 1
+    }
+}
 
 # ===============================
 # MAIN
 # ===============================
 if __name__ == "__main__":
 
-    analisis = AnalisisCargas("Cargas Viga 01") #cambiar nombre proyecto
+    analisis = AnalisisCargas("Cargas Viga V0-2") #cambiar nombre proyecto
     # -------------------------------
     # Cubiertas
     # -------------------------------
@@ -340,9 +429,32 @@ if __name__ == "__main__":
     # Muros
     # -------------------------------
     for key, m in MUROS.items():
-        if m["activo"]:
-            muro = m["func"](m["e"], m["h"])
-            analisis.agregar(muro["nombre"], "D", muro["valor"], muro["unidad"], muro["detalle"])
+        if not m["activo"]:
+            continue
+        muro_calc = muro(m["tipo"], m["e"], m["h"])
+        analisis.agregar(
+            muro_calc["nombre"],
+            "D",
+            muro_calc["valor"],
+            muro_calc["unidad"],
+            muro_calc["detalle"]
+        )
+    # -------------------------------
+    # Encadenados
+    # -------------------------------
+    for key, e in ENCADENADOS.items():
+        if not e["activo"]:
+            continue
+
+        enc = encadenado(e["b"], e["h"])
+        valor_total = enc["valor"] * e.get("cantidad", 1)
+        analisis.agregar(
+            f'{enc["nombre"]} × {e.get("cantidad",1)}',
+            "D",
+            valor_total,
+            enc["unidad"],
+            f'{enc["detalle"]} · cantidad={e.get("cantidad",1)}'
+        )
 
     # -------------------------------
     # Resumen en pantalla
