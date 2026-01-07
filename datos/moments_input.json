@@ -1,0 +1,70 @@
+{
+  "V01": {
+    "b_cm": 20.0,
+    "h_cm": 40.0,
+    "recubrimiento_cm": 3.0,
+    "fc_MPa": 21.0,
+    "fy_MPa": 420.0,
+    "tramos": [
+      {
+        "id": "T1",
+        "longitud_m": 5.0,
+        "es_voladizo": false,
+        "Mu_kNm_campo": 97.9,
+        "Mu_kNm_apoyo_izq": -54.6,
+        "Mu_kNm_apoyo_der": -22.9,
+        "Vu_kN_izq": 115.0,
+        "Vu_kN_der": 101.5
+      }
+    ]
+  },
+  "V02": {
+    "b_cm": 20.0,
+    "h_cm": 40.0,
+    "recubrimiento_cm": 3.0,
+    "fc_MPa": 21.0,
+    "fy_MPa": 420.0,
+    "tramos": [
+      {
+        "id": "T1_v",
+        "longitud_m": 0.8,
+        "es_voladizo": true,
+        "Mu_kNm": -54.6,
+        "Vu_kN_emp": 61.0
+      },
+      {
+        "id": "T2",
+        "longitud_m": 4.85,
+        "es_voladizo": false,
+        "Mu_kNm_campo": 97.9,
+        "Mu_kNm_apoyo_izq": -54.6,
+        "Mu_kNm_apoyo_der": -22.9,
+        "Vu_kN_izq": 115.0,
+        "Vu_kN_der": 101.5
+      }
+    ]
+  },
+  "V03": {
+    "b_cm": 20.0,
+    "h_cm": 40.0,
+    "recubrimiento_cm": 3.0,
+    "fc_MPa": 21.0,
+    "fy_MPa": 420.0,
+    "tramos": [
+      {
+        "id": "T1",
+        "longitud_m": 5.0,
+        "es_voladizo": false,
+        "Mu_kNm_campo": 98.0,
+        "Mu_kNm_apoyo_izq": -22.0,
+        "Mu_kNm_apoyo_der": -22.0,
+        "Vu_kN_izq": 101.0,
+        "Vu_kN_der": 101.0,
+        "puntos_inflexion_m": [
+          0.5,
+          4.5
+        ]
+      }
+    ]
+  }
+}
