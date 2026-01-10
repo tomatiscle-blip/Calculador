@@ -112,9 +112,9 @@ def imprimir_resultado(resultado):
 # ==========================
 
 if __name__ == "__main__":
-    L = 7.00
-    q = 50.0
-    b = 0.25
+    L = 6.20
+    q = 20
+    b = 0.20
     hormigon = "H21"
     delta_ratio = 360  # L/360 para vigas con tabiques o acabados frágiles
 

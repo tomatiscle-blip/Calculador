@@ -10,11 +10,15 @@
         "id": "T1",
         "longitud_m": 5.0,
         "es_voladizo": false,
-        "Mu_kNm_campo": 97.9,
-        "Mu_kNm_apoyo_izq": -54.6,
-        "Mu_kNm_apoyo_der": -22.9,
+        "Mu_kNm_campo": 97.0,
+        "Mu_kNm_apoyo_izq": -22.0,
+        "Mu_kNm_apoyo_der": -21.0,
         "Vu_kN_izq": 115.0,
-        "Vu_kN_der": 101.5
+        "Vu_kN_der": 110.0,
+        "puntos_inflexion_m": [
+          0.5,
+          4.5
+        ]
       }
     ]
   },
@@ -40,7 +44,11 @@
         "Mu_kNm_apoyo_izq": -54.6,
         "Mu_kNm_apoyo_der": -22.9,
         "Vu_kN_izq": 115.0,
-        "Vu_kN_der": 101.5
+        "Vu_kN_der": 101.5,
+        "puntos_inflexion_m": [
+          0.4,
+          4.35
+        ]
       }
     ]
   },

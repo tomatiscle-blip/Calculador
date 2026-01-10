@@ -1,0 +1,21 @@
+================================================================================
+PLANILLA DE DOBLADO – V02 – VOLADIZO – TRAMO T1_v
+================================================================================
+Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 4     | 12   | Sup. voladizo       | 1.28    | 4.55      
+2    | 2     | 10   | Inf. mínima         | 0.80    | 0.99      
+3    | 2     | 6    | Estribo empotramiento | 1.06    | 0.47      
+4    | 3     | 6    | Estribo extremo_libre | 1.06    | 0.71      
+Nota: Zonificación de estribos (voladizo) → Empotramiento=0.00-0.36 m | Extremo libre=0.36-0.80 m
+--------------------------------------------------------------------------------
+PESO TOTAL ACERO (kg):                                  6.71
+================================================================================
+
+NOTAS TÉCNICAS:
+- Cuantía requerida (As req): 4.33 cm²
+- Cuantía mínima (As min): 2.40 cm²
+- Cuantía máxima (As max): 11.47 cm²
+- Cuantía adoptada: 4.52 cm²
+- Estado de diseño: ✅ Cuantía dentro del rango permitido
+- kd utilizado: 0.645-0.656 (fila {'Ke': 25.72312192521959, 'Kc': 0.17528414439146917, 'Kz': 0.9253579278042654})

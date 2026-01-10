@@ -1,5 +1,6 @@
 import json
 import os
+import math
 
 def ingresar_datos():
     viga_id = input("ID de la viga: ")
@@ -79,6 +80,50 @@ def ingresar_datos():
         json.dump(datos, f, indent=2)
 
     print(f"\nDatos guardados en {archivo}")
+
+    # 🔹 Preparación de datos: resumen técnico
+    preparar_datos(datos)
+
+def preparar_datos(datos):
+    for viga_id, viga in datos.items():
+        print(f"\n=== Viga {viga_id} ===")
+        b = viga["b_cm"] / 100.0
+        h = viga["h_cm"] / 100.0
+        rec = viga["recubrimiento_cm"] / 100.0
+        fc = viga["fc_MPa"]
+        fy = viga["fy_MPa"]
+
+        Ec = 4700 * math.sqrt(fc)  # MPa
+        I = b * (h**3) / 12        # m^4
+        rho_min = 0.7 * math.sqrt(fc) / fy
+
+        print(f"Sección: {b*100:.1f} x {h*100:.1f} cm, recubrimiento {rec*100:.1f} cm")
+        print(f"Ec = {Ec:.0f} MPa, I = {I:.6f} m^4, ρmin = {rho_min:.4f}")
+
+        for tramo in viga["tramos"]:
+            print(f"\n--- Tramo {tramo['id']} ---")
+            L = tramo["longitud_m"]
+
+            if tramo["es_voladizo"]:
+                print(f"Voladizo de {L:.2f} m")
+                print(f"Mu = {tramo['Mu_kNm']} kN·m, Vu_emp = {tramo['Vu_kN_emp']} kN")
+            else:
+                print(f"Tramo normal de {L:.2f} m")
+                print(f"Mu campo = {tramo['Mu_kNm_campo']} kN·m")
+                print(f"Mu apoyo izq = {tramo['Mu_kNm_apoyo_izq']} kN·m")
+                print(f"Mu apoyo der = {tramo['Mu_kNm_apoyo_der']} kN·m")
+                print(f"Vu izq = {tramo['Vu_kN_izq']} kN, Vu der = {tramo['Vu_kN_der']} kN")
+
+                puntos = tramo.get("puntos_inflexion_m", [])
+                if not puntos:
+                    print("⚠ Error: tramo no voladizo sin puntos de inflexión")
+                else:
+                    if any(p <= 0 or p >= L for p in puntos):
+                        print("⚠ Error: Pi fuera de rango")
+                    elif any(puntos[i] >= puntos[i+1] for i in range(len(puntos)-1)):
+                        print("⚠ Error: Pi no ordenados")
+                    else:
+                        print(f"Puntos de inflexión: {puntos}")
 
 if __name__ == "__main__":
     ingresar_datos()

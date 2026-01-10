@@ -1,0 +1,24 @@
+================================================================================
+PLANILLA DE DOBLADO – V01 – TRAMO INTERIOR – TRAMO T1
+================================================================================
+Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 5     | 8    | Sup. apoyo izq      | 0.82    | 1.62      
+2    | 3     | 20   | Inf. tramo          | 4.48    | 33.14     
+3    | 5     | 8    | Sup. apoyo der      | 0.82    | 1.62      
+4    | 2     | 8    | Auxiliar superior   | 5.24    | 4.14      
+5    | 5     | 6    | Estribo apoyo_izq    | 1.06    | 1.18      
+6    | 43    | 6    | Estribo central      | 1.06    | 10.12     
+7    | 4     | 6    | Estribo apoyo_der    | 1.06    | 0.94      
+Nota: Zonificación de estribos → A=0.00-0.36 m | B=0.36-4.64 m | C=4.64-5.00 m
+--------------------------------------------------------------------------------
+PESO TOTAL ACERO (kg):                                  52.76
+================================================================================
+
+NOTAS TÉCNICAS:
+- Cuantía requerida (As req): 8.31 cm²
+- Cuantía mínima (As min): 2.40 cm²
+- Cuantía máxima (As max): 11.47 cm²
+- Cuantía adoptada: 9.42 cm²
+- Estado de diseño: ✅ Cuantía dentro del rango permitido
+- kd utilizado: 0.489-0.492 (fila {'Ke': 27.771477662264463, 'Kc': 0.3356621034643003, 'Kz': 0.8569351586142798})

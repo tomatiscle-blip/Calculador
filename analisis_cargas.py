@@ -18,7 +18,7 @@ GAMMA = {
         "sin_armar": {"nombre": "Hormigón sin armar", "gamma": 23.5},
         "alivianado_eps_alta": {"nombre": "Hormigón alivianado (EPS alta densidad)", "gamma": 10.0},
         "alivianado_eps_250": {"nombre": "Hormigón alivianado (EPS 250 kg/m³)", "gamma": 2.45},
-        "cascotes_cal": {"nombre": "Contrapiso de cascotes y cal", "gamma": 16.0}
+        "cascotes_cal": {"nombre": "Contrapiso de cascotes y cal", "gamma": 17.0}
     },
     "Madera": {
         "pino": {"nombre": "Pino", "gamma": 6.0},
@@ -193,7 +193,13 @@ class AnalisisCargas:
         combos = {}
         combos["1.4D"] = 1.4 * D_total
         combos["1.2D+1.6L"] = 1.2 * D_total + 1.6 * L_total
-        
+        #U=1.4 (D+F)
+        #U=1.2 (D+F+T) + 1.6 (L+H) + (f1 Lr o 0.5S o 0.5R)
+        #U=1.2 D + 1.6 (Lr o S o R) + (f1 Lr o 0.5S o 0.5R)
+        #U=1.2 D + 1.6 W + f1 L + (f1 Lr o 0.5S o 0.5R)
+        #U=1.2 D + 1.0 E + f1 (L + Lr) + f2 S
+        #U= 0.9 D + 1.6 W + 1.6 H
+        #U= 0.9 D + 1.0 E + 1.6 H   
         return combos
 
 
