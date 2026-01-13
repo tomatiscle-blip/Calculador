@@ -4,21 +4,46 @@ PLANILLA DE DOBLADO – V01 – TRAMO INTERIOR – TRAMO T1
 Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
 1    | 5     | 8    | Sup. apoyo izq      | 0.82    | 1.62      
-2    | 3     | 20   | Inf. tramo          | 4.48    | 33.14     
+2    | 4     | 16   | Inf. tramo          | 4.38    | 27.67     
 3    | 5     | 8    | Sup. apoyo der      | 0.82    | 1.62      
 4    | 2     | 8    | Auxiliar superior   | 5.24    | 4.14      
-5    | 5     | 6    | Estribo apoyo_izq    | 1.06    | 1.18      
+5    | 4     | 6    | Estribo apoyo_izq    | 1.06    | 0.94      
 6    | 43    | 6    | Estribo central      | 1.06    | 10.12     
 7    | 4     | 6    | Estribo apoyo_der    | 1.06    | 0.94      
 Nota: Zonificación de estribos → A=0.00-0.36 m | B=0.36-4.64 m | C=4.64-5.00 m
---------------------------------------------------------------------------------
-PESO TOTAL ACERO (kg):                                  52.76
-================================================================================
 
-NOTAS TÉCNICAS:
-- Cuantía requerida (As req): 8.31 cm²
-- Cuantía mínima (As min): 2.40 cm²
-- Cuantía máxima (As max): 11.47 cm²
-- Cuantía adoptada: 9.42 cm²
-- Estado de diseño: ✅ Cuantía dentro del rango permitido
-- kd utilizado: 0.489-0.492 (fila {'Ke': 27.771477662264463, 'Kc': 0.3356621034643003, 'Kz': 0.8569351586142798})
+NOTAS TÉCNICAS
+--------------------------------------------------------------------------------
+1 FLEXIÓN
+   As requerida      = 7.52 cm²
+   As mínima         = 2.40 cm²
+   As máxima         = 11.47 cm²
+   As adoptada       = 8.04 cm²
+   Estado            = ✅ Cuantía dentro del rango permitido
+
+2 SECCIÓN
+   b = 20.0 cm
+   h = 40.0 cm
+   d = 36.0 cm
+   recubrimiento = 3.0 cm
+
+3 MATERIALES
+   f'c = 21.0 MPa
+   fy  = 420.0 MPa
+   Ec  = 21538 MPa
+
+4 INERCIAS
+- Inercia bruta Ig: 0.001067 m⁴ | 106,667 cm⁴
+- Inercia fisurada Icr: 0.000561 m⁴ | 56,100 cm⁴
+- Inercia efectiva Ie (Branson): 0.000563 m⁴ | 56,348 cm⁴
+- Momento de fisuración Mcr: 15.28 kNm
+- Kc usado para sección: 0.375
+- kd_lookup: 0.509
+
+5 HORMIGÓN
+   Volumen = 0.400 m³
+   Peso ≈ 1000 kg
+
+6 PUNTOS DE INFLEXIÓN
+   PI izquierdo = 0.50 m
+   PI derecho   = 4.50 m

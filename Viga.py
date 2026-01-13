@@ -4,12 +4,13 @@ from pathlib import Path
 
 
 class DisenadorViga:
-    def __init__(self, nombre, b_cm, h_cm, rec_cm=None, fc_MPa=25, fy_MPa=420):
+    def __init__(self, nombre, b_cm, h_cm, rec_cm=None, fc_MPa=25, fy_MPa=420,rec_sup_cm=None):
         self.nombre = nombre
         self.b = b_cm / 100.0
         self.h = h_cm / 100.0
         # recubrimiento fijo de 40 mm si no se pasa otro
         self.rec = (rec_cm / 100.0) if rec_cm is not None else 0.04
+        self.recubrimiento_sup_cm = rec_sup_cm if rec_sup_cm is not None else rec_cm
         self.fc = fc_MPa
         self.fy = fy_MPa
         self.d = self.h - self.rec - 0.01
@@ -42,6 +43,19 @@ class DisenadorViga:
         else:
             return "fc_30"
 
+    def _kd_fisico(self, Mn_kNm):
+        # Convertir a MN·m
+        Mn_MNm = Mn_kNm / 1000.0
+        kd = self.d / math.sqrt(Mn_MNm / self.b)
+        return kd
+
+    def _kd_lim_por_fc(self, fc):
+        # kd límite según resistencia del hormigón
+        # ejemplo: tabla simplificada
+        if fc <= 25: return 0.45
+        elif fc <= 30: return 0.50
+        else: return 0.55
+   
     def leer_tramos(viga_json):
         tramos = []
         for tramo in viga_json["tramos"]:
@@ -57,42 +71,163 @@ class DisenadorViga:
             })
         return tramos
 
-    def _kd_por_tu_tabla(self, Mn_kNm):
-        d_m = self.d
-        bw_m = self.b
-        Mn_MNm = abs(Mn_kNm) / 1000.0
-        base = Mn_MNm / bw_m
-        if base <= 0:
-            return float('inf')
-        return d_m / math.sqrt(base)
-
-    def calcular_as_necesaria(self, Mu_kNm, coef_kd):
-        phi = self.phi["flexion_traccion"]
-        Mn_kNm = abs(Mu_kNm) / phi
-
+    def _fila_kd_interpolada(self, kd_in, coef_kd, dato_externo=None):
         fc_key = self._fc_key()
         tabla = coef_kd["coeficientes_flexion"][fc_key]
-        kd_in = self._kd_por_tu_tabla(Mn_kNm)
         claves = sorted([float(k) for k in tabla.keys()])
+        kd_min, kd_max = claves[0], claves[-1]
+        # Saturación en bordes
+        if kd_in <= kd_min:
+            fila = tabla[f"{kd_min:.3f}"]
+            modo = "saturado_inferior"
+            info = {}
+            # Límite inferior: aplicar kd × dato si corresponde
+            if dato_externo is not None:
+                info["kd_por_dato"] = kd_in * dato_externo
+            return fila, kd_min, modo, info
+
+        if kd_in >= kd_max:
+            fila = tabla[f"{kd_max:.3f}"]
+            return fila, kd_max, "saturado_superior", {}
+
+        # Interpolación lineal
         kd_bajo = max([k for k in claves if k <= kd_in], default=claves[0])
         kd_alto = min([k for k in claves if k >= kd_in], default=claves[-1])
 
-        if kd_bajo == kd_alto:
+        if abs(kd_bajo - kd_alto) < 1e-12:
             fila = tabla[str(kd_bajo)]
-            kd_sel = str(kd_bajo)
+            return fila, kd_bajo, "exacto", {}
+
+        datos_bajo = tabla[str(kd_bajo)]
+        datos_alto = tabla[str(kd_alto)]
+        t = (kd_in - kd_bajo) / (kd_alto - kd_bajo)
+
+        def interp(campo):
+            return datos_bajo[campo] + (datos_alto[campo] - datos_bajo[campo]) * t
+
+        fila = {"Ke": interp("Ke"), "Kc": interp("Kc"), "Kz": interp("Kz")}
+        return fila, kd_in, "interpolado", {"intervalo": [kd_bajo, kd_alto], "t": t}
+    
+    def _fs_prima_cirsoc(self, k, k_star, x, eps_c=0.003, eps_c_star=0.003, Es_MPa=200000.0):
+        # f_s' = Es * [ (1 - k* x) * eps_c* - (1 - k x) * eps_c ]
+        eps_sp = (1 - k_star * x) * eps_c_star - (1 - k * x) * eps_c
+        fs_p = Es_MPa * eps_sp
+        fs_p = min(fs_p, self.fy)  # tope por fy
+        return {"eps_s_prima": eps_sp, "fs_prima_MPa": fs_p}
+    
+    def _lookup_ke_kep(self, tabla_comp, k_ratio, x_rel, fs_target):
+        rows = tabla_comp["rows"]
+
+        # Buscar la fila más cercana en kd_ratio y x_rel
+        row = min(
+            rows,
+            key=lambda r: abs(r["kd_kd"] - k_ratio) + abs(r["x"] - x_rel)
+        )
+
+        # Localizar columna más cercana en fs_cols
+        fs_cols = tabla_comp["fs_cols"]
+        col_idx = min(range(len(fs_cols)), key=lambda i: abs(fs_cols[i] - fs_target))
+
+        # Proteger índice por si la fila tiene menos columnas
+        if col_idx >= len(row["ke"]):
+            col_idx = len(row["ke"]) - 1
+
+        ke_val = row["ke"][col_idx]      # coeficiente Ke
+        kep_val = row["ke_p"][col_idx]   # coeficiente Ke'
+
+        return ke_val, kep_val, {"kd_ratio": row["kd_kd"], "x": row["x"], "col_idx": col_idx}
+    
+    def _as_por_mn(self, Mu_kNm, phi, ke_cm2_por_MN_por_m, kep_cm2_por_MN_por_m):
+        Mn_MNm = abs(Mu_kNm) / phi / 1000.0  # kNm -> MN·m
+        As_cm2  = ke_cm2_por_MN_por_m  * (Mn_MNm / self.d)
+        Asp_cm2 = kep_cm2_por_MN_por_m * (Mn_MNm / self.d)
+        return round(As_cm2, 2), round(Asp_cm2, 2)
+    
+    def calcular_as_necesaria(
+        self, Mu_kNm, coef_kd, tabla_comp=None,
+        dato_externo=None, x_rel=None, k_star=None, fs_politica=None, debug_compresion=False
+    ):
+        import math
+
+        # 0) Parámetros base
+        phi = self.phi["flexion_traccion"]
+        Mn_kNm = abs(Mu_kNm) / phi
+        Mn_MNm = Mn_kNm / 1000.0
+        fs_obj = fs_politica or 360  # política/nearest para columna fs
+
+        # 1) kd físico y kd límite (kd*)
+        kd_fisico = self._kd_fisico(Mn_kNm)
+        kd_lim    = self._kd_lim_por_fc(self.fc)
+
+        # 2) Decidir lookup: simple (kd_físico) vs doble (kd_ratio)
+        if kd_fisico >= kd_lim:
+            kd_lookup = kd_fisico
+            doble_armadura = False
         else:
-            datos_bajo = tabla[str(kd_bajo)]
-            datos_alto = tabla[str(kd_alto)]
-            t = (kd_in - kd_bajo) / (kd_alto - kd_bajo)
-            def interp(campo):
-                return datos_bajo[campo] + (datos_alto[campo] - datos_bajo[campo]) * t
-            fila = {"Ke": interp("Ke"), "Kc": interp("Kc"), "Kz": interp("Kz")}
-            kd_sel = f"{kd_bajo:.3f}-{kd_alto:.3f}"
+            kd_lookup = kd_fisico / kd_lim
+            doble_armadura = True
 
-        Mn_MNm = abs(Mn_kNm) / 1000.0
-        Ke = fila["Ke"]
-        As_req_cm2 = Ke * (Mn_MNm / self.d)
+        # 3) x_rel para el lookup (geométrico simple: recubrimiento superior / d)
+        if x_rel is None:
+            try:
+                x_rel = (self.recubrimiento_sup_cm / 100.0) / self.d
+            except Exception:
+                x_rel = None  # si no hay datos, se deja None
+        # Inicialización de coeficientes
+        Ke = None
+        Kep = None
+        Kc = None
+        Kz = None
+        k_used = None
+        modo_k = None
+        info_k = {}
 
+        # 4) Obtener coeficientes desde tabla de flexión (fc_XX): SOLO Ke, Kc, Kz
+        # Si hay tabla_comp y x_rel, usamos lookup bilineal para Ke/Kep (pero Kc/Kz siguen viniendo de flexión)
+        if tabla_comp is not None and x_rel is not None:
+            # Lookup bilineal (kd_lookup + x_rel) para Ke/Kep
+            Ke, Kep_tab, info_k = self._lookup_ke_kep(
+                k_ratio=kd_lookup,
+                x_rel=x_rel,
+                tabla_comp=tabla_comp,
+                fs_target=fs_obj
+            )
+            Kep = Kep_tab
+            k_used = kd_lookup
+            modo_k = info_k.get("modo", "bilineal")
+
+            # Kc/Kz deben venir de la tabla de flexión (fc_key)
+            try:
+                fc_key = self._fc_key()  # p.ej. "fc_30"
+                fila_flex = self._fila_kd_interpolada(kd_lookup, coef_kd, dato_externo=dato_externo)[0]
+                Kc = fila_flex.get("Kc", None)
+                Kz = fila_flex.get("Kz", None)
+                # Si no existen, dejar None (no 0.0) y documentar
+                if Kc is None or Kz is None:
+                    info_k["nota"] = "Kc/Kz no presentes en flexión para este kd; se dejan como None."
+            except Exception as e:
+                info_k["error_flexion"] = f"No se pudo leer Kc/Kz de flexión: {e}"
+                Kc, Kz = None, None
+
+        else:
+            # Fallback al interpolador anterior (solo kd_lookup) desde flexión
+            fila, k_used, modo_k, info_k = self._fila_kd_interpolada(
+                kd_lookup, coef_kd, dato_externo=dato_externo
+            )
+            Ke = fila.get("Ke")
+            # Kc/Kz SOLO desde flexión; si faltan, dejar None (no 0.4/1.0 por defecto)
+            Kc = fila.get("Kc", None)
+            Kz = fila.get("Kz", None)
+            if Kc is None or Kz is None:
+                info_k["nota"] = "Kc/Kz no presentes en flexión para este kd; se dejan como None."
+
+        # 5) Cálculo de As por tracción y compresión (primera pasada)
+        As_req_cm2  = Ke * (Mn_MNm / self.d) if Ke is not None else None
+        Asp_req_cm2 = None
+        if Kep is not None and doble_armadura:
+            Asp_req_cm2 = Kep * (Mn_MNm / self.d)
+
+        # 6) Mínima / balanceada / máxima
         As_min_1 = (math.sqrt(self.fc) / (4.0 * self.fy)) * self.b * self.d * 10000.0
         As_min_2 = (1.4 / self.fy) * self.b * self.d * 10000.0
         As_min_cm2 = max(As_min_1, As_min_2)
@@ -104,28 +239,207 @@ class DisenadorViga:
         rho_bal = 0.85 * beta1 * (self.fc / self.fy) * (eps_cu / (eps_cu + eps_y))
         As_bal_cm2 = rho_bal * self.b * self.d * 10000.0
         As_max_cm2 = 0.75 * As_bal_cm2
-        As_final_cm2 = min(max(As_req_cm2, As_min_cm2), As_max_cm2)
 
-        if As_final_cm2 < As_min_cm2:
-            estado = "❌ Cuantía insuficiente (menor que mínima)"
-        elif As_final_cm2 > As_max_cm2:
-            estado = "❌ Cuantía excesiva (mayor que máxima)"
+        # Si As_req_cm2 es None, no podemos evaluar rango; mantenemos None y estado informativo
+        # Si As_req_cm2 es None, no podemos evaluar rango; mantenemos None y estado informativo
+        if As_req_cm2 is None:
+            As_final_cm2 = None
+            estado = "⚠️ Ke no disponible; no se puede evaluar cuantía."
         else:
-            estado = "✅ Cuantía dentro del rango permitido"
-        return {
+            if doble_armadura:
+                # En doble armadura, la adoptada coincide con la requerida
+                As_final_cm2 = As_req_cm2
+                estado = "ℹ️ Doble armadura activa; menor ductilidad (Kc límite aplicado)"
+            else:
+                # En flexión simple, sí se controla mínima/máxima
+                As_final_cm2 = min(max(As_req_cm2, As_min_cm2), As_max_cm2)
+                if As_final_cm2 < As_min_cm2:
+                    estado = "❌ Cuantía insuficiente (menor que mínima)"
+                elif As_final_cm2 > As_max_cm2:
+                    estado = "❌ Cuantía excesiva (mayor que máxima)"
+                else:
+                    estado = "✅ Cuantía dentro del rango permitido"
+
+        # 8) Salida clara y trazable (Kc/Kz solo de flexión; nunca cero por defecto)
+        salida = {
             "Mu_kNm": Mu_kNm,
             "phi_flexion": phi,
             "Mn_kNm": Mn_kNm,
-            "As_req_cm2": As_req_cm2,
-            "As_min_cm2": As_min_cm2,
-            "As_bal_cm2": As_bal_cm2,
-            "As_max_cm2": As_max_cm2,
-            "As_final_cm2": As_final_cm2,
+            "As_req_cm2": round(As_req_cm2, 2) if As_req_cm2 is not None else None,
+            "Asp_req_cm2": round(Asp_req_cm2, 2) if Asp_req_cm2 is not None else 0.0,
+            "As_min_cm2": round(As_min_cm2, 2),
+            "As_bal_cm2": round(As_bal_cm2, 2),
+            "As_max_cm2": round(As_max_cm2, 2),
+            "As_final_cm2": round(As_final_cm2, 2) if As_final_cm2 is not None else None,
             "estado": estado,
-            "kd_in": kd_in,
-            "kd_sel": kd_sel,
-            "fc_key": fc_key,
-            "fila": fila
+            "kd_fisico": round(kd_fisico, 3),
+            "kd_lim": round(kd_lim, 3),
+            "kd_lookup": round(kd_lookup, 3),
+            "doble_armadura": doble_armadura,
+            "x_rel": round(x_rel, 4) if x_rel is not None else None,
+            "k_usado": k_used,
+            "modo_k": modo_k,
+            "info_k": info_k,
+            "fc_key": self._fc_key(),
+            # Kc/Kz vienen de flexión; si faltan, se dejan como None (no 0.0)
+            "fila": {"Ke": Ke, "Kc": Kc, "Kz": Kz}
+        }
+        
+        # 9) Activación de compresión (si hay tabla y x_rel) — NO pisa Kc/Kz
+        if tabla_comp is not None and x_rel is not None:    
+            # Compatibilidad para f_s' (si no hay política fija)
+            if fs_politica is None:
+                k_star = k_star if k_star is not None else k_used
+                comp = self._fs_prima_cirsoc(k_used, k_star, x_rel, eps_c=eps_cu, eps_c_star=eps_cu, Es_MPa=Es)
+                fs_target = comp["fs_prima_MPa"]
+            else:
+                fs_target = fs_politica  # p. ej., 360 MPa por ductilidad
+
+            # Selección de fila más cercana en tabla_compresion
+            try:
+                fila_match = min(
+                    tabla_comp["rows"],
+                    key=lambda r: abs(r["kd_kd"] - k_used) + abs(r["x"] - x_rel)
+                )
+                ke_tab = float(fila_match["ke"][0])
+                kep_tab = float(fila_match["ke_p"][0])
+            except Exception as e:
+                if debug_compresion:
+                    print(f"[Compresión] Error en lookup de tabla: {e}")
+                ke_tab, kep_tab, fila_match = None, None, None
+
+            # Calcular As desde compresión si hay datos
+            As_tab_cm2 = ke_tab * (Mn_MNm / self.d) if ke_tab is not None else None
+            Asp_tab_cm2 = kep_tab * (Mn_MNm / self.d) if (kep_tab is not None and doble_armadura) else 0.0
+
+            if debug_compresion:
+                print("\n=== DEBUG TRAMO ===")
+                print(f"Mu_kNm        : {Mu_kNm:.2f}")
+                print(f"phi           : {phi:.3f}")
+                print(f"Mn_kNm        : {Mn_kNm:.2f}")
+                print(f"Mn_MNm        : {Mn_MNm:.3f}")
+                print(f"fc            : {self.fc} MPa")
+                print(f"kd_fisico     : {kd_fisico:.4f}")
+                print(f"kd_lim        : {kd_lim:.4f}")
+                print(f"kd_lookup     : {kd_lookup:.4f}")
+                print(f"x_rel         : {x_rel}")
+                print(f"Ke            : {Ke}")
+                print(f"Kep           : {Kep}")
+                print(f"As_req_cm2    : {As_req_cm2 if As_req_cm2 is not None else 'None'}")
+                print(f"Asp_req_cm2   : {Asp_req_cm2 if Asp_req_cm2 is not None else 'None'}")
+                print(f"As_min_cm2    : {As_min_cm2:.2f}")
+                print(f"As_bal_cm2    : {As_bal_cm2:.2f}")
+                print(f"As_max_cm2    : {As_max_cm2:.2f}")
+                print(f"As_final_cm2  : {As_final_cm2 if As_final_cm2 is not None else 'None'}")
+                print(f"Estado        : {estado}")
+
+            # Actualizar salida principal con Asp_tab_cm2 si corresponde
+            if Asp_tab_cm2 is not None:
+                salida["Asp_req_cm2"] = round(Asp_tab_cm2, 2)
+
+            salida.update({
+                "compresion": {
+                    "fs_target_MPa": round(fs_target, 1),
+                    "ke_cm2_por_MN": round(ke_tab, 3) if ke_tab is not None else None,
+                    "ke_p_cm2_por_MN": round(kep_tab, 3) if kep_tab is not None else None,
+                    "As_tab_cm2": round(As_tab_cm2, 2) if As_tab_cm2 is not None else None,
+                    "As_prima_tab_cm2": round(Asp_tab_cm2, 2) if Asp_tab_cm2 is not None else None,
+                    "fila_match": fila_match
+                }
+            })
+
+        return salida
+    
+    def Ec_MPa(self):
+        """
+        Módulo de elasticidad del hormigón según CIRSOC / ACI
+        """
+        return 4700.0 * math.sqrt(self.fc)
+    
+    def propiedades_seccion(self):
+        """
+        Propiedades geométricas brutas de la sección
+        """
+        b = self.b
+        h = self.h
+        rec_inf = self.rec              # recubrimiento inferior en metros
+        rec_sup = getattr(self, "rec_sup", self.rec)  # recubrimiento superior (si no está definido, usa el mismo)
+
+        # Distancias útiles
+        d_trac = h - rec_inf
+        d_comp = rec_sup  # si querés más exacto: rec_sup + Ø/2
+
+        return {
+            "b_m": b,
+            "h_m": h,
+            "rec_inf_m": rec_inf,
+            "rec_sup_m": rec_sup,
+            "d_m": d_trac,       # útil a tracción
+            "d_prime_m": d_comp  # útil a compresión
+        }
+    
+    def momento_fisuracion(self):
+        """
+        Momento de fisuración del hormigón
+        """
+        fr_MPa = 0.625 * math.sqrt(self.fc)
+        Ig = self.b * self.h**3 / 12.0
+        yt = self.h / 2.0
+
+        Mcr_Nm = fr_MPa * 1e6 * Ig / yt
+        return Mcr_Nm / 1000.0  # kNm
+     
+    def inercias_seccion(self, As_cm2, Kc=0.40, M_kNm=None, factor_servicio=1.0, Es_MPa=210000):
+        """
+        Devuelve:
+        Ig  : inercia bruta
+        Icr : inercia fisurada (Steiner)
+        Mcr : momento de fisuración
+        Ie  : inercia efectiva (Branson) si se pasa M
+        """
+        # --- Inercia bruta ---
+        Ig = self.b * self.h**3 / 12.0
+
+        # --- Momento de fisuración ---
+        fr_MPa = 0.625 * math.sqrt(self.fc)
+        Mcr = fr_MPa * 1e6 * Ig / (self.h / 2.0) / 1000.0  # kNm
+
+        # --- Icr estilo Steiner ---
+        As = As_cm2 / 10000.0  # cm² → m²
+        Ec = 4700.0 * math.sqrt(self.fc)  # MPa
+        n = Es_MPa / Ec  # módulo relativo
+
+        # c (eje neutro) ajustado a servicio
+        c = Kc * self.d * factor_servicio
+        # Distancias centroides
+        y_hormigon = c / 2.0           # centroide bloque hormigón
+        y_acero = self.d - c            # centroide acero (aprox desde el eje neutro)
+
+        # Inercia del bloque de hormigón
+        I_h = (self.b * c**3) / 12.0 + (self.b * c) * y_hormigon**2
+
+        # Inercia del acero transformado a hormigón
+        I_s = n * As * y_acero**2
+        Icr = I_h + I_s
+        # --- Inercia efectiva ---
+        Ie = None
+        if M_kNm is not None and M_kNm > Mcr:
+            ratio = (Mcr / M_kNm) ** 3
+            Ie = ratio * Ig + (1 - ratio) * Icr
+        else:
+            Ie = Ig
+        return Ig, Icr, Mcr, Ie
+
+    def hormigon_tramo(self, L_m, gamma_kg_m3=2500):
+        """
+        Volumen y peso propio del hormigón
+        """
+        V_m3 = self.b * self.h * L_m
+        peso_kg = V_m3 * gamma_kg_m3
+
+        return {
+            "V_m3": V_m3,
+            "peso_kg": peso_kg
         }
 
     def seleccionar_armadura(self, as_cm2):
@@ -288,7 +602,6 @@ class DisenadorViga:
             "φVn_kN": phi_corte * (Vc_N + Vs_N)/1000
         }
 
-
     def _Vc_N(self):
         b_mm = self.b * 1000
         d_mm = self.d * 1000
@@ -313,7 +626,6 @@ class DisenadorViga:
         xcrit_der = L_m - xcrit_izq
         return xcrit_izq, xcrit_der, phiVc_kN
 
-
     def _xcrit_voladizo(self, Vu_emp_kN, L_m):
         Vc_N = self._Vc_N()
         phiVc_kN = self.phi["corte"] * Vc_N / 1000.0
@@ -322,7 +634,6 @@ class DisenadorViga:
         xcrit = L_m * (1.0 - phiVc_kN / Vu_emp_kN)
         xcrit = max(0.0, min(L_m, xcrit))
         return xcrit, phiVc_kN
-
 
     def zonificar_estribos_continuo(self, L_m, Vu_izq_kN, Vu_der_kN, diam_mm=6, ramas=2):
         # Distancias críticas
@@ -377,8 +688,6 @@ class DisenadorViga:
             "phiVc_kN": phiVc_kN,
             "zonas": zonas
         }
-
-
 
     def zonificar_estribos_voladizo(self, L_m, Vu_emp_kN, diam_mm=6, ramas=2):
         xcrit, phiVc_kN = self._xcrit_voladizo(Vu_emp_kN, L_m)
@@ -438,14 +747,38 @@ def generar_planilla(
     v = DisenadorViga(nombre_viga, b_cm, h_cm, rec_cm, fc_MPa, fy_MPa)
 
     # ---- Cuantías ----
-    as_izq = v.calcular_as_necesaria(viga_data["m_izq"], coef_kd)
-    as_tra = v.calcular_as_necesaria(viga_data["m_tra"], coef_kd)
-    as_der = v.calcular_as_necesaria(viga_data["m_der"], coef_kd)
+    as_izq = v.calcular_as_necesaria(
+        viga_data["m_izq"], coef_kd,
+        tabla_comp=tabla_compresion,
+        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
+        debug_compresion=False
+    )
+    as_tra = v.calcular_as_necesaria(
+        viga_data["m_tra"], coef_kd,
+        tabla_comp=tabla_compresion,
+        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
+        debug_compresion=False
+    )
 
+    as_der = v.calcular_as_necesaria(
+        viga_data["m_der"], coef_kd,
+        tabla_comp=tabla_compresion,
+        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
+        debug_compresion=False
+    )
+
+    # ---- Armaduras adoptadas ----
     arm_sup_izq = v.seleccionar_armadura(as_izq["As_final_cm2"])
     arm_inf_tra = v.seleccionar_armadura(as_tra["As_final_cm2"])
     arm_sup_der = v.seleccionar_armadura(as_der["As_final_cm2"])
+    
+    # Armadura superior (compresión) -> sólo si doble armadura
+    arm_sup_comp = {}
+    if as_tra.get("doble_armadura", False):
+        arm_sup_comp = v.seleccionar_armadura(as_tra.get("Asp_req_cm2", 0.0))
 
+    
+    # ---- Funciones auxiliares ----
     def lon_gancho(d): return 15 * d / 1000
     def lon_anclaje(d): return 40 * d / 1000
 
@@ -527,11 +860,21 @@ def generar_planilla(
         total_peso += P; pos += 1
 
         # Inferior tramo
+        # --- Inferior tramo ---
         n, d = arm_inf_tra["n"], arm_inf_tra["diam"]
         L = (PI_der - PI_izq) + 2 * (12 * d / 1000)
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo          | {L:<7.2f} | {P:<10.2f}")
         total_peso += P; pos += 1
+        # --- Armadura comprimida según tabla (si corresponde) ---
+        if as_tra["Asp_req_cm2"] > 0:
+            arm_comp = v.seleccionar_armadura(as_tra["Asp_req_cm2"])
+            n, d = arm_comp["n"], arm_comp["diam"]
+            L = (PI_der - PI_izq)  # misma longitud de tramo
+            P = L * n * v.barras_comerciales[d]
+            lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida    | {L:<7.2f} | {P:<10.2f}")
+            total_peso += P
+            pos += 1
 
         # Superior apoyo der
         n, d = arm_sup_der["n"], arm_sup_der["diam"]
@@ -577,21 +920,207 @@ def generar_planilla(
                     f"A={z_izq['desde_m']:.2f}-{z_izq['hasta_m']:.2f} m | "
                     f"C={z_der['desde_m']:.2f}-{z_der['hasta_m']:.2f} m (sin zona central)"
         )
+    # =====================================================
+    # DATOS GLOBALES PARA NOTAS TÉCNICAS
+    # =====================================================
+
+    # =======================================
+    # Cálculo de inercias usando Kc y kd
+    # =======================================
+    
+
+    # 1) Decidir Kc_usado
+    if as_tra["fila"].get("Kc") is not None and as_tra["fila"].get("Kc") != 0.0:
+        # Caso flexión: usar el Kc de la fila
+        Kc_usado = as_tra["fila"]["Kc"]
+    else:
+        # Caso compresión: no hay Kc en la fila
+        try:
+            fila_flex = as_tra.get("info_k", {}).get("fila_flexion")
+            Kc_usado = fila_flex.get("Kc") if fila_flex else None
+        except Exception:
+            Kc_usado = None
+
+        # Si sigue siendo None o cero, calcular dinámicamente con triángulos semejantes
+        if Kc_usado is None or Kc_usado == 0.0:
+            eps_c = 0.003   # 3 por mil
+            eps_s = 0.005   # 5 por mil
+            Kc_usado = eps_c / (eps_c + eps_s)  # da 0.375
+
+    # 2) Calcular inercias con el Kc elegido
+    Ig, Icr, Mcr, Ie = v.inercias_seccion(
+        As_cm2 = arm_inf_tra["area_total_cm2"],
+        Kc = Kc_usado if Kc_usado is not None else 0.40,  # fallback si querés un default
+        M_kNm = as_tra.get("Mu_kNm")
+    )
+
+    # 3) Guardar salida
+    inercias = {
+        "Ig_m4": Ig,
+        "Icr_m4": Icr,
+        "Ie_m4": Ie,
+        "Kc_usado": Kc_usado,
+        "kd_lookup": as_tra["kd_lookup"]
+    }
+
+    # Hormigón
+    V_horm = v.b * v.h * L_viga
+    peso_horm = V_horm * 2500  # kg/m³
+
+    horm = {
+        "V_m3": V_horm,
+        "peso_kg": peso_horm
+    }
+
+    # Notas técnicas (UNIFICADO)
+    notas_tecnicas = {
+        "flexion": {
+            "As_req_cm2": as_tra["As_req_cm2"],
+            "Asp_req_cm2": as_tra.get("Asp_req_cm2", 0.0),
+            "As_min_cm2": as_tra["As_min_cm2"],
+            "As_max_cm2": as_tra["As_max_cm2"],
+            "As_adopt_cm2": arm_inf_tra["area_total_cm2"],
+            "Asp_adopt_cm2": arm_sup_comp.get("area_total_cm2", 0.0),
+            "estado": as_tra["estado"],
+            "kd": as_tra.get("kd_sel"),
+            "fila": as_tra.get("fila"),
+            "doble_armadura": as_tra.get("doble_armadura", False),# <- bandera clara
+            "Ke": as_tra["fila"].get("Ke"),
+            "Kep": as_tra.get("compresion", {}).get("ke_p_cm2_por_MN")
+        },
+        "materiales": {
+            "fc_MPa": v.fc,
+            "fy_MPa": v.fy,
+            "Ec_MPa": v.Ec_MPa()
+        },
+        "seccion": {
+            "b_cm": v.b * 100,
+            "h_cm": v.h * 100,
+            "d_cm": v.d * 100,             # útil a tracción
+            "rec_inf_cm": v.rec * 100,     # recubrimiento inferior
+            "rec_sup_cm": getattr(v, "rec_sup", v.rec) * 100,  # recubrimiento superior si lo definiste
+            "d_prime_cm": getattr(v, "d_prime", None)          # útil a compresión si lo calculás
+        },
+        "inercias": inercias,
+        "hormigon": horm
+    }  
+
     # ---- Cierre ----
-    lineas.append("-" * 80)
-    lineas.append(f"{'PESO TOTAL ACERO (kg):':<55} {total_peso:.2f}")
-    lineas.append("=" * 80)
     lineas.append("")
-    lineas.append("NOTAS TÉCNICAS:")
-    lineas.append(f"- Cuantía requerida (As req): {as_tra['As_req_cm2']:.2f} cm²")
-    lineas.append(f"- Cuantía mínima (As min): {as_tra['As_min_cm2']:.2f} cm²")
-    lineas.append(f"- Cuantía máxima (As max): {as_tra['As_max_cm2']:.2f} cm²")
-    lineas.append(f"- Cuantía adoptada: {arm_inf_tra['area_total_cm2']:.2f} cm²")
-    lineas.append(f"- Estado de diseño: {as_tra['estado']}")
+    lineas.append("NOTAS TÉCNICAS")
+    lineas.append("-" * 80)
+    lineas.append("1 FLEXIÓN")
 
-    if 'kd_sel' in as_tra:
-        lineas.append(f"- kd utilizado: {as_tra['kd_sel']} (fila {as_tra.get('fila','-')})")
+    if notas_tecnicas['flexion'].get('doble_armadura', False):
+        # Mostrar coeficientes de compresión
+        Ke_val  = notas_tecnicas['flexion'].get('Ke')
+        Kep_val = notas_tecnicas['flexion'].get('Kep')
 
+        lineas.append(f"   Ke (tracción)      = {Ke_val:.3f} cm²/MN" if Ke_val else "   Ke (tracción)      = —")
+        lineas.append(f"   K’e (compresión)   = {Kep_val:.3f} cm²/MN" if Kep_val else "   K’e (compresión)   = —")
+
+        # Mostrar As y As’ requeridas/adoptadas (reales)
+        As_req   = notas_tecnicas['flexion']['As_req_cm2']
+        Asp_req  = notas_tecnicas['flexion']['Asp_req_cm2']
+        As_adopt = notas_tecnicas['flexion'].get('As_adopt_cm2', 0.0)   # área real inferior
+        Asp_adopt= notas_tecnicas['flexion'].get('Asp_adopt_cm2', 0.0)  # área real superior
+
+        lineas.append(f"   As requerida       = {As_req:.2f} cm²")
+        lineas.append(f"   As adoptada        = {As_adopt:.2f} cm²")
+        lineas.append(f"   ΔAs (inf)          = {As_adopt - As_req:+.2f} cm²")
+
+        lineas.append(f"   As’ requerida      = {Asp_req:.2f} cm²")
+        lineas.append(f"   As’ adoptada       = {Asp_adopt:.2f} cm²")
+        lineas.append(f"   ΔAs’ (sup)         = {Asp_adopt - Asp_req:+.2f} cm²")
+
+        # Estado específico
+        lineas.append("   Estado             = ℹ️ Doble armadura activa; menor ductilidad (Kc límite aplicado)")
+
+    else:
+        # Caso flexión simple: mantener lógica tradicional
+        lineas.append(f"   As requerida      = {notas_tecnicas['flexion']['As_req_cm2']:.2f} cm²")
+        lineas.append(f"   As mínima         = {notas_tecnicas['flexion']['As_min_cm2']:.2f} cm²")
+        lineas.append(f"   As máxima         = {notas_tecnicas['flexion']['As_max_cm2']:.2f} cm²")
+        lineas.append(f"   As adoptada       = {notas_tecnicas['flexion']['As_adopt_cm2']:.2f} cm²")
+
+        if notas_tecnicas['flexion'].get('Asp_req_cm2', 0.0) > 0:
+            lineas.append(f"   As’ (tabla K’e)   = {notas_tecnicas['flexion']['Asp_req_cm2']:.2f} cm²")
+
+        exceso = (notas_tecnicas['flexion']['As_adopt_cm2'] +
+                notas_tecnicas['flexion'].get('Asp_req_cm2', 0.0) -
+                notas_tecnicas['flexion']['As_max_cm2'])
+
+        if exceso > 0:
+            lineas.append(f"   ⚠️ Exceso de As      = {exceso:.2f} cm²")
+            lineas.append("   Nota: Se pasó de la cuantía máxima; considerar ajuste de sección o peralte")
+
+        lineas.append(f"   Estado            = {notas_tecnicas['flexion']['estado']}")
+
+    # kd y fila usados
+    if notas_tecnicas["flexion"]["kd"] is not None:
+        lineas.append(
+            f"   kd utilizado      = {notas_tecnicas['flexion']['kd']} "
+            f"(fila {notas_tecnicas['flexion']['fila']})"
+        )
+    lineas.append("")
+
+    lineas.append("2 SECCIÓN")
+    lineas.append(f"   b = {notas_tecnicas['seccion']['b_cm']:.1f} cm")
+    lineas.append(f"   h = {notas_tecnicas['seccion']['h_cm']:.1f} cm")
+    lineas.append(f"   d = {notas_tecnicas['seccion']['d_cm']:.1f} cm")
+    # Caso flexión simple: solo recubrimiento inferior
+    if not notas_tecnicas["flexion"].get("doble_armadura", False):
+        lineas.append(f"   recubrimiento = {notas_tecnicas['seccion']['rec_inf_cm']:.1f} cm")
+    else:
+        # Caso doble armadura: mostrar ambos
+        lineas.append(f"   recubrimiento inf = {notas_tecnicas['seccion']['rec_inf_cm']:.1f} cm")
+        lineas.append(f"   recubrimiento sup = {notas_tecnicas['seccion']['rec_sup_cm']:.1f} cm")
+        if notas_tecnicas["seccion"].get("d_prime_cm") is not None:
+            lineas.append(f"   d’ = {notas_tecnicas['seccion']['d_prime_cm']:.1f} cm (compresión)")
+
+    lineas.append("")
+    lineas.append("3 MATERIALES")
+    fc = notas_tecnicas["materiales"]["fc_MPa"]
+    fy = notas_tecnicas["materiales"]["fy_MPa"]
+    Ec = notas_tecnicas["materiales"]["Ec_MPa"]
+    lineas.append(f"   f'c = {fc} MPa")
+    lineas.append(f"   fy  = {fy} MPa")
+    lineas.append(f"   Ec  = {Ec:.0f} MPa")
+
+    lineas.append("")
+    lineas.append("4 INERCIAS")
+    # Conversión a cm⁴
+    Ig_cm4  = Ig * 1e8
+    Icr_cm4 = Icr * 1e8
+    Ie_cm4  = Ie * 1e8
+
+    lineas.append(f"- Inercia bruta Ig: {Ig:.6f} m⁴ | {Ig_cm4:,.0f} cm⁴")
+    lineas.append(f"- Inercia fisurada Icr: {Icr:.6f} m⁴ | {Icr_cm4:,.0f} cm⁴")
+    lineas.append(f"- Inercia efectiva Ie (Branson): {Ie:.6f} m⁴ | {Ie_cm4:,.0f} cm⁴")
+    lineas.append(f"- Momento de fisuración Mcr: {Mcr:.2f} kNm")
+
+    # Añadir trazabilidad de Kc y kd_lookup
+    lineas.append(f"- Kc usado para sección: {inercias.get('Kc_usado', 0.0):.3f}")
+    lineas.append(f"- kd_lookup: {inercias.get('kd_lookup', 0.0):.3f}")
+
+
+    lineas.append("")
+    lineas.append("5 HORMIGÓN")
+    lineas.append(f"   Volumen = {notas_tecnicas['hormigon']['V_m3']:.3f} m³")
+    lineas.append(f"   Peso ≈ {notas_tecnicas['hormigon']['peso_kg']:.0f} kg")
+    # Puntos de inflexión
+    if puntos_inflexion_m and len(puntos_inflexion_m) == 2:
+        PI_izq, PI_der = puntos_inflexion_m
+    else:
+        PI_izq, PI_der = 0.15 * L_viga, 0.85 * L_viga
+
+    lineas.append("")
+    lineas.append("6 PUNTOS DE INFLEXIÓN")
+    lineas.append(f"   PI izquierdo = {PI_izq:.2f} m")
+    lineas.append(f"   PI derecho   = {PI_der:.2f} m")
+    # 🔎 Debug en planilla
+    
+    
     return "\n".join(lineas)
 
 
@@ -608,6 +1137,9 @@ with open(BASE / "datos" / "coeficientes_kd.json", encoding="utf-8") as f:
 
 salidas = BASE / "salidas"
 salidas.mkdir(exist_ok=True)
+tabla_flexion = coef_kd["coeficientes_flexion"]
+tabla_compresion = coef_kd["tabla_compresion"]["H20_H25_H30_fy420"]
+
 
 for viga_id, viga in datos_vigas.items():
 

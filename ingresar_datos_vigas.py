@@ -8,6 +8,7 @@ def ingresar_datos():
     b_cm = float(input("Ancho b [cm]: "))
     h_cm = float(input("Altura h [cm]: "))
     rec_cm = float(input("Recubrimiento [cm]: "))
+    rec_sup_cm = float(input("Recubrimiento superior [cm]: "))
     fc = float(input("f'c [MPa]: "))
     fy = float(input("fy [MPa]: "))
 
@@ -57,6 +58,7 @@ def ingresar_datos():
             "b_cm": b_cm,
             "h_cm": h_cm,
             "recubrimiento_cm": rec_cm,
+            "recubrimiento_sup_cm": rec_sup_cm,
             "fc_MPa": fc,
             "fy_MPa": fy,
             "tramos": tramos

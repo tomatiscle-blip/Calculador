@@ -7,7 +7,7 @@ Luz de cálculo (con tolerancia): 2.30 m
 
 Materiales seleccionados:
  - Pisos: Porcelanato 10mm + pegamento → 0.200 kN/m²
- - Contrapiso: Carpeta nivelacion 3cm → 0.620 kN/m²
+ - Contrapiso: Carpeta nivelación 3cm → 0.620 kN/m²
  - Contrapiso: Contrapiso de cascotes y cal 8cm → 1.280 kN/m²
  - Cielorrasos: Yeso Suspendido → 0.330 kN/m²
 Subtotal cargas accesorias (D2): 2.430 kN/m²
@@ -22,7 +22,7 @@ Cargas consideradas:
 
 Selección de vigueta:
  - Serie de vigueta: ASTER
- - Tipo de vigueta seleccionada: vigueta_simple
+ - Tipo de vigueta seleccionada: vigueta simple
  - Combinación bovedilla/losa: bovedilla_10_losa_15
  - Momento requerido (sin φ): 564.59 kg·m
  - Momento requerido para búsqueda (con φ aplicado): 627.32 kg·m
