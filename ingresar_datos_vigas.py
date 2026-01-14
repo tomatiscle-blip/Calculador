@@ -11,6 +11,22 @@ def ingresar_datos():
     rec_sup_cm = float(input("Recubrimiento superior [cm]: "))
     fc = float(input("f'c [MPa]: "))
     fy = float(input("fy [MPa]: "))
+    # 🔹 Cargas distribuidas (nuevo bloque)
+    D = float(input("Carga muerta D [kN/m]: "))
+    L = float(input("Carga viva L [kN/m]: "))
+
+    q_14D = 1.4 * D
+    q_12D16L = 1.2 * D + 1.6 * L
+    q_servicio = D + L
+
+    cargas = {
+        "D": D,
+        "L": L,
+        "1.4D": q_14D,
+        "1.2D+1.6L": q_12D16L,
+        "servicio": q_servicio
+    }
+
 
     tramos = []
     n_tramos = int(input("Cantidad de tramos: "))
@@ -61,6 +77,7 @@ def ingresar_datos():
             "recubrimiento_sup_cm": rec_sup_cm,
             "fc_MPa": fc,
             "fy_MPa": fy,
+            "cargas": cargas,
             "tramos": tramos
         }
     }

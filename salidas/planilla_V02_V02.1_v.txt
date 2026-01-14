@@ -1,0 +1,31 @@
+================================================================================
+PLANILLA DE DOBLADO – V02 – VOLADIZO – TRAMO V02.1_v
+================================================================================
+Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 3     | 25   | Sup. voladizo       | 2.65    | 30.63     
+2    | 2     | 10   | Inf. mínima         | 1.65    | 2.04      
+3    | 7     | 6    | Estribo empotramiento | 1.26    | 1.96       | c/16cm
+4    | 4     | 6    | Estribo extremo_libre | 1.26    | 1.12       | c/20cm
+--------------------------------------------------------------------------------
+TOTAL PESO                               | 35.74      kg
+
+SECCIÓN Y VOLUMEN (Voladizo)
+   b = 25.0 cm | h = 45.0 cm
+   Área sección = 1125 cm²
+   Longitud L = 1.65 m
+   Volumen hormigón = 0.186 m³
+   Peso aprox. = 446 kg
+
+CUANTÍA DE ARMADURA (Voladizo)
+   As requerido = 14.58 cm²
+   As mínimo    = 3.42 cm²
+   As balance   = 21.78 cm²
+   As máximo    = 16.34 cm²
+   As adoptado  = 14.58 cm²
+
+FLECHA DE SERVICIO (Voladizo)
+   δmax = 0.84 mm
+   Flecha adm L/180 (Voladizos) = 9.17 mm | q_serv = 36.90 kN/m → ✅ Cumple
+   Inercia efectiva Ie = 1.898e-03 m⁴
+   Kc usado = 0.375 (fuente: tabla de flexión)

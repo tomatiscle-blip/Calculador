@@ -3,47 +3,64 @@ PLANILLA DE DOBLADO – V01 – TRAMO INTERIOR – TRAMO T1
 ================================================================================
 Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
-1    | 5     | 8    | Sup. apoyo izq      | 0.82    | 1.62      
-2    | 4     | 16   | Inf. tramo          | 4.38    | 27.67     
-3    | 5     | 8    | Sup. apoyo der      | 0.82    | 1.62      
-4    | 2     | 8    | Auxiliar superior   | 5.24    | 4.14      
-5    | 4     | 6    | Estribo apoyo_izq    | 1.06    | 0.94      
-6    | 43    | 6    | Estribo central      | 1.06    | 10.12     
-7    | 4     | 6    | Estribo apoyo_der    | 1.06    | 0.94      
-Nota: Zonificación de estribos → A=0.00-0.36 m | B=0.36-4.64 m | C=4.64-5.00 m
+1    | 3     | 25   | Sup. apoyo izq      | 1.77    | 20.46     
+2    | 6     | 16   | Inf. tramo          | 4.73    | 44.82     
+3    | 3     | 25   | Sup. apoyo der      | 1.88    | 21.73     
+4    | 2     | 8    | Auxiliar superior   | 6.24    | 4.93      
+5    | 8     | 6    | Estribo apoyo_izq    | 1.32    | 2.34       | c/12cm
+6    | 21    | 6    | Estribo central      | 1.32    | 6.15       | c/20cm
+7    | 9     | 6    | Estribo apoyo_der    | 1.32    | 2.64       | c/12cm
+--------------------------------------------------------------------------------
+TOTAL PESO                                           | 103.08 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida      = 7.52 cm²
-   As mínima         = 2.40 cm²
-   As máxima         = 11.47 cm²
-   As adoptada       = 8.04 cm²
-   Estado            = ✅ Cuantía dentro del rango permitido
+   As requerida       = 10.80 cm²
+   As mínima          = 3.45 cm²
+   As máxima          = 15.69 cm²
+   As adoptada        = 12.06 cm²
+   Estado             = ✅ Cuantía dentro del rango permitido
+   Luz libre = 6.00 m
 
 2 SECCIÓN
-   b = 20.0 cm
-   h = 40.0 cm
-   d = 36.0 cm
+   b = 22.0 cm
+   h = 51.0 cm
+   d = 47.0 cm
    recubrimiento = 3.0 cm
 
 3 MATERIALES
-   f'c = 21.0 MPa
+   f'c = 20.0 MPa
    fy  = 420.0 MPa
-   Ec  = 21538 MPa
+   Ec  = 21019 MPa
 
 4 INERCIAS
-- Inercia bruta Ig: 0.001067 m⁴ | 106,667 cm⁴
-- Inercia fisurada Icr: 0.000561 m⁴ | 56,100 cm⁴
-- Inercia efectiva Ie (Branson): 0.000563 m⁴ | 56,348 cm⁴
-- Momento de fisuración Mcr: 15.28 kNm
-- Kc usado para sección: 0.375
-- kd_lookup: 0.509
+- Inercia bruta Ig: 0.002432 m⁴ | 243,194 cm⁴
+- Inercia fisurada Icr: 0.001504 m⁴ | 150,373 cm⁴
+- Inercia efectiva Ie (Branson): 0.001507 m⁴ | 150,750 cm⁴
+- Momento de fisuración Mcr: 26.66 kNm
+- Kc usado para sección: 0.304
+- kd_lookup: 0.512
 
 5 HORMIGÓN
-   Volumen = 0.400 m³
-   Peso ≈ 1000 kg
+   Volumen = 0.673 m³
+   Peso ≈ 1683 kg
 
 6 PUNTOS DE INFLEXIÓN
-   PI izquierdo = 0.50 m
-   PI derecho   = 4.50 m
+   PI izquierdo = 0.77 m
+   PI derecho   = 5.12 m
+
+7 ARMADURAS (As calculadas)
+   As apoyo izq = 14.73 cm²
+   As tramo     = 12.06 cm²
+   As apoyo der = 14.73 cm²
+
+8 ESTRIBOS
+   Cantidad total = 38 unidades Ø6
+   Zonificación   = apoyo_izq=0.00-0.86 m | central=0.86-4.99 m | apoyo_der=4.99-6.00 m
+
+9 FLECHA DE SERVICIO
+   δmax = 32.97 mm
+   Flecha adm L/250 (Vigas y losas en general) = 24.00 mm | q_serv = 61.90 kN/m → ❌ No cumple
+   Flecha adm L/360 (Vigas con tabiques o acabados frágiles) = 16.67 mm | q_serv = 61.90 kN/m → ❌ No cumple
+   Flecha adm L/480 (Losas con cielorrasos/terminaciones sensibles) = 12.50 mm | q_serv = 61.90 kN/m → ❌ No cumple

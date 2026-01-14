@@ -44,17 +44,24 @@ class DisenadorViga:
             return "fc_30"
 
     def _kd_fisico(self, Mn_kNm):
-        # Convertir a MN·m
         Mn_MNm = Mn_kNm / 1000.0
-        kd = self.d / math.sqrt(Mn_MNm / self.b)
-        return kd
+        if self.b <= 0:
+            raise ValueError("El ancho b de la viga no puede ser cero.")
+        if Mn_MNm <= 0:
+            # Caso voladizo o momento nulo → kd físico no aplica
+            return 0.0
+        return self.d / math.sqrt(Mn_MNm / self.b)
 
-    def _kd_lim_por_fc(self, fc):
-        # kd límite según resistencia del hormigón
-        # ejemplo: tabla simplificada
-        if fc <= 25: return 0.45
-        elif fc <= 30: return 0.50
-        else: return 0.55
+    def _kd_lim_por_fc(self, fc: float) -> float:
+        if fc <= 20:
+            return 0.469
+        elif fc <= 25:
+            return 0.419
+        elif fc <= 30:
+            return 0.383
+        else:
+            # fallback: si fc > 30, usar el límite de H30
+         return 0.383
    
     def leer_tramos(viga_json):
         tramos = []
@@ -76,12 +83,12 @@ class DisenadorViga:
         tabla = coef_kd["coeficientes_flexion"][fc_key]
         claves = sorted([float(k) for k in tabla.keys()])
         kd_min, kd_max = claves[0], claves[-1]
+
         # Saturación en bordes
         if kd_in <= kd_min:
             fila = tabla[f"{kd_min:.3f}"]
             modo = "saturado_inferior"
             info = {}
-            # Límite inferior: aplicar kd × dato si corresponde
             if dato_externo is not None:
                 info["kd_por_dato"] = kd_in * dato_externo
             return fila, kd_min, modo, info
@@ -95,11 +102,13 @@ class DisenadorViga:
         kd_alto = min([k for k in claves if k >= kd_in], default=claves[-1])
 
         if abs(kd_bajo - kd_alto) < 1e-12:
-            fila = tabla[str(kd_bajo)]
+            fila = tabla[f"{kd_bajo:.3f}"]
             return fila, kd_bajo, "exacto", {}
 
-        datos_bajo = tabla[str(kd_bajo)]
-        datos_alto = tabla[str(kd_alto)]
+        # 🔑 Aquí el cambio: usar f"{:.3f}" en vez de str()
+        datos_bajo = tabla[f"{kd_bajo:.3f}"]
+        datos_alto = tabla[f"{kd_alto:.3f}"]
+
         t = (kd_in - kd_bajo) / (kd_alto - kd_bajo)
 
         def interp(campo):
@@ -117,6 +126,26 @@ class DisenadorViga:
     
     def _lookup_ke_kep(self, tabla_comp, k_ratio, x_rel, fs_target):
         rows = tabla_comp["rows"]
+        kd_vals = [r["kd_kd"] for r in rows]
+        x_vals = [r["x"] for r in rows]
+
+        notas = []
+
+        # Ajuste kd fuera de dominio
+        if k_ratio < min(kd_vals):
+            k_ratio = min(kd_vals)
+            notas.append(f"fuera de dominio kd; se usa límite inferior ({min(kd_vals)})")
+        elif k_ratio > max(kd_vals):
+            k_ratio = max(kd_vals)
+            notas.append(f"fuera de dominio kd; se usa límite superior ({max(kd_vals)})")
+
+        # Ajuste x_rel fuera de dominio
+        if x_rel < min(x_vals):
+            x_rel = min(x_vals)
+            notas.append(f"fuera de dominio x_rel; se usa límite inferior ({min(x_vals)})")
+        elif x_rel > max(x_vals):
+            x_rel = max(x_vals)
+            notas.append(f"fuera de dominio x_rel; se usa límite superior ({max(x_vals)})")
 
         # Buscar la fila más cercana en kd_ratio y x_rel
         row = min(
@@ -128,14 +157,18 @@ class DisenadorViga:
         fs_cols = tabla_comp["fs_cols"]
         col_idx = min(range(len(fs_cols)), key=lambda i: abs(fs_cols[i] - fs_target))
 
-        # Proteger índice por si la fila tiene menos columnas
         if col_idx >= len(row["ke"]):
             col_idx = len(row["ke"]) - 1
 
-        ke_val = row["ke"][col_idx]      # coeficiente Ke
-        kep_val = row["ke_p"][col_idx]   # coeficiente Ke'
+        ke_val = row["ke"][col_idx]
+        kep_val = row["ke_p"][col_idx]
 
-        return ke_val, kep_val, {"kd_ratio": row["kd_kd"], "x": row["x"], "col_idx": col_idx}
+        return ke_val, kep_val, {
+            "kd_ratio": row["kd_kd"],
+            "x": row["x"],
+            "col_idx": col_idx,
+            "nota": "; ".join(notas) if notas else "dentro de dominio"
+        }
     
     def _as_por_mn(self, Mu_kNm, phi, ke_cm2_por_MN_por_m, kep_cm2_por_MN_por_m):
         Mn_MNm = abs(Mu_kNm) / phi / 1000.0  # kNm -> MN·m
@@ -143,11 +176,10 @@ class DisenadorViga:
         Asp_cm2 = kep_cm2_por_MN_por_m * (Mn_MNm / self.d)
         return round(As_cm2, 2), round(Asp_cm2, 2)
     
-    def calcular_as_necesaria(
-        self, Mu_kNm, coef_kd, tabla_comp=None,
-        dato_externo=None, x_rel=None, k_star=None, fs_politica=None, debug_compresion=False
-    ):
-        import math
+    def calcular_as_necesaria(self, Mu_kNm, coef_kd, tabla_comp=None,
+                          dato_externo=None, x_rel=None, k_star=None,
+                          fs_politica=None, debug_compresion=False,
+                          es_voladizo=False):
 
         # 0) Parámetros base
         phi = self.phi["flexion_traccion"]
@@ -160,12 +192,13 @@ class DisenadorViga:
         kd_lim    = self._kd_lim_por_fc(self.fc)
 
         # 2) Decidir lookup: simple (kd_físico) vs doble (kd_ratio)
-        if kd_fisico >= kd_lim:
+        if kd_fisico >= kd_lim or es_voladizo:
             kd_lookup = kd_fisico
             doble_armadura = False
         else:
             kd_lookup = kd_fisico / kd_lim
             doble_armadura = True
+
 
         # 3) x_rel para el lookup (geométrico simple: recubrimiento superior / d)
         if x_rel is None:
@@ -182,10 +215,9 @@ class DisenadorViga:
         modo_k = None
         info_k = {}
 
-        # 4) Obtener coeficientes desde tabla de flexión (fc_XX): SOLO Ke, Kc, Kz
-        # Si hay tabla_comp y x_rel, usamos lookup bilineal para Ke/Kep (pero Kc/Kz siguen viniendo de flexión)
-        if tabla_comp is not None and x_rel is not None:
-            # Lookup bilineal (kd_lookup + x_rel) para Ke/Kep
+        # 4) Obtener coeficientes según criterio kd_lim
+        if doble_armadura and tabla_comp is not None and x_rel is not None:
+            # Caso compresión activa → SOLO tabla de compresión
             Ke, Kep_tab, info_k = self._lookup_ke_kep(
                 k_ratio=kd_lookup,
                 x_rel=x_rel,
@@ -193,31 +225,20 @@ class DisenadorViga:
                 fs_target=fs_obj
             )
             Kep = Kep_tab
+            Kc = 0.375   # fijo por deformaciones
+            Kz = None
             k_used = kd_lookup
             modo_k = info_k.get("modo", "bilineal")
 
-            # Kc/Kz deben venir de la tabla de flexión (fc_key)
-            try:
-                fc_key = self._fc_key()  # p.ej. "fc_30"
-                fila_flex = self._fila_kd_interpolada(kd_lookup, coef_kd, dato_externo=dato_externo)[0]
-                Kc = fila_flex.get("Kc", None)
-                Kz = fila_flex.get("Kz", None)
-                # Si no existen, dejar None (no 0.0) y documentar
-                if Kc is None or Kz is None:
-                    info_k["nota"] = "Kc/Kz no presentes en flexión para este kd; se dejan como None."
-            except Exception as e:
-                info_k["error_flexion"] = f"No se pudo leer Kc/Kz de flexión: {e}"
-                Kc, Kz = None, None
-
         else:
-            # Fallback al interpolador anterior (solo kd_lookup) desde flexión
+            # Caso flexión simple → SOLO tabla de flexión
             fila, k_used, modo_k, info_k = self._fila_kd_interpolada(
                 kd_lookup, coef_kd, dato_externo=dato_externo
             )
             Ke = fila.get("Ke")
-            # Kc/Kz SOLO desde flexión; si faltan, dejar None (no 0.4/1.0 por defecto)
             Kc = fila.get("Kc", None)
             Kz = fila.get("Kz", None)
+            Kep = None   # no aplica compresión
             if Kc is None or Kz is None:
                 info_k["nota"] = "Kc/Kz no presentes en flexión para este kd; se dejan como None."
 
@@ -240,7 +261,6 @@ class DisenadorViga:
         As_bal_cm2 = rho_bal * self.b * self.d * 10000.0
         As_max_cm2 = 0.75 * As_bal_cm2
 
-        # Si As_req_cm2 es None, no podemos evaluar rango; mantenemos None y estado informativo
         # Si As_req_cm2 es None, no podemos evaluar rango; mantenemos None y estado informativo
         if As_req_cm2 is None:
             As_final_cm2 = None
@@ -282,7 +302,9 @@ class DisenadorViga:
             "info_k": info_k,
             "fc_key": self._fc_key(),
             # Kc/Kz vienen de flexión; si faltan, se dejan como None (no 0.0)
-            "fila": {"Ke": Ke, "Kc": Kc, "Kz": Kz}
+            "fila": {"Ke": Ke, "Kc": Kc, "Kz": Kz},
+            # 🔎 Nota de auditoría del lookup (kd/x_rel clamp)
+            "nota": info_k.get("nota", "")        
         }
         
         # 9) Activación de compresión (si hay tabla y x_rel) — NO pisa Kc/Kz
@@ -534,8 +556,8 @@ class DisenadorViga:
                 })
         return resultados
 
-    def calcular_estribos(self, Vu_kN, diam_mm=6, ramas=2):
-    # Conversión
+    def calcular_estribos(self, Vu_kN, diam_mm=6, ramas=2, zona="central"):
+        # Conversión
         Vu_N = Vu_kN * 1000
         b_mm = self.b * 1000
         d_mm = self.d * 1000
@@ -545,20 +567,8 @@ class DisenadorViga:
         sqrt_fc = min(math.sqrt(self.fc), 8.3)
         Vc_N = 0.17 * sqrt_fc * b_mm * d_mm
 
-        # Mínimo normativo si el corte es bajo
-        if Vu_N < (phi_corte * Vc_N / 2):
-            return {
-                "diam_mm": 6,
-                "ramas": 2,
-                "s_cm": 20,
-                "modo": "mínimo (d/2 y 20 cm)",
-                "Vc_kN": Vc_N/1000,
-                "Vs_req_kN": 0.0,
-                "φVn_kN": phi_corte * Vc_N / 1000
-            }
-
-        # Vs requerido
-        Vs_N = (Vu_N / phi_corte) - Vc_N
+        # Corte sobrante que deben resistir los estribos
+        Vs_N = (Vu_N - phi_corte * Vc_N) / phi_corte
         Vs_N = max(Vs_N, 0.0)
 
         # Área de ramas
@@ -569,34 +579,22 @@ class DisenadorViga:
         if Vs_N > 0:
             s_mm = (Asv_mm2 * self.fy * d_mm) / Vs_N
         else:
-            s_mm = d_mm / 2  # máximo permitido
+            s_mm = d_mm / 2
 
-        # Límites normativos
-        s_mm = min(s_mm, d_mm / 2, 300)  # d/2 y 30 cm
-        s_cm = s_mm / 10
-        s_cm = max(6, min(round(s_cm / 2) * 2, 30))  # redondeo a múltiplos de 2 cm
-
-        # Chequeo de cuantía mínima
-        area_barra_cm2 = math.pi * (6 / 10)**2 / 4
-        Asv_min_cm2 = 2 * area_barra_cm2
-        av_s_min = Asv_min_cm2 / 20.0
-
-        Asv_adopt_cm2 = ramas * (math.pi * (diam_mm / 10)**2 / 4)
-        av_s_adopt = Asv_adopt_cm2 / s_cm
-
-        if av_s_adopt < av_s_min:
-            diam_mm = 6
-            ramas = 2
-            s_cm = 20
-            modo = "forzado a mínimo Ø6 c/20 (2 ramas)"
+        # Límites normativos según zona
+        if zona == "apoyo":
+            limite = min(d_mm/4, 150)   # apoyo más estricto
         else:
-            modo = "resistencia requerida"
+            limite = min(d_mm/2, 200)   # central más laxo
+
+        s_mm = min(s_mm, limite)
+        s_cm = max(6, min(round((s_mm/10)/2)*2, 30))
 
         return {
             "diam_mm": diam_mm,
             "ramas": ramas,
             "s_cm": int(s_cm),
-            "modo": modo,
+            "modo": "resistencia requerida",
             "Vc_kN": Vc_N/1000,
             "Vs_req_kN": Vs_N/1000,
             "φVn_kN": phi_corte * (Vc_N + Vs_N)/1000
@@ -608,22 +606,24 @@ class DisenadorViga:
         sqrt_fc = min(math.sqrt(self.fc), 8.3)
         return 0.17 * sqrt_fc * b_mm * d_mm
 
-    def _xcrit_continuo(self, Vu_izq_kN, Vu_der_kN, L_m):
+    def _xcrit_continuo(self, Vu_izq_kN, Vu_der_kN, L_m, q_kNm):
         Vc_N = self._Vc_N()
         phiVc_kN = self.phi["corte"] * Vc_N / 1000.0
 
-        denom = (Vu_der_kN - Vu_izq_kN)
-        if abs(denom) < 1e-9:
-            # Corte casi constante: si supera umbral, toda la viga es densa; si no, mínima
-            if Vu_izq_kN <= phiVc_kN:
-                xcrit_izq = 0.0
-            else:
-                xcrit_izq = L_m
-        else:
-            xcrit_izq = L_m * (phiVc_kN - Vu_izq_kN) / denom
+        # Distancia crítica desde cada apoyo
+        xcrit_izq = max(0.0, min(L_m, (Vu_izq_kN - phiVc_kN) / q_kNm))
+        xcrit_der = max(0.0, min(L_m, (Vu_der_kN - phiVc_kN) / q_kNm))
 
-        xcrit_izq = max(0.0, min(L_m, xcrit_izq))
-        xcrit_der = L_m - xcrit_izq
+        # Debug prints
+        print("\n--- DEBUG _xcrit_continuo ---")
+        print(f"L = {L_m:.2f} m")
+        print(f"Vu_izq = {Vu_izq_kN:.2f} kN, Vu_der = {Vu_der_kN:.2f} kN")
+        print(f"phiVc = {phiVc_kN:.2f} kN")
+        print(f"xcrit_izq = {xcrit_izq:.2f} m desde apoyo izq")
+        print(f"xcrit_der = {xcrit_der:.2f} m desde apoyo der")
+        print(f"q = {q_kNm:.2f} kN/m")
+        print("-----------------------------\n")
+
         return xcrit_izq, xcrit_der, phiVc_kN
 
     def _xcrit_voladizo(self, Vu_emp_kN, L_m):
@@ -635,59 +635,45 @@ class DisenadorViga:
         xcrit = max(0.0, min(L_m, xcrit))
         return xcrit, phiVc_kN
 
-    def zonificar_estribos_continuo(self, L_m, Vu_izq_kN, Vu_der_kN, diam_mm=6, ramas=2):
-        # Distancias críticas
-        xcrit_izq, xcrit_der, phiVc_kN = self._xcrit_continuo(Vu_izq_kN, Vu_der_kN, L_m)
+    def zonificar_estribos_continuo(self, L_m, Vu_izq_kN, Vu_der_kN, q_kN_m, diam_mm=6, ramas=2):
+        xcrit_izq, xcrit_der, phiVc_kN = self._xcrit_continuo(Vu_izq_kN, Vu_der_kN, L_m, q_kN_m)
 
-        # Longitud mínima densa
-        lmin = min(self.d, 0.5)  # m
-
-        # Zonas densas en apoyos
-        zA_ini, zA_fin = 0.0, max(lmin, xcrit_izq)
-        zC_ini, zC_fin = L_m - max(lmin, xcrit_der), L_m
-
-        # Corrección si se solapan (apoyos se comen la central)
-        if zA_fin > zC_ini:
-            # Reducir densos a lmin y recalcular central
-            zA_fin = lmin
-            zC_ini = L_m - lmin
-        # Zona central
+        # Zonas basadas en los puntos críticos
+        zA_ini, zA_fin = 0.0, xcrit_izq
+        zC_ini, zC_fin = L_m - xcrit_der, L_m
         zB_ini, zB_fin = zA_fin, zC_ini
-
-        zonas = []
 
         def Vu_x(x):
             return Vu_izq_kN + (Vu_der_kN - Vu_izq_kN) * (x / L_m)
 
-        # Zona A (apoyo izq)
-        xA = (zA_ini + zA_fin) / 2.0
-        zonas.append({
-            "zona": "apoyo_izq",
-            "desde_m": zA_ini, "hasta_m": zA_fin,
-            "Vu_kN_ref": Vu_x(xA),
-            "estribos": self.calcular_estribos(Vu_x(xA), diam_mm, ramas)
-        })
-        # Zona B (central) si existe
-        if zB_fin > zB_ini + 1e-6:
-            xB = (zB_ini + zB_fin) / 2.0
+        zonas = []
+        if zA_fin > zA_ini:
+            zonas.append({
+                "zona": "apoyo_izq",
+                "desde_m": zA_ini,
+                "hasta_m": zA_fin,
+                "Vu_kN_ref": Vu_x((zA_ini+zA_fin)/2),
+                "estribos": self.calcular_estribos(Vu_x((zA_ini+zA_fin)/2), diam_mm, ramas, zona="apoyo")
+            })
+        if zB_fin > zB_ini:
             zonas.append({
                 "zona": "central",
-                "desde_m": zB_ini, "hasta_m": zB_fin,
-                "Vu_kN_ref": Vu_x(xB),
-                "estribos": self.calcular_estribos(Vu_x(xB), diam_mm, ramas)
+                "desde_m": zB_ini,
+                "hasta_m": zB_fin,
+                "Vu_kN_ref": Vu_x((zB_ini+zB_fin)/2),
+                "estribos": self.calcular_estribos(phiVc_kN, diam_mm, ramas, zona="minimo")
             })
-        # Zona C (apoyo der)
-        xC = (zC_ini + zC_fin) / 2.0
-        zonas.append({
-            "zona": "apoyo_der",
-            "desde_m": zC_ini, "hasta_m": zC_fin,
-            "Vu_kN_ref": Vu_x(xC),
-            "estribos": self.calcular_estribos(Vu_x(xC), diam_mm, ramas)
-        })
-        return {
-            "phiVc_kN": phiVc_kN,
-            "zonas": zonas
-        }
+
+        if zC_fin > zC_ini:
+            zonas.append({
+                "zona": "apoyo_der",
+                "desde_m": zC_ini,
+                "hasta_m": zC_fin,
+                "Vu_kN_ref": Vu_x((zC_ini+zC_fin)/2),
+                "estribos": self.calcular_estribos(Vu_x((zC_ini+zC_fin)/2), diam_mm, ramas, zona="apoyo")
+            })
+
+        return {"phiVc_kN": phiVc_kN, "zonas": zonas}
 
     def zonificar_estribos_voladizo(self, L_m, Vu_emp_kN, diam_mm=6, ramas=2):
         xcrit, phiVc_kN = self._xcrit_voladizo(Vu_emp_kN, L_m)
@@ -722,7 +708,6 @@ class DisenadorViga:
             "phiVc_kN": phiVc_kN,
             "zonas": zonas
         }
-
 # =========================================================
 # FUNCIÓN PLANILLA (VOLADIZO + INTERIOR)
 # =========================================================
@@ -738,57 +723,33 @@ def generar_planilla(
     fc_MPa,
     fy_MPa,
     es_voladizo=False,
-    puntos_inflexion_m=None
+    puntos_inflexion_m=None,
+    cargas=None 
 ):
 
     lineas = []
-    zonas_corte = {"zonas": []}
-
     v = DisenadorViga(nombre_viga, b_cm, h_cm, rec_cm, fc_MPa, fy_MPa)
 
-    # ---- Cuantías ----
-    as_izq = v.calcular_as_necesaria(
-        viga_data["m_izq"], coef_kd,
-        tabla_comp=tabla_compresion,
-        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
-        debug_compresion=False
-    )
-    as_tra = v.calcular_as_necesaria(
-        viga_data["m_tra"], coef_kd,
-        tabla_comp=tabla_compresion,
-        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
-        debug_compresion=False
-    )
+    # -----------------------------------------------------
+    # Funciones auxiliares
+    # -----------------------------------------------------
+    def lon_gancho(d_mm):
+        return 15 * d_mm / 1000
 
-    as_der = v.calcular_as_necesaria(
-        viga_data["m_der"], coef_kd,
-        tabla_comp=tabla_compresion,
-        x_rel=(v.recubrimiento_sup_cm / 100.0) / v.d,
-        debug_compresion=False
-    )
+    def lon_anclaje(d_mm):
+        return 40 * d_mm / 1000
 
-    # ---- Armaduras adoptadas ----
-    arm_sup_izq = v.seleccionar_armadura(as_izq["As_final_cm2"])
-    arm_inf_tra = v.seleccionar_armadura(as_tra["As_final_cm2"])
-    arm_sup_der = v.seleccionar_armadura(as_der["As_final_cm2"])
-    
-    # Armadura superior (compresión) -> sólo si doble armadura
-    arm_sup_comp = {}
-    if as_tra.get("doble_armadura", False):
-        arm_sup_comp = v.seleccionar_armadura(as_tra.get("Asp_req_cm2", 0.0))
-
-    
-    # ---- Funciones auxiliares ----
-    def lon_gancho(d): return 15 * d / 1000
-    def lon_anclaje(d): return 40 * d / 1000
-
-    # ---- Encabezado ----
-    lineas.append("=" * 80)
+    # -----------------------------------------------------
+    # Encabezado
+    # -----------------------------------------------------
     tipo = "VOLADIZO" if es_voladizo else "TRAMO INTERIOR"
-    lineas.append(f"PLANILLA DE DOBLADO – {nombre_viga} – {tipo} – TRAMO {id_tramo}")
-    lineas.append("=" * 80)
-    lineas.append(f"{'Pos':<4} | {'Cant':<5} | {'Ø':<4} | {'Detalle':<22} | {'L (m)':<7} | {'Peso (kg)':<10}")
-    lineas.append("-" * 80)
+    lineas.extend([
+        "=" * 80,
+        f"PLANILLA DE DOBLADO – {nombre_viga} – {tipo} – TRAMO {id_tramo}",
+        "=" * 80,
+        f"{'Pos':<4} | {'Cant':<5} | {'Ø':<4} | {'Detalle':<22} | {'L (m)':<7} | {'Peso (kg)':<10}",
+        "-" * 80
+    ])
 
     pos = 1
     total_peso = 0.0
@@ -798,181 +759,267 @@ def generar_planilla(
     # =====================================================
     if es_voladizo:
 
+        Mu = viga_data.get("m_tra", 0.0)
+
+        as_emp = v.calcular_as_necesaria(
+            Mu, coef_kd,
+            tabla_comp=tabla_compresion,
+            x_rel=(v.recubrimiento_sup_cm / 100) / v.d,
+            debug_compresion=False,
+            es_voladizo=True
+        )
+
+        arm_sup = v.seleccionar_armadura(as_emp["As_final_cm2"])
+
         # Superior principal
-        n, d = arm_sup_izq["n"], arm_sup_izq["diam"]
+        n, d = arm_sup["n"], arm_sup["diam"]
         L = L_viga + lon_anclaje(d)
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. voladizo       | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
+        total_peso += P
+        pos += 1
 
         # Inferior mínima
         n, d = 2, 10
         L = L_viga
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. mínima         | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
+        total_peso += P
+        pos += 1
 
         # Estribos
         zonas = v.zonificar_estribos_voladizo(L_viga, viga_data["v_izq"])
+
         for z in zonas["zonas"]:
             e = z["estribos"]
             n_est = math.ceil((z["hasta_m"] - z["desde_m"]) / (e["s_cm"] / 100))
-            L = 2*(v.b-0.06) + 2*(v.h-0.06) + 0.10
-            P = n_est * L * v.barras_comerciales[e["diam_mm"]]
+            L_est = 2 * (v.b - 0.06) + 2 * (v.h - 0.06) + 0.10
+            P = n_est * L_est * v.barras_comerciales[e["diam_mm"]]
+
             lineas.append(
-                f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} | {L:<7.2f} | {P:<10.2f}"
+                f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} "
+                f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm"
             )
-            total_peso += P; pos += 1
+            total_peso += P
+            pos += 1
 
-        # ---- Resumen de zonificación de voladizo ----
-        z_emp = next((z for z in zonas["zonas"] if "empot" in z["zona"]), None)
-        z_lib = next((z for z in zonas["zonas"] if "libre" in z["zona"]), None)
+        lineas.append("-" * 80)
+        lineas.append(f"{'TOTAL PESO':<40} | {total_peso:<10.2f} kg")
 
-        if z_emp:
-            if z_lib:
-                lineas.append(
-                    f"Nota: Zonificación de estribos (voladizo) → "
-                    f"Empotramiento={z_emp['desde_m']:.2f}-{z_emp['hasta_m']:.2f} m | "
-                    f"Extremo libre={z_lib['desde_m']:.2f}-{z_lib['hasta_m']:.2f} m"
-                )
+        # -----------------------------------------------------
+        # Inercias para voladizo (usando misma lógica que tramo)
+        # -----------------------------------------------------
+        # Mini función para obtener Kc en voladizo
+        def kc_usado_vol(as_vol):
+            if as_vol.get("doble_armadura", False):
+                kc = 0.003 / (0.003 + 0.005)  # 0.375
+                fuente = "deformaciones; no aplica tabla"
             else:
-                lineas.append(
-                    f"Nota: Zonificación de estribos (voladizo) → "
-                    f"Empotramiento={z_emp['desde_m']:.2f}-{z_emp['hasta_m']:.2f} m"
-                )
+                kc = as_vol.get("fila", {}).get("Kc")
+                fuente = "tabla de flexión"
+                if kc is None or kc == 0.0:
+                    kc = 0.003 / (0.003 + 0.005)  # 0.375
+                    fuente = "deformaciones (respaldo por fila sin Kc)"
+            return kc, fuente
 
+        Kc_usado, fuente_kc = kc_usado_vol(as_emp)
+
+        Ig, Icr, Mcr, Ie = v.inercias_seccion(
+            As_cm2=arm_sup["area_total_cm2"],
+            Kc=Kc_usado,
+            M_kNm=Mu
+        )
+
+
+        # Flecha con carga de servicio (voladizo)
+        q_serv = cargas["servicio"]  # kN/m
+        q_serv = q_serv * 1.0        # N/mm
+        L = L_viga * 1000            # mm
+        Ec = 4700 * (fc_MPa ** 0.5)  # N/mm²
+
+        delta = q_serv * L**4 / (8 * Ec * (Ie * 1e12))  # mm
+        A_cm2 = b_cm * h_cm
+        V_cm3 = A_cm2 * (L_viga * 100)   # L en cm
+        V_m3 = V_cm3 / 1e6
+        peso_hormigon = V_m3 * 2400
+
+        lineas.append("")
+        lineas.append("SECCIÓN Y VOLUMEN (Voladizo)")
+        lineas.append(f"   b = {b_cm} cm | h = {h_cm} cm")
+        lineas.append(f"   Área sección = {A_cm2:.0f} cm²")
+        lineas.append(f"   Longitud L = {L_viga:.2f} m")
+        lineas.append(f"   Volumen hormigón = {V_m3:.3f} m³")
+        lineas.append(f"   Peso aprox. = {peso_hormigon:.0f} kg")
+        lineas.append("")
+        lineas.append("CUANTÍA DE ARMADURA (Voladizo)")
+        lineas.append(f"   As requerido = {as_emp['As_req_cm2']:.2f} cm²")
+        lineas.append(f"   As mínimo    = {as_emp['As_min_cm2']:.2f} cm²")
+        lineas.append(f"   As balance   = {as_emp['As_bal_cm2']:.2f} cm²")
+        lineas.append(f"   As máximo    = {as_emp['As_max_cm2']:.2f} cm²")
+        lineas.append(f"   As adoptado  = {as_emp['As_final_cm2']:.2f} cm²")
+
+        lineas.append("")
+        lineas.append("FLECHA DE SERVICIO (Voladizo)")
+        lineas.append(f"   δmax = {delta:.2f} mm")
+        lineas.append(f"   Flecha adm L/180 (Voladizos) = {L/180:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/180 else '❌ No cumple'}")
+        lineas.append(f"   Inercia efectiva Ie = {Ie:.3e} m⁴")
+        lineas.append(f"   Kc usado = {Kc_usado:.3f} (fuente: {fuente_kc})")
+
+
+        return "\n".join(lineas)
 
     # =====================================================
     # TRAMO INTERIOR
     # =====================================================
+
+    # Puntos de inflexión
+    if puntos_inflexion_m and len(puntos_inflexion_m) == 2:
+        PI_izq, PI_der = puntos_inflexion_m
     else:
+        PI_izq, PI_der = 0.15 * L_viga, 0.85 * L_viga
 
-        if puntos_inflexion_m and len(puntos_inflexion_m) == 2:
-            PI_izq, PI_der = puntos_inflexion_m
-        else:
-            PI_izq, PI_der = 0.15 * L_viga, 0.85 * L_viga
+    # -----------------------------------------------------
+    # CÁLCULO REAL DE ARMADURAS
+    # -----------------------------------------------------
 
-        # Superior apoyo izq
-        n, d = arm_sup_izq["n"], arm_sup_izq["diam"]
-        L = PI_izq + lon_anclaje(d)
+    ## 1) Campo (armadura inferior)
+    as_tra = v.calcular_as_necesaria(
+        Mu_kNm=viga_data["m_tra"],
+        coef_kd=coef_kd,
+        tabla_comp=tabla_compresion
+    )
+    arm_inf_tra = v.seleccionar_armadura(as_tra["As_final_cm2"])
+
+    # 2) Apoyo izquierdo (armadura superior izq)
+    as_izq = v.calcular_as_necesaria(
+        Mu_kNm=viga_data["m_izq"],
+        coef_kd=coef_kd,
+        tabla_comp=tabla_compresion
+    )
+    arm_sup_izq = v.seleccionar_armadura(as_izq["As_final_cm2"])
+
+    # 3) Apoyo derecho (armadura superior der)
+    as_der = v.calcular_as_necesaria(
+        Mu_kNm=viga_data["m_der"],
+        coef_kd=coef_kd,
+        tabla_comp=tabla_compresion
+    )
+    arm_sup_der = v.seleccionar_armadura(as_der["As_final_cm2"])
+
+    # 4) Si el tramo pide doble armadura, también compresión
+    arm_sup_comp = {}
+    if as_tra["doble_armadura"] and as_tra["Asp_req_cm2"] > 0:
+        arm_sup_comp = v.seleccionar_armadura(as_tra["Asp_req_cm2"])
+
+    nota_tra = "Verificar armado según normativa"
+
+
+    # -----------------------------------------------------
+    # Superiores e inferiores
+    # -----------------------------------------------------
+    n, d = arm_sup_izq["n"], arm_sup_izq["diam"]
+    L = PI_izq + 40 * d / 1000  # lon_anclaje
+    P = L * n * v.barras_comerciales[d]
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo izq      | {L:<7.2f} | {P:<10.2f}")
+    total_peso += P
+    pos += 1
+
+    n, d = arm_inf_tra["n"], arm_inf_tra["diam"]
+    L = (PI_der - PI_izq) + 2 * (12 * d / 1000)  # ganchos tracción
+    P = L * n * v.barras_comerciales[d]
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo          | {L:<7.2f} | {P:<10.2f}")
+    total_peso += P
+    pos += 1
+
+    # Armadura comprimida según tabla (si corresponde)
+    if as_tra["Asp_req_cm2"] > 0:
+        arm_comp = v.seleccionar_armadura(as_tra["Asp_req_cm2"])
+        n, d = arm_comp["n"], arm_comp["diam"]
+        L = (PI_der - PI_izq)
         P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo izq      | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
+        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida    | {L:<7.2f} | {P:<10.2f}")
+        total_peso += P
+        pos += 1
 
-        # Inferior tramo
-        # --- Inferior tramo ---
-        n, d = arm_inf_tra["n"], arm_inf_tra["diam"]
-        L = (PI_der - PI_izq) + 2 * (12 * d / 1000)
-        P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo          | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
-        # --- Armadura comprimida según tabla (si corresponde) ---
-        if as_tra["Asp_req_cm2"] > 0:
-            arm_comp = v.seleccionar_armadura(as_tra["Asp_req_cm2"])
-            n, d = arm_comp["n"], arm_comp["diam"]
-            L = (PI_der - PI_izq)  # misma longitud de tramo
-            P = L * n * v.barras_comerciales[d]
-            lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida    | {L:<7.2f} | {P:<10.2f}")
-            total_peso += P
-            pos += 1
+    # Superior apoyo derecho
+    n, d = arm_sup_der["n"], arm_sup_der["diam"]
+    L = (L_viga - PI_der) + 40 * d / 1000
+    P = L * n * v.barras_comerciales[d]
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo der      | {L:<7.2f} | {P:<10.2f}")
+    total_peso += P
+    pos += 1
 
-        # Superior apoyo der
-        n, d = arm_sup_der["n"], arm_sup_der["diam"]
-        L = (L_viga - PI_der) + lon_anclaje(d)
-        P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo der      | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
+    # Auxiliar superior
+    n, d = 2, 8
+    L = L_viga + 2 * 15 * d / 1000  # lon_gancho
+    P = L * n * v.barras_comerciales[d]
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Auxiliar superior   | {L:<7.2f} | {P:<10.2f}")
+    total_peso += P
+    pos += 1
 
-        # Auxiliar superior
-        n, d = 2, 8
-        L = L_viga + 2 * lon_gancho(d)
-        P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Auxiliar superior   | {L:<7.2f} | {P:<10.2f}")
-        total_peso += P; pos += 1
-
-        # Estribos
-        zonas = v.zonificar_estribos_continuo(L_viga, viga_data["v_izq"], viga_data["v_der"])
-        for z in zonas["zonas"]:
-            e = z["estribos"]
-            n_est = math.ceil((z["hasta_m"] - z["desde_m"]) / (e["s_cm"] / 100))
-            L = 2*(v.b-0.06) + 2*(v.h-0.06) + 0.10
-            P = n_est * L * v.barras_comerciales[e["diam_mm"]]
-            lineas.append(
-                f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} | {L:<7.2f} | {P:<10.2f}"
-            )
-            total_peso += P; pos += 1
-        # ---- RESUMEN DE ZONIFICACIÓN (ACÁ, NO EN OTRO LADO) ----
-        z_izq = next((z for z in zonas["zonas"] if "izq" in z["zona"]), None)
-        z_cen = next((z for z in zonas["zonas"] if z["zona"] == "central"), None)
-        z_der = next((z for z in zonas["zonas"] if "der" in z["zona"]), None)
-
-        if z_izq and z_der:
-            if z_cen:
-                lineas.append(
-                    f"Nota: Zonificación de estribos → "
-                    f"A={z_izq['desde_m']:.2f}-{z_izq['hasta_m']:.2f} m | "
-                    f"B={z_cen['desde_m']:.2f}-{z_cen['hasta_m']:.2f} m | "
-                    f"C={z_der['desde_m']:.2f}-{z_der['hasta_m']:.2f} m"
-                )
-            else:
-                lineas.append(
-                    f"Nota: Zonificación de estribos → "
-                    f"A={z_izq['desde_m']:.2f}-{z_izq['hasta_m']:.2f} m | "
-                    f"C={z_der['desde_m']:.2f}-{z_der['hasta_m']:.2f} m (sin zona central)"
-        )
-    # =====================================================
-    # DATOS GLOBALES PARA NOTAS TÉCNICAS
-    # =====================================================
-
-    # =======================================
-    # Cálculo de inercias usando Kc y kd
-    # =======================================
-    
-
-    # 1) Decidir Kc_usado
-    if as_tra["fila"].get("Kc") is not None and as_tra["fila"].get("Kc") != 0.0:
-        # Caso flexión: usar el Kc de la fila
-        Kc_usado = as_tra["fila"]["Kc"]
-    else:
-        # Caso compresión: no hay Kc en la fila
-        try:
-            fila_flex = as_tra.get("info_k", {}).get("fila_flexion")
-            Kc_usado = fila_flex.get("Kc") if fila_flex else None
-        except Exception:
-            Kc_usado = None
-
-        # Si sigue siendo None o cero, calcular dinámicamente con triángulos semejantes
-        if Kc_usado is None or Kc_usado == 0.0:
-            eps_c = 0.003   # 3 por mil
-            eps_s = 0.005   # 5 por mil
-            Kc_usado = eps_c / (eps_c + eps_s)  # da 0.375
-
-    # 2) Calcular inercias con el Kc elegido
-    Ig, Icr, Mcr, Ie = v.inercias_seccion(
-        As_cm2 = arm_inf_tra["area_total_cm2"],
-        Kc = Kc_usado if Kc_usado is not None else 0.40,  # fallback si querés un default
-        M_kNm = as_tra.get("Mu_kNm")
+    # Estribos
+    zonas = v.zonificar_estribos_continuo(
+        L_viga,
+        viga_data["v_izq"],
+        viga_data["v_der"],
+        viga["cargas"]["1.2D+1.6L"]
     )
 
-    # 3) Guardar salida
+    for z in zonas["zonas"]:
+        e = z["estribos"]
+        n_est = math.ceil((z["hasta_m"] - z["desde_m"]) / (e["s_cm"] / 100))
+        L_est = 2 * (v.b - 0.06) + 2 * (v.h - 0.06) + 0.10
+        P = n_est * L_est * v.barras_comerciales[e["diam_mm"]]
+        lineas.append(
+            f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} "
+            f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm"
+        )
+        total_peso += P
+        pos += 1
+    # después de terminar de agregar todas las barras
+    lineas.append("--------------------------------------------------------------------------------")
+    lineas.append(f"TOTAL PESO                                           | {total_peso:.2f} kg")
+
+    #=============================
+    # Cálculo de inercias usando Kc
+    # =======================================
+    def kc_usado(as_tra):
+        if as_tra.get("doble_armadura", False):
+            kc = 0.003 / (0.003 + 0.005)  # 0.375
+            fuente = "deformaciones; no aplica tabla"
+        else:
+            kc = as_tra.get("fila", {}).get("Kc")
+            fuente = "tabla de flexión"
+            if kc is None or kc == 0.0:
+                kc = 0.003 / (0.003 + 0.005)  # 0.375
+                fuente = "deformaciones (respaldo por fila sin Kc)"
+        return kc, fuente
+
+    Kc_usado, fuente_kc = kc_usado(as_tra)
+
+    # Inercias con el Kc elegido
+    Ig, Icr, Mcr, Ie = v.inercias_seccion(
+        As_cm2=arm_inf_tra["area_total_cm2"],
+        Kc=Kc_usado,
+        M_kNm=as_tra.get("Mu_kNm")
+    )
+
     inercias = {
         "Ig_m4": Ig,
         "Icr_m4": Icr,
         "Ie_m4": Ie,
+        "Mcr_kNm": Mcr,
         "Kc_usado": Kc_usado,
-        "kd_lookup": as_tra["kd_lookup"]
+        "fuente_kc": fuente_kc,
+        "kd_lookup": as_tra.get("kd_lookup")
     }
 
     # Hormigón
     V_horm = v.b * v.h * L_viga
     peso_horm = V_horm * 2500  # kg/m³
+    horm = {"V_m3": V_horm, "peso_kg": peso_horm}
 
-    horm = {
-        "V_m3": V_horm,
-        "peso_kg": peso_horm
-    }
-
-    # Notas técnicas (UNIFICADO)
+    # Notas técnicas
     notas_tecnicas = {
         "flexion": {
             "As_req_cm2": as_tra["As_req_cm2"],
@@ -980,11 +1027,12 @@ def generar_planilla(
             "As_min_cm2": as_tra["As_min_cm2"],
             "As_max_cm2": as_tra["As_max_cm2"],
             "As_adopt_cm2": arm_inf_tra["area_total_cm2"],
-            "Asp_adopt_cm2": arm_sup_comp.get("area_total_cm2", 0.0),
+            "Asp_adopt_cm2": arm_sup_comp["area_total_cm2"] if arm_sup_comp else 0.0,
             "estado": as_tra["estado"],
+            "nota": nota_tra,
             "kd": as_tra.get("kd_sel"),
             "fila": as_tra.get("fila"),
-            "doble_armadura": as_tra.get("doble_armadura", False),# <- bandera clara
+            "doble_armadura": as_tra.get("doble_armadura", False),
             "Ke": as_tra["fila"].get("Ke"),
             "Kep": as_tra.get("compresion", {}).get("ke_p_cm2_por_MN")
         },
@@ -992,38 +1040,35 @@ def generar_planilla(
             "fc_MPa": v.fc,
             "fy_MPa": v.fy,
             "Ec_MPa": v.Ec_MPa()
-        },
+            },
         "seccion": {
             "b_cm": v.b * 100,
             "h_cm": v.h * 100,
-            "d_cm": v.d * 100,             # útil a tracción
-            "rec_inf_cm": v.rec * 100,     # recubrimiento inferior
-            "rec_sup_cm": getattr(v, "rec_sup", v.rec) * 100,  # recubrimiento superior si lo definiste
-            "d_prime_cm": getattr(v, "d_prime", None)          # útil a compresión si lo calculás
+            "d_cm": v.d * 100,
+            "rec_inf_cm": v.rec * 100,
+            "rec_sup_cm": getattr(v, "rec_sup", v.rec) * 100,
+            "d_prime_cm": getattr(v, "d_prime", None)
         },
         "inercias": inercias,
         "hormigon": horm
-    }  
+    }
 
-    # ---- Cierre ----
     lineas.append("")
     lineas.append("NOTAS TÉCNICAS")
     lineas.append("-" * 80)
     lineas.append("1 FLEXIÓN")
 
     if notas_tecnicas['flexion'].get('doble_armadura', False):
-        # Mostrar coeficientes de compresión
         Ke_val  = notas_tecnicas['flexion'].get('Ke')
         Kep_val = notas_tecnicas['flexion'].get('Kep')
 
         lineas.append(f"   Ke (tracción)      = {Ke_val:.3f} cm²/MN" if Ke_val else "   Ke (tracción)      = —")
         lineas.append(f"   K’e (compresión)   = {Kep_val:.3f} cm²/MN" if Kep_val else "   K’e (compresión)   = —")
 
-        # Mostrar As y As’ requeridas/adoptadas (reales)
-        As_req   = notas_tecnicas['flexion']['As_req_cm2']
-        Asp_req  = notas_tecnicas['flexion']['Asp_req_cm2']
-        As_adopt = notas_tecnicas['flexion'].get('As_adopt_cm2', 0.0)   # área real inferior
-        Asp_adopt= notas_tecnicas['flexion'].get('Asp_adopt_cm2', 0.0)  # área real superior
+        As_req    = notas_tecnicas['flexion']['As_req_cm2']
+        Asp_req   = notas_tecnicas['flexion']['Asp_req_cm2']
+        As_adopt  = notas_tecnicas['flexion'].get('As_adopt_cm2', 0.0)
+        Asp_adopt = notas_tecnicas['flexion'].get('Asp_adopt_cm2', 0.0)
 
         lineas.append(f"   As requerida       = {As_req:.2f} cm²")
         lineas.append(f"   As adoptada        = {As_adopt:.2f} cm²")
@@ -1033,18 +1078,25 @@ def generar_planilla(
         lineas.append(f"   As’ adoptada       = {Asp_adopt:.2f} cm²")
         lineas.append(f"   ΔAs’ (sup)         = {Asp_adopt - Asp_req:+.2f} cm²")
 
-        # Estado específico
-        lineas.append("   Estado             = ℹ️ Doble armadura activa; menor ductilidad (Kc límite aplicado)")
+        estado_flex = notas_tecnicas['flexion'].get('estado', "")
+        lineas.append(f"   Estado             = {estado_flex}")
+
+        nota_flex = notas_tecnicas['flexion'].get('nota')
+        if nota_flex:
+            lineas.append(f"   Nota               = {nota_flex}")
+
+        lineas.append(f"   Luz libre = {L_viga:.2f} m")
+
 
     else:
         # Caso flexión simple: mantener lógica tradicional
-        lineas.append(f"   As requerida      = {notas_tecnicas['flexion']['As_req_cm2']:.2f} cm²")
-        lineas.append(f"   As mínima         = {notas_tecnicas['flexion']['As_min_cm2']:.2f} cm²")
-        lineas.append(f"   As máxima         = {notas_tecnicas['flexion']['As_max_cm2']:.2f} cm²")
-        lineas.append(f"   As adoptada       = {notas_tecnicas['flexion']['As_adopt_cm2']:.2f} cm²")
+        lineas.append(f"   As requerida       = {notas_tecnicas['flexion']['As_req_cm2']:.2f} cm²")
+        lineas.append(f"   As mínima          = {notas_tecnicas['flexion']['As_min_cm2']:.2f} cm²")
+        lineas.append(f"   As máxima          = {notas_tecnicas['flexion']['As_max_cm2']:.2f} cm²")
+        lineas.append(f"   As adoptada        = {notas_tecnicas['flexion']['As_adopt_cm2']:.2f} cm²")
 
         if notas_tecnicas['flexion'].get('Asp_req_cm2', 0.0) > 0:
-            lineas.append(f"   As’ (tabla K’e)   = {notas_tecnicas['flexion']['Asp_req_cm2']:.2f} cm²")
+            lineas.append(f"   As’ (tabla K’e)    = {notas_tecnicas['flexion']['Asp_req_cm2']:.2f} cm²")
 
         exceso = (notas_tecnicas['flexion']['As_adopt_cm2'] +
                 notas_tecnicas['flexion'].get('Asp_req_cm2', 0.0) -
@@ -1054,7 +1106,8 @@ def generar_planilla(
             lineas.append(f"   ⚠️ Exceso de As      = {exceso:.2f} cm²")
             lineas.append("   Nota: Se pasó de la cuantía máxima; considerar ajuste de sección o peralte")
 
-        lineas.append(f"   Estado            = {notas_tecnicas['flexion']['estado']}")
+        lineas.append(f"   Estado             = {notas_tecnicas['flexion']['estado']}")
+        lineas.append(f"   Luz libre = {L_viga:.2f} m")
 
     # kd y fila usados
     if notas_tecnicas["flexion"]["kd"] is not None:
@@ -1062,17 +1115,16 @@ def generar_planilla(
             f"   kd utilizado      = {notas_tecnicas['flexion']['kd']} "
             f"(fila {notas_tecnicas['flexion']['fila']})"
         )
-    lineas.append("")
 
+    lineas.append("")
     lineas.append("2 SECCIÓN")
     lineas.append(f"   b = {notas_tecnicas['seccion']['b_cm']:.1f} cm")
     lineas.append(f"   h = {notas_tecnicas['seccion']['h_cm']:.1f} cm")
     lineas.append(f"   d = {notas_tecnicas['seccion']['d_cm']:.1f} cm")
-    # Caso flexión simple: solo recubrimiento inferior
+
     if not notas_tecnicas["flexion"].get("doble_armadura", False):
         lineas.append(f"   recubrimiento = {notas_tecnicas['seccion']['rec_inf_cm']:.1f} cm")
     else:
-        # Caso doble armadura: mostrar ambos
         lineas.append(f"   recubrimiento inf = {notas_tecnicas['seccion']['rec_inf_cm']:.1f} cm")
         lineas.append(f"   recubrimiento sup = {notas_tecnicas['seccion']['rec_sup_cm']:.1f} cm")
         if notas_tecnicas["seccion"].get("d_prime_cm") is not None:
@@ -1089,7 +1141,6 @@ def generar_planilla(
 
     lineas.append("")
     lineas.append("4 INERCIAS")
-    # Conversión a cm⁴
     Ig_cm4  = Ig * 1e8
     Icr_cm4 = Icr * 1e8
     Ie_cm4  = Ie * 1e8
@@ -1098,17 +1149,14 @@ def generar_planilla(
     lineas.append(f"- Inercia fisurada Icr: {Icr:.6f} m⁴ | {Icr_cm4:,.0f} cm⁴")
     lineas.append(f"- Inercia efectiva Ie (Branson): {Ie:.6f} m⁴ | {Ie_cm4:,.0f} cm⁴")
     lineas.append(f"- Momento de fisuración Mcr: {Mcr:.2f} kNm")
-
-    # Añadir trazabilidad de Kc y kd_lookup
     lineas.append(f"- Kc usado para sección: {inercias.get('Kc_usado', 0.0):.3f}")
     lineas.append(f"- kd_lookup: {inercias.get('kd_lookup', 0.0):.3f}")
-
 
     lineas.append("")
     lineas.append("5 HORMIGÓN")
     lineas.append(f"   Volumen = {notas_tecnicas['hormigon']['V_m3']:.3f} m³")
     lineas.append(f"   Peso ≈ {notas_tecnicas['hormigon']['peso_kg']:.0f} kg")
-    # Puntos de inflexión
+
     if puntos_inflexion_m and len(puntos_inflexion_m) == 2:
         PI_izq, PI_der = puntos_inflexion_m
     else:
@@ -1118,9 +1166,55 @@ def generar_planilla(
     lineas.append("6 PUNTOS DE INFLEXIÓN")
     lineas.append(f"   PI izquierdo = {PI_izq:.2f} m")
     lineas.append(f"   PI derecho   = {PI_der:.2f} m")
-    # 🔎 Debug en planilla
-    
-    
+
+    lineas.append("")
+    lineas.append("7 ARMADURAS (As calculadas)")
+    lineas.append(f"   As apoyo izq = {arm_sup_izq['area_total_cm2']:.2f} cm²")
+    lineas.append(f"   As tramo     = {arm_inf_tra['area_total_cm2']:.2f} cm²")
+    lineas.append(f"   As apoyo der = {arm_sup_der['area_total_cm2']:.2f} cm²")
+
+
+
+    if as_tra.get("Asp_req_cm2", 0.0) > 0:
+        lineas.append(f"   As’ (compresión) = {as_tra['Asp_req_cm2']:.2f} cm²")
+
+    total_estribos = sum(
+        math.ceil((z["hasta_m"] - z["desde_m"]) / (z["estribos"]["s_cm"] / 100))
+        for z in zonas["zonas"]
+    )
+
+    diam_estribo = zonas["zonas"][0]["estribos"]["diam_mm"] if zonas["zonas"] else 0
+
+    lineas.append("")
+    lineas.append("8 ESTRIBOS")
+    lineas.append(f"   Cantidad total = {total_estribos} unidades Ø{diam_estribo}")
+
+    zonas_txt = " | ".join(
+        f"{z['zona']}={z['desde_m']:.2f}-{z['hasta_m']:.2f} m"
+        for z in zonas["zonas"]
+    )
+    lineas.append(f"   Zonificación   = {zonas_txt}")
+
+    # Flecha con carga de servicio
+    q_serv = cargas["servicio"]  # kN/m
+    q_serv = q_serv * 1.0        # N/mm (porque 1 kN/m = 1 N/mm)
+    L = tramo["longitud_m"] * 1000  # m → mm
+    Ec = 4700 * (fc_MPa ** 0.5)  # N/mm²
+    Ie = inercias["Ie_m4"] * 1e12  # m⁴ → mm⁴
+
+    if tramo["es_voladizo"]:
+        delta = q_serv * L**4 / (8 * Ec * Ie)  # mm
+    else:
+        delta = 5 * q_serv * L**4 / (384 * Ec * Ie)  # mm
+
+    # Guardar en notas técnicas
+    lineas.append("")
+    lineas.append("9 FLECHA DE SERVICIO")
+    lineas.append(f"   δmax = {delta:.2f} mm")
+    lineas.append(f"   Flecha adm L/250 (Vigas y losas en general) = {L/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/250 else '❌ No cumple'}")
+    lineas.append(f"   Flecha adm L/360 (Vigas con tabiques o acabados frágiles) = {L/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/360 else '❌ No cumple'}")
+    lineas.append(f"   Flecha adm L/480 (Losas con cielorrasos/terminaciones sensibles) = {L/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/480 else '❌ No cumple'}")
+
     return "\n".join(lineas)
 
 
@@ -1180,9 +1274,14 @@ for viga_id, viga in datos_vigas.items():
             fc_MPa=fc,
             fy_MPa=fy,
             es_voladizo=tramo["es_voladizo"],
-            puntos_inflexion_m=tramo.get("puntos_inflexion_m")
+            puntos_inflexion_m=tramo.get("puntos_inflexion_m"),
+            cargas=viga["cargas"]
         )
+        # Mostrar en consola
+        #print(texto)
 
+        # Guardar en archivo
         with open(salidas / f"planilla_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
             f.write(texto)
+
 
