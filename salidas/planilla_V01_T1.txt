@@ -1,17 +1,17 @@
 ================================================================================
 PLANILLA DE DOBLADO – V01 – TRAMO INTERIOR – TRAMO T1
 ================================================================================
-Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
-1    | 3     | 25   | Sup. apoyo izq      | 1.77    | 20.46     
-2    | 6     | 16   | Inf. tramo          | 4.73    | 44.82     
-3    | 3     | 25   | Sup. apoyo der      | 1.88    | 21.73     
-4    | 2     | 8    | Auxiliar superior   | 6.24    | 4.93      
-5    | 8     | 6    | Estribo apoyo_izq    | 1.32    | 2.34       | c/12cm
-6    | 21    | 6    | Estribo central      | 1.32    | 6.15       | c/20cm
-7    | 9     | 6    | Estribo apoyo_der    | 1.32    | 2.64       | c/12cm
+1    | 3     | 25   | Sup. apoyo izq        | 1.77    | 20.46     
+2    | 6     | 16   | Inf. tramo            | 4.73    | 44.82     
+3    | 3     | 25   | Sup. apoyo der        | 1.88    | 21.73     
+4    | 2     | 8    | Auxiliar superior     | 6.24    | 4.93      
+5    | 7     | 6    | Estribo apoyo_izq     | 1.32    | 2.05       | c/14cm (Ø6)
+6    | 21    | 6    | Estribo central       | 1.32    | 6.15       | c/20cm (Ø6)
+7    | 9     | 6    | Estribo apoyo_der     | 1.32    | 2.64       | c/12cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                           | 103.08 kg
+TOTAL PESO                                            | 102.78 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
@@ -56,7 +56,8 @@ NOTAS TÉCNICAS
    As apoyo der = 14.73 cm²
 
 8 ESTRIBOS
-   Cantidad total = 38 unidades Ø6
+   Cantidad total Ø6 = 37 unidades (s_teor≈135.4 mm → s_final=14 cm)
+   Cantidad total Ø8 = 34 unidades (s_teor≈240.7 mm → s_final=16 cm)
    Zonificación   = apoyo_izq=0.00-0.86 m | central=0.86-4.99 m | apoyo_der=4.99-6.00 m
 
 9 FLECHA DE SERVICIO

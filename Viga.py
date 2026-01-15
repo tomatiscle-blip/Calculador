@@ -577,28 +577,44 @@ class DisenadorViga:
 
         # Separación teórica
         if Vs_N > 0:
-            s_mm = (Asv_mm2 * self.fy * d_mm) / Vs_N
+            s_mm_teor = (Asv_mm2 * self.fy * d_mm) / Vs_N
         else:
-            s_mm = d_mm / 2
+            s_mm_teor = d_mm / 2
 
         # Límites normativos según zona
         if zona == "apoyo":
-            limite = min(d_mm/4, 150)   # apoyo más estricto
+            limite = min(d_mm/2, 150)
         else:
-            limite = min(d_mm/2, 200)   # central más laxo
+            limite = min(d_mm/2, 200)
 
-        s_mm = min(s_mm, limite)
+        # Separación final adoptada
+        s_mm = min(s_mm_teor, limite)
         s_cm = max(6, min(round((s_mm/10)/2)*2, 30))
+
+        print(
+            f"[{zona}] Vu={Vu_kN:.2f} kN → "
+            f"Vs={Vs_N/1000:.2f} kN → "
+            f"s_teor={s_mm_teor:.1f} mm → "
+            f"s_final={s_cm} cm"
+        )
+
 
         return {
             "diam_mm": diam_mm,
             "ramas": ramas,
             "s_cm": int(s_cm),
+            "s_mm_teor": s_mm_teor,   # guardás la teórica
+            "s_mm_final": s_mm,       # guardás la adoptada
             "modo": "resistencia requerida",
             "Vc_kN": Vc_N/1000,
             "Vs_req_kN": Vs_N/1000,
             "φVn_kN": phi_corte * (Vc_N + Vs_N)/1000
         }
+
+    def calcular_estribos_alt(self, Vu_kN, diam_mm=8, ramas=2, zona="central"):
+        datos = self.calcular_estribos(Vu_kN, diam_mm=diam_mm, ramas=ramas, zona=zona)
+        print(f"[{zona}] opción Ø{diam_mm} → sep={datos['s_cm']}cm")
+        return datos
 
     def _Vc_N(self):
         b_mm = self.b * 1000
@@ -653,7 +669,20 @@ class DisenadorViga:
                 "desde_m": zA_ini,
                 "hasta_m": zA_fin,
                 "Vu_kN_ref": Vu_x((zA_ini+zA_fin)/2),
-                "estribos": self.calcular_estribos(Vu_x((zA_ini+zA_fin)/2), diam_mm, ramas, zona="apoyo")
+                "estribos": {
+                    "Ø6": self.calcular_estribos(
+                        Vu_x((zA_ini + zA_fin) / 2),
+                        diam_mm=6,
+                        ramas=ramas,
+                        zona="apoyo"
+                    ),
+                    "Ø8": self.calcular_estribos(
+                    Vu_x((zA_ini + zA_fin) / 2),
+                     diam_mm=8,
+                    ramas=ramas,
+                     zona="apoyo"
+                    )
+                }
             })
         if zB_fin > zB_ini:
             zonas.append({
@@ -661,7 +690,21 @@ class DisenadorViga:
                 "desde_m": zB_ini,
                 "hasta_m": zB_fin,
                 "Vu_kN_ref": Vu_x((zB_ini+zB_fin)/2),
-                "estribos": self.calcular_estribos(phiVc_kN, diam_mm, ramas, zona="minimo")
+                "estribos": {
+                    "Ø6": self.calcular_estribos(
+                        phiVc_kN,
+                        diam_mm=6,
+                        ramas=ramas,
+                        zona="minimo"
+                    ),
+                    "Ø8": self.calcular_estribos(
+                        phiVc_kN,
+                        diam_mm=8,
+                         ramas=ramas,
+                         zona="minimo"
+                    )
+                }
+
             })
 
         if zC_fin > zC_ini:
@@ -670,7 +713,21 @@ class DisenadorViga:
                 "desde_m": zC_ini,
                 "hasta_m": zC_fin,
                 "Vu_kN_ref": Vu_x((zC_ini+zC_fin)/2),
-                "estribos": self.calcular_estribos(Vu_x((zC_ini+zC_fin)/2), diam_mm, ramas, zona="apoyo")
+                "estribos": {
+                    "Ø6": self.calcular_estribos(
+                        Vu_x((zC_ini + zC_fin) / 2),
+                        diam_mm=6,
+                        ramas=ramas,
+                        zona="apoyo"
+                    ),
+                    "Ø8": self.calcular_estribos(
+                        Vu_x((zC_ini + zC_fin) / 2),
+                        diam_mm=8,
+                        ramas=ramas,
+                        zona="apoyo"
+                    )
+                }
+
             })
 
         return {"phiVc_kN": phiVc_kN, "zonas": zonas}
@@ -693,7 +750,7 @@ class DisenadorViga:
             "zona": "empotramiento",
             "desde_m": zA_ini, "hasta_m": zA_fin,
             "Vu_kN_ref": Vu_x(xA),
-            "estribos": self.calcular_estribos(Vu_x(xA), diam_mm, ramas)
+            "estribos": self.calcular_estribos(Vu_x(xA), diam_mm, ramas, zona="apoyo")
         })
         # Zona B (resto)
         if zB_fin > zB_ini + 1e-6:
@@ -702,7 +759,7 @@ class DisenadorViga:
                 "zona": "extremo_libre",
                 "desde_m": zB_ini, "hasta_m": zB_fin,
                 "Vu_kN_ref": Vu_x(xB),
-                "estribos": self.calcular_estribos(Vu_x(xB), diam_mm, ramas)
+                "estribos": self.calcular_estribos(Vu_x(xB), diam_mm, ramas, zona="central")
             })
         return {
             "phiVc_kN": phiVc_kN,
@@ -747,7 +804,7 @@ def generar_planilla(
         "=" * 80,
         f"PLANILLA DE DOBLADO – {nombre_viga} – {tipo} – TRAMO {id_tramo}",
         "=" * 80,
-        f"{'Pos':<4} | {'Cant':<5} | {'Ø':<4} | {'Detalle':<22} | {'L (m)':<7} | {'Peso (kg)':<10}",
+        f"{'Pos':<4} | {'Cant':<5} | {'Ø':<4} | {'Detalle':<21} | {'L (m)':<7} | {'Peso (kg)':<10}",
         "-" * 80
     ])
 
@@ -775,7 +832,7 @@ def generar_planilla(
         n, d = arm_sup["n"], arm_sup["diam"]
         L = L_viga + lon_anclaje(d)
         P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. voladizo       | {L:<7.2f} | {P:<10.2f}")
+        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. voladizo         | {L:<7.2f} | {P:<10.2f}")
         total_peso += P
         pos += 1
 
@@ -783,7 +840,7 @@ def generar_planilla(
         n, d = 2, 10
         L = L_viga
         P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. mínima         | {L:<7.2f} | {P:<10.2f}")
+        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. mínima           | {L:<7.2f} | {P:<10.2f}")
         total_peso += P
         pos += 1
 
@@ -804,7 +861,7 @@ def generar_planilla(
             pos += 1
 
         lineas.append("-" * 80)
-        lineas.append(f"{'TOTAL PESO':<40} | {total_peso:<10.2f} kg")
+        lineas.append(f"{'TOTAL PESO':<43} | {total_peso:<10.2f} kg")
 
         # -----------------------------------------------------
         # Inercias para voladizo (usando misma lógica que tramo)
@@ -920,14 +977,14 @@ def generar_planilla(
     n, d = arm_sup_izq["n"], arm_sup_izq["diam"]
     L = PI_izq + 40 * d / 1000  # lon_anclaje
     P = L * n * v.barras_comerciales[d]
-    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo izq      | {L:<7.2f} | {P:<10.2f}")
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo izq        | {L:<7.2f} | {P:<10.2f}")
     total_peso += P
     pos += 1
 
     n, d = arm_inf_tra["n"], arm_inf_tra["diam"]
     L = (PI_der - PI_izq) + 2 * (12 * d / 1000)  # ganchos tracción
     P = L * n * v.barras_comerciales[d]
-    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo          | {L:<7.2f} | {P:<10.2f}")
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo            | {L:<7.2f} | {P:<10.2f}")
     total_peso += P
     pos += 1
 
@@ -937,7 +994,7 @@ def generar_planilla(
         n, d = arm_comp["n"], arm_comp["diam"]
         L = (PI_der - PI_izq)
         P = L * n * v.barras_comerciales[d]
-        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida    | {L:<7.2f} | {P:<10.2f}")
+        lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida   | {L:<7.2f} | {P:<10.2f}")
         total_peso += P
         pos += 1
 
@@ -945,7 +1002,7 @@ def generar_planilla(
     n, d = arm_sup_der["n"], arm_sup_der["diam"]
     L = (L_viga - PI_der) + 40 * d / 1000
     P = L * n * v.barras_comerciales[d]
-    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo der      | {L:<7.2f} | {P:<10.2f}")
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo der        | {L:<7.2f} | {P:<10.2f}")
     total_peso += P
     pos += 1
 
@@ -953,7 +1010,7 @@ def generar_planilla(
     n, d = 2, 8
     L = L_viga + 2 * 15 * d / 1000  # lon_gancho
     P = L * n * v.barras_comerciales[d]
-    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Auxiliar superior   | {L:<7.2f} | {P:<10.2f}")
+    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Auxiliar superior     | {L:<7.2f} | {P:<10.2f}")
     total_peso += P
     pos += 1
 
@@ -965,20 +1022,26 @@ def generar_planilla(
         viga["cargas"]["1.2D+1.6L"]
     )
 
+    total_peso_6 = 0
+    total_peso_8 = 0
+
     for z in zonas["zonas"]:
-        e = z["estribos"]
+        e = z["estribos"]["Ø6"]   # solo la opción normativa Ø6
         n_est = math.ceil((z["hasta_m"] - z["desde_m"]) / (e["s_cm"] / 100))
         L_est = 2 * (v.b - 0.06) + 2 * (v.h - 0.06) + 0.10
         P = n_est * L_est * v.barras_comerciales[e["diam_mm"]]
+
         lineas.append(
-            f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} "
-            f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm"
+            f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<13} "
+            f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm (Ø6)"
         )
         total_peso += P
         pos += 1
+
+
     # después de terminar de agregar todas las barras
     lineas.append("--------------------------------------------------------------------------------")
-    lineas.append(f"TOTAL PESO                                           | {total_peso:.2f} kg")
+    lineas.append(f"TOTAL PESO                                            | {total_peso:.2f} kg")
 
     #=============================
     # Cálculo de inercias usando Kc
@@ -1178,22 +1241,37 @@ def generar_planilla(
     if as_tra.get("Asp_req_cm2", 0.0) > 0:
         lineas.append(f"   As’ (compresión) = {as_tra['Asp_req_cm2']:.2f} cm²")
 
-    total_estribos = sum(
-        math.ceil((z["hasta_m"] - z["desde_m"]) / (z["estribos"]["s_cm"] / 100))
+    total_estribos_6 = sum(
+        math.ceil((z["hasta_m"] - z["desde_m"]) / (z["estribos"]["Ø6"]["s_cm"] / 100))
         for z in zonas["zonas"]
     )
 
-    diam_estribo = zonas["zonas"][0]["estribos"]["diam_mm"] if zonas["zonas"] else 0
+    total_estribos_8 = sum(
+        math.ceil((z["hasta_m"] - z["desde_m"]) / (z["estribos"]["Ø8"]["s_cm"] / 100))
+        for z in zonas["zonas"]
+    )
+
+    # tomás los valores de la primera zona como referencia
+    e6 = zonas["zonas"][0]["estribos"]["Ø6"] if zonas["zonas"] else {"s_mm_teor":0,"s_cm":0}
+    e8 = zonas["zonas"][0]["estribos"]["Ø8"] if zonas["zonas"] else {"s_mm_teor":0,"s_cm":0}
 
     lineas.append("")
     lineas.append("8 ESTRIBOS")
-    lineas.append(f"   Cantidad total = {total_estribos} unidades Ø{diam_estribo}")
+    lineas.append(
+        f"   Cantidad total Ø6 = {total_estribos_6} unidades "
+        f"(s_teor≈{e6['s_mm_teor']:.1f} mm → s_final={e6['s_cm']} cm)"
+    )
+    lineas.append(
+        f"   Cantidad total Ø8 = {total_estribos_8} unidades "
+        f"(s_teor≈{e8['s_mm_teor']:.1f} mm → s_final={e8['s_cm']} cm)"
+    )
 
     zonas_txt = " | ".join(
         f"{z['zona']}={z['desde_m']:.2f}-{z['hasta_m']:.2f} m"
         for z in zonas["zonas"]
     )
     lineas.append(f"   Zonificación   = {zonas_txt}")
+
 
     # Flecha con carga de servicio
     q_serv = cargas["servicio"]  # kN/m

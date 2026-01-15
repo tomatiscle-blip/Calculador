@@ -1,14 +1,14 @@
 ================================================================================
 PLANILLA DE DOBLADO – V02 – VOLADIZO – TRAMO V02.3_v
 ================================================================================
-Pos  | Cant  | Ø    | Detalle                | L (m)   | Peso (kg) 
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
-1    | 7     | 8    | Sup. voladizo       | 1.52    | 4.20      
-2    | 2     | 10   | Inf. mínima         | 1.20    | 1.48      
-3    | 3     | 6    | Estribo empotramiento | 1.26    | 0.84       | c/20cm
+1    | 7     | 8    | Sup. voladizo         | 1.52    | 4.20      
+2    | 2     | 10   | Inf. mínima           | 1.20    | 1.48      
+3    | 3     | 6    | Estribo empotramiento | 1.26    | 0.84       | c/16cm
 4    | 4     | 6    | Estribo extremo_libre | 1.26    | 1.12       | c/20cm
 --------------------------------------------------------------------------------
-TOTAL PESO                               | 7.64       kg
+TOTAL PESO                                  | 7.64       kg
 
 SECCIÓN Y VOLUMEN (Voladizo)
    b = 25.0 cm | h = 45.0 cm
