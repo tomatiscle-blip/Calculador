@@ -102,6 +102,18 @@ SOBRECARGAS = {
 }
 
 # ======================================================
+# VIENTO – CIRSOC 102 (Santa Fe Capital)
+# ======================================================
+
+VIENTO = {
+    "ciudad": "Santa Fe",
+    "V": 51.0,          # m/s
+    "rho": 1.25,        # kg/m3
+    "Cd": 1.3,          # coeficiente global típico
+}
+
+
+# ======================================================
 # FUNCIONES DE CONVERSION
 # ======================================================
 
@@ -129,6 +141,11 @@ def contrapiso_cascotes(espesor_m):
     valor = carga_superficial(gamma, espesor_m)
     return (nombre, valor)
 
+def presion_viento(V):
+    """Presión dinámica básica del viento (kN/m2)"""
+    return 0.613 * (V ** 2) / 1000
+
+
 
 # ======================================================
 # CLASE ANALISIS DE CARGAS
@@ -148,10 +165,16 @@ class AnalisisCargas:
             "composicion": composicion
         })
 
+    def carga_lineal_viento(V, altura_tributaria, Cd=1.3):
+        q = presion_viento(V)
+        return q * Cd * altura_tributaria
+
+
     def resumen_texto(self):
         lineas = []
         D = {}
         L = {}
+        W = {}  # <-- nuevo
 
         lineas.append(f"ANALISIS DE CARGAS: {self.nombre}")
         lineas.append("-" * 60)
@@ -168,8 +191,10 @@ class AnalisisCargas:
                     lineas.append(f"  {i['composicion']}")
             if i["tipo"] == "D":
                 D[i["unidad"]] = D.get(i["unidad"], 0) + i["valor"]
-            else:
+            elif i["tipo"] == "L":
                 L[i["unidad"]] = L.get(i["unidad"], 0) + i["valor"]
+            elif i["tipo"] == "W":   # <-- nuevo
+                W[i["unidad"]] = W.get(i["unidad"], 0) + i["valor"]
 
             lineas.append("")
 
@@ -179,20 +204,28 @@ class AnalisisCargas:
             lineas.append(f"D total = {v:.2f} {u}")
         for u, v in L.items():
             lineas.append(f"L total = {v:.2f} {u}")
+        for u, v in W.items():      # <-- nuevo
+            lineas.append(f"W total = {v:.2f} {u}")
 
         return "\n".join(lineas)
+
     
     # -------------------------------
     # NUEVO MÉTODO: combinaciones CIRSOC
     # -------------------------------
     def combinaciones_CIRSOC(self):
-        """Calcula combinaciones típicas 1.4D y 1.2D+1.6L"""
         D_total = sum(i["valor"] for i in self.items if i["tipo"] == "D")
         L_total = sum(i["valor"] for i in self.items if i["tipo"] == "L")
-        
+        W_total = sum(i["valor"] for i in self.items if i["tipo"] == "W")
+
         combos = {}
         combos["1.4D"] = 1.4 * D_total
         combos["1.2D+1.6L"] = 1.2 * D_total + 1.6 * L_total
+        combos["1.2D+0.5L+1.6W"] = 1.2 * D_total + 0.5 * L_total + 1.6 * W_total
+        combos["0.9D+1.6W"] = 0.9 * D_total + 1.6 * W_total
+
+        return combos
+
         #U=1.4 (D+F)
         #U=1.2 (D+F+T) + 1.6 (L+H) + (f1 Lr o 0.5S o 0.5R)
         #U=1.2 D + 1.6 (Lr o S o R) + (f1 Lr o 0.5S o 0.5R)
@@ -200,14 +233,19 @@ class AnalisisCargas:
         #U=1.2 D + 1.0 E + f1 (L + Lr) + f2 S
         #U= 0.9 D + 1.6 W + 1.6 H
         #U= 0.9 D + 1.0 E + 1.6 H   
-        return combos
-
+    # ======================================================
 
 # ===============================
 # ACTIVACIÓN DE ELEMENTOS
 # ===============================
+# Nombre general del análisis
+NOMBRE_ANALISIS = "Cubierta Ch-01"
+# -------------------------------
+# Cubiertas completas con componentes, sobrecarga y viento opcional
+# -------------------------------
+# NOTA: Si se analiza una carga global para un pórtico, columnas o muros,
+# desactivar 'viento_activo' aquí para que no se sume al viento general.
 
-# Cubiertas completas con componentes y sobrecarga
 CUBIERTAS = {
     1: {
         "nombre": "Cubierta liviana de chapa con correas y cielorraso suspendido",
@@ -217,7 +255,10 @@ CUBIERTAS = {
             (SISTEMAS["Cubiertas"]["chapa_ondulada"]["nombre"], SISTEMAS["Cubiertas"]["chapa_ondulada"]["q"]),
             (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
         ],
-        "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"]
+        "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"],
+        "viento_activo": 0,     # activa succión
+        "pendiente": 6,         # grados de la cubierta
+        "altura_vertical": 1.20  # altura vertical de la cubierta
     },
     2: {
         "nombre": "Cubierta de teja cerámica con cielorraso incorporado",
@@ -225,19 +266,12 @@ CUBIERTAS = {
         "b": 3.0,
         "componentes": [
             ("Teja cerámica tipo Marsella con entablonado", SISTEMAS["Cubiertas"]["teja"]["q"]),
-            ("Cabios de madera (espesor equivalente 0.02 m)",carga_superficial(GAMMA["Madera"]["pino"]["gamma"], 0.02))
+            ("Cabios de madera (espesor equivalente 0.02 m)", carga_superficial(GAMMA["Madera"]["pino"]["gamma"], 0.02))
         ],
-        "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"]
-    },
-    3: {
-        "nombre": "Cubierta terraza",
-        "activo": 0,
-        "b": 3.0,
-        "componentes": [
-            ("Loseta cerámica 0.02 m", carga_superficial(GAMMA["Hormigon"]["armado"]["gamma"], 0.02)),
-            ("Contrapiso 0.05 m", carga_superficial(GAMMA["Hormigon"]["armado"]["gamma"], 0.05))
-        ],
-        "sobrecarga": SOBRECARGAS["terraza"]
+        "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"],
+        "viento_activo": 0,
+        "pendiente": 6,
+        "altura_vertical": 1.0
     }
 }
 
@@ -301,12 +335,10 @@ def muro(tipo, e, h):
         "unidad": "kN/m",
         "detalle": f"γ={gamma} kN/m3 · e={e} m · h={h} m"
     }
-
-
 # Lista de muros del proyecto
 MUROS = {
     "muro_comun_24": {
-        "activo": 0,
+        "activo": 1,
         "tipo": "ladrillo_comun",
         "e": 0.24,
         "h": 1.33
@@ -320,7 +352,7 @@ MUROS = {
     },
 
     "muro_comun_12": {
-        "activo": 0,
+        "activo": 1,
         "tipo": "ladrillo_comun",
         "e": 0.12,
         "h": 2.65
@@ -373,12 +405,29 @@ ENCADENADOS = {
     }
 }
 
+# ==============================
+# -------------------------------
+# VIENTO GLOBAL – dato general para otros análisis
+# -------------------------------
+# Este viento se aplica solo en análisis generales (pórticos, muros, encadenados),
+# y no se suma al viento de cubiertas locales si 'viento_activo' de la cubierta está activo.
+
+viento_global_activo = True   # True = se calcula; False = se desactiva para no sumar al análisis
+altura_global = 3.0           # Altura de referencia para columnas/muros/pórticos
+Cd_global = VIENTO["Cd"]      # Coeficiente del viento
+
+# Inicializamos el valor, se calculará solo si viento_global_activo=True
+w_global = None
+
+
+
+
 # ===============================
 # MAIN
 # ===============================
 if __name__ == "__main__":
 
-    analisis = AnalisisCargas("Cargas Viga V0-2") #cambiar nombre proyecto
+    analisis = AnalisisCargas(NOMBRE_ANALISIS) 
     # -------------------------------
     # Cubiertas
     # -------------------------------
@@ -403,7 +452,30 @@ if __name__ == "__main__":
                 "kN/m",
                 [f"q = {q_l:.2f} kN/m2 · b = {c['b']:.2f} m"]
             )
+            # -------------------------------
+            # Viento / succión (opcional)
+            # -------------------------------
+            if c.get("viento_activo", 0):
+                altura_vertical = c.get("altura_vertical", 3.0)
+                pendiente = c.get("pendiente", 0)  # grados, opcional
+                from math import cos, radians
+                # Altura tributaria ajustada por pendiente
+                altura_tributaria = altura_vertical * cos(radians(pendiente))
 
+                Cd_succion = 0.9  # coeficiente de succión
+                w_succion = AnalisisCargas.carga_lineal_viento(
+                    VIENTO["V"],
+                    altura_tributaria,
+                    Cd_succion
+             )
+
+                analisis.agregar(
+                    f"Viento – succión cubierta {c['nombre']}",
+                    "W",
+                    w_succion,
+                    "kN/m",
+                    f"h = {altura_tributaria:.2f} m · Cd_succion = {Cd_succion}"
+                )
     # -------------------------------
     # Forjados
     # -------------------------------
@@ -461,6 +533,24 @@ if __name__ == "__main__":
             enc["unidad"],
             f'{enc["detalle"]} · cantidad={e.get("cantidad",1)}'
         )
+    # -------------------------------
+    # Viento general para el proyecto
+    # -------------------------------
+    if viento_global_activo:
+        w_global = AnalisisCargas.carga_lineal_viento(
+            VIENTO["V"],
+            altura_global,
+            Cd_global
+        )
+
+        analisis.agregar(
+            f"Viento diseño Santa Fe (V=51 m/s) – general",
+            "W",
+            w_global,
+            "kN/m",
+            f"h = {altura_global:.2f} m · Cd = {Cd_global}"
+        )
+
 
     # -------------------------------
     # Resumen en pantalla

@@ -1,4 +1,4 @@
-ANALISIS DE CARGAS: Cargas Viga V0-1
+ANALISIS DE CARGAS: Cubierta Ch-01
 ------------------------------------------------------------
 Cubierta liviana de chapa con correas y cielorraso suspendido – cargas permanentes    0.97 kN/m (D)
   Cubierta liviana (chapa ondulada + fijaciones + correas) 0.15 kN/m2
@@ -8,33 +8,53 @@ Cubierta liviana de chapa con correas y cielorraso suspendido – cargas permane
 Cubierta liviana de chapa con correas y cielorraso suspendido – sobrecarga    2.02 kN/m (L)
   q = 1.00 kN/m2 · b = 2.02 m
 
-Losa Alivianada completa – cargas permanentes   12.24 kN/m (D)
+Losa Alivianada completa – cargas permanentes   12.47 kN/m (D)
   Porcelanato 10mm + pegamento        0.20 kN/m2
   Carpeta nivelación 3.0 cm           0.63 kN/m2
-  Contrapiso cascotes/cal 8 cm        1.28 kN/m2
+  Contrapiso cascotes/cal 8 cm        1.36 kN/m2
   Losa alivianada EPS P.P estimado    1.81 kN/m2
   Cielorraso de yeso suspendido       0.33 kN/m2
-  q total = 4.25 kN/m2 · b = 2.88 m
+  q total = 4.33 kN/m2 · b = 2.88 m
 
 Losa Alivianada completa – sobrecarga    5.76 kN/m (L)
   q = 2.00 kN/m2 · b = 2.88 m
 
+Losa Alivianada completa – cargas permanentes    4.76 kN/m (D)
+  Porcelanato 10mm + pegamento        0.20 kN/m2
+  Carpeta nivelación 3.0 cm           0.63 kN/m2
+  Contrapiso cascotes/cal 8 cm        1.36 kN/m2
+  Losa alivianada EPS P.P estimado    1.81 kN/m2
+  Cielorraso de yeso suspendido       0.33 kN/m2
+  q total = 4.33 kN/m2 · b = 1.10 m
+
+Losa Alivianada completa – sobrecarga    2.20 kN/m (L)
+  q = 2.00 kN/m2 · b = 1.10 m
+
 Muro de Ladrillo cerámico común (e=24 cm · h=1.33 m)    5.43 kN/m (D)
   γ=17.0 kN/m3 · e=0.24 m · h=1.33 m
+
+Muro de Ladrillo cerámico común (e=18 cm · h=1.33 m)    4.07 kN/m (D)
+  γ=17.0 kN/m3 · e=0.18 m · h=1.33 m
 
 Muro de Ladrillo cerámico común (e=12 cm · h=2.65 m)    5.41 kN/m (D)
   γ=17.0 kN/m3 · e=0.12 m · h=2.65 m
 
-Muro de Ladrillo hueco (e=8 cm · h=2.65 m)    2.23 kN/m (D)
-  γ=10.5 kN/m3 · e=0.08 m · h=2.65 m
+Muro de Ladrillo hueco (e=18 cm · h=2.80 m)    5.29 kN/m (D)
+  γ=10.5 kN/m3 · e=0.18 m · h=2.8 m
 
 Encadenado de Hormigón armado (20x20 cm) × 1    1.00 kN/m (D)
   γ=25.0 kN/m3 · b=0.2 m · h=0.2 m · cantidad=1
 
+Viento diseño Santa Fe (V=51 m/s) – general    6.22 kN/m (W)
+  h = 3.00 m · Cd = 1.3
+
 ------------------------------------------------------------
-D total = 27.27 kN/m
-L total = 7.79 kN/m
+D total = 39.40 kN/m
+L total = 9.98 kN/m
+W total = 6.22 kN/m
 
 COMBINACIONES CIRSOC:
-1.4D: 38.18 kN/m
-1.2D+1.6L: 45.18 kN/m
+1.4D: 55.16 kN/m
+1.2D+1.6L: 63.26 kN/m
+1.2D+0.5L+1.6W: 62.22 kN/m
+0.9D+1.6W: 45.41 kN/m
