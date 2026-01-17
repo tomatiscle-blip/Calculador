@@ -62,6 +62,8 @@ def armado_estribos(Ast_min, lado_cm, diametros=[12, 16, 20], diam_estribo=6):
     area_barra_min = math.pi*(12/10)**2/4
     Ast_min_norma = 4 * area_barra_min
     texto_norma = f"Ast mínimo normativo ≈ {Ast_min_norma:.2f} cm² → 4Ø12"
+    texto_calc = f"Ast cálculo teórico ≈ {Ast_min_cm2:.2f} cm²"
+
 
     # probar distintos diámetros
     for d in diametros:
@@ -101,6 +103,7 @@ def armado_estribos(Ast_min, lado_cm, diametros=[12, 16, 20], diam_estribo=6):
         gobernante = f"lado menor = {limite3/10:.1f} cm"
 
     return (
+        f"{texto_calc}\n"
         f"{texto_norma}\n"
         f"{texto_prop}\n"
         f"Estribos Ø{diam_estribo} mm (mínimo normativo Ø{diam_min}, cumple={cumple_diam})\n"
@@ -116,6 +119,7 @@ def armado_sunchos(Ast_min, diam_cm, fck, fy, diametros=[12, 16, 20], diam_espir
     area_barra_min = math.pi*(12/10)**2/4
     Ast_min_norma = 6 * area_barra_min
     texto_norma = f"Ast mínimo normativo ≈ {Ast_min_norma:.2f} cm² → 6Ø12"
+    texto_calc = f"Ast cálculo teórico ≈ {Ast_min_cm2:.2f} cm²"
 
     # probar distintos diámetros
     for d in diametros:
@@ -148,6 +152,7 @@ def armado_sunchos(Ast_min, diam_cm, fck, fy, diametros=[12, 16, 20], diam_espir
     cumple = 2.5 <= s <= 8.0
 
     return (
+        f"{texto_calc}\n"
         f"{texto_norma}\n"
         f"{texto_prop}\n"
         f"Espiral Ø{diam_espiral} mm → paso ≈ {s:.1f} cm "
