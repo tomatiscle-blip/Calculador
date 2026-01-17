@@ -557,59 +557,74 @@ class DisenadorViga:
         return resultados
 
     def calcular_estribos(self, Vu_kN, diam_mm=6, ramas=2, zona="central"):
-        # Conversión
-        Vu_N = Vu_kN * 1000
-        b_mm = self.b * 1000
-        d_mm = self.d * 1000
-        phi_corte = self.phi["corte"]
+        # ---------- 1. Conversión ----------
+        Vu_N = Vu_kN * 1000               # kN -> N
+        b_m = self.b                       # ancho en m
+        d_m = self.d                       # altura efectiva en m
+        b_mm = b_m * 1000
+        d_mm = d_m * 1000
+        phi_corte = self.phi["corte"]      # factor phi
+        # ---------- 2. Cortante nominal ----------
+        Vn_N = Vu_N / phi_corte            # Vn = Vu / φ
 
-        # Hormigón
+        # ---------- 3. Tau sección ----------
+        tau_n = Vn_N / (b_m * d_m * 1e6)  # N / m² -> Pa -> MPa
+        tau_limite = (5/6) * math.sqrt(self.fc)  # MPa
+
+        if tau_n > tau_limite:
+            print(f"[{zona}] ¡Alerta! Tau sección = {tau_n:.2f} MPa > Tau límite = {tau_limite:.2f} MPa")
+
+        # ---------- 4. Cortante que resiste el concreto ----------
         sqrt_fc = min(math.sqrt(self.fc), 8.3)
-        Vc_N = 0.17 * sqrt_fc * b_mm * d_mm
+        Vc_N = 0.1666 * sqrt_fc * b_mm * d_mm  # N
 
-        # Corte sobrante que deben resistir los estribos
-        Vs_N = (Vu_N - phi_corte * Vc_N) / phi_corte
-        Vs_N = max(Vs_N, 0.0)
+        # ---------- 5. Cortante que deben resistir los estribos ----------
+        Vs_N = max(Vn_N - Vc_N, 0.0)  # N
 
-        # Área de ramas
+        # ---------- 6. Área de ramas ----------
         area_barra_mm2 = math.pi * (diam_mm**2) / 4
         Asv_mm2 = ramas * area_barra_mm2
 
-        # Separación teórica
+        # ---------- 7. Separación teórica ----------
         if Vs_N > 0:
             s_mm_teor = (Asv_mm2 * self.fy * d_mm) / Vs_N
         else:
-            s_mm_teor = d_mm / 2
+            s_mm_teor = d_mm / 2  # zona no crítica
 
-        # Límites normativos según zona
+        # ---------- 8. Límites normativos ----------
         if zona == "apoyo":
             limite = min(d_mm/2, 150)
         else:
             limite = min(d_mm/2, 200)
 
-        # Separación final adoptada
+        # ---------- 9. Separación final adoptada ----------
         s_mm = min(s_mm_teor, limite)
         s_cm = max(6, min(round((s_mm/10)/2)*2, 30))
 
         print(
             f"[{zona}] Vu={Vu_kN:.2f} kN → "
+            f"Vn={Vn_N/1000:.2f} kN → "
+            f"τ_sección={tau_n:.2f} MPa → "
+            f"Vc={Vc_N/1000:.2f} kN → "
             f"Vs={Vs_N/1000:.2f} kN → "
             f"s_teor={s_mm_teor:.1f} mm → "
             f"s_final={s_cm} cm"
         )
 
-
         return {
             "diam_mm": diam_mm,
             "ramas": ramas,
             "s_cm": int(s_cm),
-            "s_mm_teor": s_mm_teor,   # guardás la teórica
-            "s_mm_final": s_mm,       # guardás la adoptada
+            "s_mm_teor": s_mm_teor,
+            "s_mm_final": s_mm,
             "modo": "resistencia requerida",
             "Vc_kN": Vc_N/1000,
             "Vs_req_kN": Vs_N/1000,
-            "φVn_kN": phi_corte * (Vc_N + Vs_N)/1000
-        }
+            "Vn_kN": Vn_N/1000,
+            "tau_seccion_MPa": tau_n,
+            "tau_limite_MPa": tau_limite
+    }
+
 
     def calcular_estribos_alt(self, Vu_kN, diam_mm=8, ramas=2, zona="central"):
         datos = self.calcular_estribos(Vu_kN, diam_mm=diam_mm, ramas=ramas, zona=zona)

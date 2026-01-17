@@ -1,0 +1,325 @@
+{
+  "title": "DIAGRAMA I.8 - Diagrama de interacción de la resistencia de secciones rectangulares con barras en las caras extremas",
+  "xAxisLabel": "phi.Pn/Ag * e/h = phi.Mn/b.h^2 [MPa]",
+  "yAxisLabel": "phi.Pn/b.h [MPa]",
+  "curves": [
+    {
+      "id": "rho_g_0.01",
+      "label": "ρg = 0.01",
+      "parameterValue": 0.01,
+      "points": [
+        {
+          "x": 0,
+          "y": 13
+        },
+        {
+          "x": 1.2,
+          "y": 13
+        },
+        {
+          "x": 1.5,
+          "y": 11.5
+        },
+        {
+          "x": 2,
+          "y": 9.2
+        },
+        {
+          "x": 2.5,
+          "y": 6.8
+        },
+        {
+          "x": 3,
+          "y": 4.2
+        },
+        {
+          "x": 3.4,
+          "y": 1.8
+        },
+        {
+          "x": 3.7,
+          "y": 0.3
+        },
+        {
+          "x": 3.4,
+          "y": -0.8
+        },
+        {
+          "x": 2.8,
+          "y": -1.8
+        },
+        {
+          "x": 2,
+          "y": -2.7
+        },
+        {
+          "x": 1.2,
+          "y": -3.5
+        },
+        {
+          "x": 0.5,
+          "y": -4
+        },
+        {
+          "x": 0,
+          "y": -4.2
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.02",
+      "label": "ρg = 0.02",
+      "parameterValue": 0.02,
+      "points": [
+        {
+          "x": 0,
+          "y": 15.2
+        },
+        {
+          "x": 1.4,
+          "y": 15.2
+        },
+        {
+          "x": 2.2,
+          "y": 13.4
+        },
+        {
+          "x": 3,
+          "y": 9.8
+        },
+        {
+          "x": 4,
+          "y": 5.5
+        },
+        {
+          "x": 4.8,
+          "y": 2.2
+        },
+        {
+          "x": 5.1,
+          "y": 0.4
+        },
+        {
+          "x": 4.6,
+          "y": -2.2
+        },
+        {
+          "x": 4,
+          "y": -4.2
+        },
+        {
+          "x": 3,
+          "y": -6.4
+        },
+        {
+          "x": 2,
+          "y": -7.8
+        },
+        {
+          "x": 1,
+          "y": -8.8
+        },
+        {
+          "x": 0,
+          "y": -9.3
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.04",
+      "label": "ρg = 0.04",
+      "parameterValue": 0.04,
+      "points": [
+        {
+          "x": 0,
+          "y": 19.4
+        },
+        {
+          "x": 1.8,
+          "y": 19.4
+        },
+        {
+          "x": 3,
+          "y": 17.6
+        },
+        {
+          "x": 4,
+          "y": 15.2
+        },
+        {
+          "x": 5,
+          "y": 11.4
+        },
+        {
+          "x": 6,
+          "y": 7.8
+        },
+        {
+          "x": 7,
+          "y": 4
+        },
+        {
+          "x": 7.7,
+          "y": 0.5
+        },
+        {
+          "x": 7,
+          "y": -4.5
+        },
+        {
+          "x": 6,
+          "y": -8.6
+        },
+        {
+          "x": 5,
+          "y": -11.5
+        },
+        {
+          "x": 3.5,
+          "y": -14.6
+        },
+        {
+          "x": 2,
+          "y": -16.8
+        },
+        {
+          "x": 0,
+          "y": -18.2
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.06",
+      "label": "ρg = 0.06",
+      "parameterValue": 0.06,
+      "points": [
+        {
+          "x": 0,
+          "y": 23.6
+        },
+        {
+          "x": 2.2,
+          "y": 23.6
+        },
+        {
+          "x": 3.8,
+          "y": 21
+        },
+        {
+          "x": 5,
+          "y": 17.4
+        },
+        {
+          "x": 6.2,
+          "y": 13.2
+        },
+        {
+          "x": 7.5,
+          "y": 8.8
+        },
+        {
+          "x": 8.5,
+          "y": 5.2
+        },
+        {
+          "x": 9.5,
+          "y": 0.8
+        },
+        {
+          "x": 8.8,
+          "y": -6.5
+        },
+        {
+          "x": 7.5,
+          "y": -11.8
+        },
+        {
+          "x": 6,
+          "y": -16.5
+        },
+        {
+          "x": 4,
+          "y": -21.4
+        },
+        {
+          "x": 2,
+          "y": -24.6
+        },
+        {
+          "x": 0,
+          "y": -26.8
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.08",
+      "label": "ρg = 0.08",
+      "parameterValue": 0.08,
+      "points": [
+        {
+          "x": 0,
+          "y": 27.8
+        },
+        {
+          "x": 2.6,
+          "y": 27.8
+        },
+        {
+          "x": 4,
+          "y": 25.8
+        },
+        {
+          "x": 5.5,
+          "y": 21
+        },
+        {
+          "x": 7,
+          "y": 15.2
+        },
+        {
+          "x": 8.5,
+          "y": 9.4
+        },
+        {
+          "x": 10,
+          "y": 4.5
+        },
+        {
+          "x": 10.9,
+          "y": 0.8
+        },
+        {
+          "x": 10,
+          "y": -6.8
+        },
+        {
+          "x": 8.5,
+          "y": -14.2
+        },
+        {
+          "x": 6.5,
+          "y": -21.2
+        },
+        {
+          "x": 4.5,
+          "y": -26
+        },
+        {
+          "x": 2.5,
+          "y": -29.2
+        },
+        {
+          "x": 0,
+          "y": -31.6
+        }
+      ]
+    }
+  ],
+  "verificationSummary": "Calibrado estableciendo el origen (0,0) en la intersección de los ejes principales. El eje X se escala de 0 a 11 MPa y el eje Y de -32 a 36 MPa según la cuadrícula visible, donde cada división principal representa 1 unidad en X y 4 unidades en Y. Las curvas se truncan en la parte superior según los límites de aplastamiento del hormigón para cada cuantía.",
+  "metadata": {
+    "fck": "25 MPa",
+    "fyk": "420 MPa",
+    "sectionType": "Rectangular con barras en las caras extremas (gamma = 0.70)",
+    "units": "MPa"
+  }
+}

@@ -1,0 +1,329 @@
+{
+  "title": "DIAGRAMA II.10: Diagrama de interacción de la resistencia de secciones rectangulares con barras en sus cuatro lados",
+  "xAxisLabel": "phi.Pn / Ag * e/h = phi.Mn / (b.h^2) [MPa]",
+  "yAxisLabel": "phi.Pn / (b.h) [MPa]",
+  "curves": [
+    {
+      "id": "rho_g_0.01",
+      "label": "ρg = 0.01",
+      "parameterValue": 0.01,
+      "points": [
+        {
+          "x": 0,
+          "y": 13.2
+        },
+        {
+          "x": 1.4,
+          "y": 13.2
+        },
+        {
+          "x": 2,
+          "y": 11.5
+        },
+        {
+          "x": 2.5,
+          "y": 9.5
+        },
+        {
+          "x": 3,
+          "y": 7.5
+        },
+        {
+          "x": 3.6,
+          "y": 5.5
+        },
+        {
+          "x": 3.4,
+          "y": 4.5
+        },
+        {
+          "x": 3,
+          "y": 3.2
+        },
+        {
+          "x": 2.4,
+          "y": 1.8
+        },
+        {
+          "x": 1.8,
+          "y": 0.5
+        },
+        {
+          "x": 1.2,
+          "y": -1.2
+        },
+        {
+          "x": 0.8,
+          "y": -2.2
+        },
+        {
+          "x": 0.4,
+          "y": -3
+        },
+        {
+          "x": 0,
+          "y": -3.8
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.02",
+      "label": "ρg = 0.02",
+      "parameterValue": 0.02,
+      "points": [
+        {
+          "x": 0,
+          "y": 15.8
+        },
+        {
+          "x": 1.8,
+          "y": 15.8
+        },
+        {
+          "x": 2.5,
+          "y": 13.5
+        },
+        {
+          "x": 3.2,
+          "y": 10.8
+        },
+        {
+          "x": 4.1,
+          "y": 7.8
+        },
+        {
+          "x": 4.8,
+          "y": 5
+        },
+        {
+          "x": 4.5,
+          "y": 4
+        },
+        {
+          "x": 4,
+          "y": 2.5
+        },
+        {
+          "x": 3.2,
+          "y": 0.5
+        },
+        {
+          "x": 2.5,
+          "y": -1.5
+        },
+        {
+          "x": 1.8,
+          "y": -3.2
+        },
+        {
+          "x": 1,
+          "y": -5.5
+        },
+        {
+          "x": 0.5,
+          "y": -6.5
+        },
+        {
+          "x": 0,
+          "y": -7.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.04",
+      "label": "ρg = 0.04",
+      "parameterValue": 0.04,
+      "points": [
+        {
+          "x": 0,
+          "y": 21
+        },
+        {
+          "x": 2.5,
+          "y": 21
+        },
+        {
+          "x": 3.5,
+          "y": 18
+        },
+        {
+          "x": 4.5,
+          "y": 14.5
+        },
+        {
+          "x": 5.5,
+          "y": 10.8
+        },
+        {
+          "x": 6.5,
+          "y": 7.5
+        },
+        {
+          "x": 7.2,
+          "y": 4.2
+        },
+        {
+          "x": 6.5,
+          "y": 2.2
+        },
+        {
+          "x": 5.5,
+          "y": -0.5
+        },
+        {
+          "x": 4.2,
+          "y": -4.2
+        },
+        {
+          "x": 3.2,
+          "y": -7.2
+        },
+        {
+          "x": 2,
+          "y": -10.5
+        },
+        {
+          "x": 1,
+          "y": -13
+        },
+        {
+          "x": 0,
+          "y": -15
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.06",
+      "label": "ρg = 0.06",
+      "parameterValue": 0.06,
+      "points": [
+        {
+          "x": 0,
+          "y": 26.5
+        },
+        {
+          "x": 3.2,
+          "y": 26.5
+        },
+        {
+          "x": 4.5,
+          "y": 22.5
+        },
+        {
+          "x": 6,
+          "y": 17.5
+        },
+        {
+          "x": 7.5,
+          "y": 12.5
+        },
+        {
+          "x": 9,
+          "y": 7.2
+        },
+        {
+          "x": 9.5,
+          "y": 3.8
+        },
+        {
+          "x": 8.5,
+          "y": 1.2
+        },
+        {
+          "x": 7.2,
+          "y": -2.8
+        },
+        {
+          "x": 5.8,
+          "y": -7
+        },
+        {
+          "x": 4.2,
+          "y": -11.5
+        },
+        {
+          "x": 3,
+          "y": -15
+        },
+        {
+          "x": 1.5,
+          "y": -19
+        },
+        {
+          "x": 0,
+          "y": -22.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.08",
+      "label": "ρg = 0.08",
+      "parameterValue": 0.08,
+      "points": [
+        {
+          "x": 0,
+          "y": 31.8
+        },
+        {
+          "x": 4,
+          "y": 31.8
+        },
+        {
+          "x": 5.5,
+          "y": 27.5
+        },
+        {
+          "x": 7.5,
+          "y": 20.5
+        },
+        {
+          "x": 9.5,
+          "y": 13.5
+        },
+        {
+          "x": 11.5,
+          "y": 6.8
+        },
+        {
+          "x": 11.6,
+          "y": 3
+        },
+        {
+          "x": 10.5,
+          "y": 0.2
+        },
+        {
+          "x": 9,
+          "y": -4.5
+        },
+        {
+          "x": 7.5,
+          "y": -9.2
+        },
+        {
+          "x": 5.5,
+          "y": -15.5
+        },
+        {
+          "x": 4,
+          "y": -19.5
+        },
+        {
+          "x": 2,
+          "y": -25.5
+        },
+        {
+          "x": 0,
+          "y": -30
+        }
+      ]
+    }
+  ],
+  "verificationSummary": "Calibración realizada situando el origen (0,0) en la intersección de los ejes principales. El eje X se escala de 0 a 12 MPa basado en la cuadrícula marcada. El eje Y se escala desde -32 MPa (tensión máxima en el gráfico) hasta 36 MPa (compresión máxima). Se han digitalizado puntos representativos capturando las mesetas de compresión máxima, los puntos de fluencia (noses) y los interceptos de tensión axial pura.",
+  "metadata": {
+    "fck": "25 MPa",
+    "fyk": "420 MPa",
+    "sectionType": "Rectangular, armadura en 4 caras",
+    "units": "MPa"
+  }
+}

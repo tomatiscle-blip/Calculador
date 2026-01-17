@@ -56,8 +56,8 @@ NOTAS TÉCNICAS
    As apoyo der = 3.52 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 24 unidades (s_teor≈147.4 mm → s_final=14 cm)
-   Cantidad total Ø8 = 23 unidades (s_teor≈262.1 mm → s_final=16 cm)
+   Cantidad total Ø6 = 24 unidades (s_teor≈143.9 mm → s_final=14 cm)
+   Cantidad total Ø8 = 23 unidades (s_teor≈255.9 mm → s_final=16 cm)
    Zonificación   = apoyo_izq=0.00-1.04 m | central=1.04-3.42 m | apoyo_der=3.42-4.00 m
 
 9 FLECHA DE SERVICIO

@@ -1,0 +1,349 @@
+{
+  "title": "DIAGRAMA II.1: Diagrama de interacción de la resistencia de secciones rectangulares con barras en sus cuatro lados",
+  "xAxisLabel": "phi.Pn.e / (Ag.h) = phi.Mn / (b.h^2) ; [MPa]",
+  "yAxisLabel": "phi.Pn / (b.h) ; [MPa]",
+  "curves": [
+    {
+      "id": "rho_g_0.01",
+      "label": "rho_g = 0.01",
+      "parameterValue": 0.01,
+      "points": [
+        {
+          "x": 0,
+          "y": 11
+        },
+        {
+          "x": 0.4,
+          "y": 11
+        },
+        {
+          "x": 0.8,
+          "y": 10.9
+        },
+        {
+          "x": 1.1,
+          "y": 10.3
+        },
+        {
+          "x": 1.3,
+          "y": 9.5
+        },
+        {
+          "x": 1.5,
+          "y": 7.8
+        },
+        {
+          "x": 1.65,
+          "y": 5.5
+        },
+        {
+          "x": 1.72,
+          "y": 3
+        },
+        {
+          "x": 1.68,
+          "y": 1
+        },
+        {
+          "x": 1.55,
+          "y": -0.2
+        },
+        {
+          "x": 1.4,
+          "y": -1
+        },
+        {
+          "x": 1.1,
+          "y": -2
+        },
+        {
+          "x": 0.7,
+          "y": -2.8
+        },
+        {
+          "x": 0.3,
+          "y": -3.5
+        },
+        {
+          "x": 0,
+          "y": -3.8
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.02",
+      "label": "rho_g = 0.02",
+      "parameterValue": 0.02,
+      "points": [
+        {
+          "x": 0,
+          "y": 14
+        },
+        {
+          "x": 0.5,
+          "y": 14
+        },
+        {
+          "x": 1,
+          "y": 13.5
+        },
+        {
+          "x": 1.4,
+          "y": 12.2
+        },
+        {
+          "x": 1.7,
+          "y": 10.5
+        },
+        {
+          "x": 1.9,
+          "y": 8.5
+        },
+        {
+          "x": 2.1,
+          "y": 5.5
+        },
+        {
+          "x": 2.15,
+          "y": 3
+        },
+        {
+          "x": 2.05,
+          "y": 0.5
+        },
+        {
+          "x": 1.9,
+          "y": -1.5
+        },
+        {
+          "x": 1.6,
+          "y": -3.5
+        },
+        {
+          "x": 1.2,
+          "y": -5
+        },
+        {
+          "x": 0.8,
+          "y": -6.2
+        },
+        {
+          "x": 0.4,
+          "y": -7.2
+        },
+        {
+          "x": 0,
+          "y": -7.6
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.04",
+      "label": "rho_g = 0.04",
+      "parameterValue": 0.04,
+      "points": [
+        {
+          "x": 0,
+          "y": 20
+        },
+        {
+          "x": 0.6,
+          "y": 20
+        },
+        {
+          "x": 1.2,
+          "y": 19.3
+        },
+        {
+          "x": 1.8,
+          "y": 17.5
+        },
+        {
+          "x": 2.3,
+          "y": 14.5
+        },
+        {
+          "x": 2.6,
+          "y": 11.5
+        },
+        {
+          "x": 2.8,
+          "y": 8
+        },
+        {
+          "x": 2.85,
+          "y": 5
+        },
+        {
+          "x": 2.7,
+          "y": 1.5
+        },
+        {
+          "x": 2.4,
+          "y": -2
+        },
+        {
+          "x": 1.9,
+          "y": -6.5
+        },
+        {
+          "x": 1.4,
+          "y": -10
+        },
+        {
+          "x": 0.9,
+          "y": -12.5
+        },
+        {
+          "x": 0.4,
+          "y": -14.2
+        },
+        {
+          "x": 0,
+          "y": -15.2
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.06",
+      "label": "rho_g = 0.06",
+      "parameterValue": 0.06,
+      "points": [
+        {
+          "x": 0,
+          "y": 26
+        },
+        {
+          "x": 0.8,
+          "y": 26
+        },
+        {
+          "x": 1.6,
+          "y": 25
+        },
+        {
+          "x": 2.3,
+          "y": 22.5
+        },
+        {
+          "x": 2.8,
+          "y": 19.5
+        },
+        {
+          "x": 3.2,
+          "y": 15.5
+        },
+        {
+          "x": 3.5,
+          "y": 11.5
+        },
+        {
+          "x": 3.55,
+          "y": 7
+        },
+        {
+          "x": 3.4,
+          "y": 2.5
+        },
+        {
+          "x": 3,
+          "y": -3.5
+        },
+        {
+          "x": 2.5,
+          "y": -8.5
+        },
+        {
+          "x": 1.8,
+          "y": -15
+        },
+        {
+          "x": 1.1,
+          "y": -19.5
+        },
+        {
+          "x": 0.5,
+          "y": -22
+        },
+        {
+          "x": 0,
+          "y": -23
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.08",
+      "label": "rho_g = 0.08",
+      "parameterValue": 0.08,
+      "points": [
+        {
+          "x": 0,
+          "y": 32
+        },
+        {
+          "x": 1,
+          "y": 32
+        },
+        {
+          "x": 2,
+          "y": 30.2
+        },
+        {
+          "x": 2.7,
+          "y": 27.2
+        },
+        {
+          "x": 3.3,
+          "y": 23.5
+        },
+        {
+          "x": 3.8,
+          "y": 18.5
+        },
+        {
+          "x": 4.1,
+          "y": 13
+        },
+        {
+          "x": 4.18,
+          "y": 8.5
+        },
+        {
+          "x": 4,
+          "y": 3.5
+        },
+        {
+          "x": 3.6,
+          "y": -3.5
+        },
+        {
+          "x": 3,
+          "y": -10
+        },
+        {
+          "x": 2.1,
+          "y": -20
+        },
+        {
+          "x": 1.2,
+          "y": -26.5
+        },
+        {
+          "x": 0.5,
+          "y": -29.2
+        },
+        {
+          "x": 0,
+          "y": -30.5
+        }
+      ]
+    }
+  ],
+  "verificationSummary": "Calibración de ejes realizada estableciendo el origen en (0,0). El eje Y (carga axial normalizada) se ha calibrado en el rango de -32 a 32 MPa. El eje X (momento flector normalizado) se ha calibrado de 0 a 5.0 MPa. Se han extraído 5 curvas representativas de la familia de cuantías geométricas (rho_g) proporcionando más de 12 puntos por curva para asegurar la precisión en las zonas de compresión pura, falla balanceada y tracción pura.",
+  "metadata": {
+    "fck": "20 MPa",
+    "fyk": "420 MPa",
+    "sectionType": "Rectangular con barras en sus cuatro lados",
+    "units": "MPa"
+  }
+}
