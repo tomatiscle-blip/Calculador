@@ -1,5 +1,5 @@
 {
-  "title": "DIAGRAMA II.1: Diagrama de interacción de la resistencia de secciones rectangulares con barras en sus cuatro lados",
+  "title": "DIAGRAMA II.1 - rectangulares con barras en las cuatro caras(f'c=20MPa, fy=420MPa, gamma=0.50)",
   "xAxisLabel": "phi.Pn.e / (Ag.h) = phi.Mn / (b.h^2) ; [MPa]",
   "yAxisLabel": "phi.Pn / (b.h) ; [MPa]",
   "curves": [

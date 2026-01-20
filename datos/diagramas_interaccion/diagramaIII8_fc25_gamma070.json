@@ -1,5 +1,5 @@
 {
-  "title": "DIAGRAMA III.8 - Diagrama de interacción de la resistencia de secciones circulares",
+  "title": "DIAGRAMA III.8 - Circulares (f'c=25MPa, fy=420MPa, gamma=0.70)",
   "xAxisLabel": "phi.Pn/Ag * e/D = phi.Mn/(Ag.D) [MPa]",
   "yAxisLabel": "phi.Pn/Ag [MPa]",
   "curves": [

@@ -1,345 +1,582 @@
 {
-  "title": "DIAGRAMA I.9 - Diagrama de interacción de la resistencia de secciones rectangulares con barras en las caras extremas",
-  "xAxisLabel": "phi.Pn.e / (Ag.h) = phi.Mn / (b.h^2) [MPa]",
-  "yAxisLabel": "phi.Pn / (b.h) [MPa]",
+  "title": "DIAGRAMA I.9 - rectangulares con barras en las caras extremas (f'c=25MPa, fy=420MPa, gamma=0.80)",
+  "xAxisLabel": "φ.Mn / (b.h²) [MPa]",
+  "yAxisLabel": "φ.Pn / (b.h) [MPa]",
   "curves": [
     {
       "id": "rho_g_0.01",
-      "label": "rho_g = 0.01",
+      "label": "ρg = 0.01",
       "parameterValue": 0.01,
       "points": [
         {
           "x": 0,
-          "y": 13.2
-        },
-        {
-          "x": 0.5,
-          "y": 13.2
-        },
-        {
-          "x": 1,
           "y": 13
         },
         {
-          "x": 1.5,
-          "y": 12.2
+          "x": 0.5,
+          "y": 13
         },
         {
-          "x": 2,
+          "x": 0.9,
+          "y": 12.8
+        },
+        {
+          "x": 1.2,
+          "y": 11.5
+        },
+        {
+          "x": 1.5,
           "y": 10
         },
         {
+          "x": 1.8,
+          "y": 8.5
+        },
+        {
+          "x": 2.1,
+          "y": 7
+        },
+        {
           "x": 2.4,
-          "y": 6.8
+          "y": 5.5
         },
         {
           "x": 2.6,
-          "y": 5.8
+          "y": 4.5
         },
         {
-          "x": 3,
-          "y": 5
-        },
-        {
-          "x": 3.3,
+          "x": 2.8,
           "y": 3.5
         },
         {
-          "x": 3.5,
-          "y": 2
+          "x": 3,
+          "y": 2.5
         },
         {
-          "x": 3.7,
-          "y": 0
+          "x": 2.5,
+          "y": 1.5
+        },
+        {
+          "x": 2,
+          "y": 0.5
+        },
+        {
+          "x": 1.5,
+          "y": -0.5
+        },
+        {
+          "x": 1,
+          "y": -1.5
+        },
+        {
+          "x": 0.5,
+          "y": -2.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.02",
+      "label": "ρg = 0.02",
+      "parameterValue": 0.02,
+      "points": [
+        {
+          "x": 0,
+          "y": 15.2
+        },
+        {
+          "x": 0.5,
+          "y": 15.2
+        },
+        {
+          "x": 1,
+          "y": 15
+        },
+        {
+          "x": 1.5,
+          "y": 13.5
+        },
+        {
+          "x": 2,
+          "y": 11.5
+        },
+        {
+          "x": 2.5,
+          "y": 9.5
+        },
+        {
+          "x": 3,
+          "y": 7.5
+        },
+        {
+          "x": 3.5,
+          "y": 5.8
+        },
+        {
+          "x": 4,
+          "y": 4.2
+        },
+        {
+          "x": 4.2,
+          "y": 3.5
+        },
+        {
+          "x": 4,
+          "y": 2.5
+        },
+        {
+          "x": 3.5,
+          "y": 1.5
+        },
+        {
+          "x": 3,
+          "y": 0.5
+        },
+        {
+          "x": 2.5,
+          "y": -0.5
+        },
+        {
+          "x": 2,
+          "y": -1.5
+        },
+        {
+          "x": 1.5,
+          "y": -2.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.03",
+      "label": "ρg = 0.03",
+      "parameterValue": 0.03,
+      "points": [
+        {
+          "x": 0,
+          "y": 17.5
+        },
+        {
+          "x": 0.5,
+          "y": 17.5
+        },
+        {
+          "x": 1.2,
+          "y": 17.2
+        },
+        {
+          "x": 1.8,
+          "y": 15.5
+        },
+        {
+          "x": 2.4,
+          "y": 13.5
+        },
+        {
+          "x": 3,
+          "y": 11.2
+        },
+        {
+          "x": 3.6,
+          "y": 9
+        },
+        {
+          "x": 4.2,
+          "y": 7
+        },
+        {
+          "x": 4.8,
+          "y": 5.2
+        },
+        {
+          "x": 5.2,
+          "y": 4.2
+        },
+        {
+          "x": 5,
+          "y": 3
+        },
+        {
+          "x": 4.5,
+          "y": 1.8
+        },
+        {
+          "x": 4,
+          "y": 0.8
+        },
+        {
+          "x": 3.5,
+          "y": -0.2
         },
         {
           "x": 3,
           "y": -1.2
         },
         {
-          "x": 2,
+          "x": 2.5,
           "y": -2.2
-        },
-        {
-          "x": 1,
-          "y": -3.2
-        },
-        {
-          "x": 0,
-          "y": -4
-        }
-      ]
-    },
-    {
-      "id": "rho_g_0.02",
-      "label": "rho_g = 0.02",
-      "parameterValue": 0.02,
-      "points": [
-        {
-          "x": 0,
-          "y": 15.8
-        },
-        {
-          "x": 1,
-          "y": 15.8
-        },
-        {
-          "x": 2,
-          "y": 15.1
-        },
-        {
-          "x": 3,
-          "y": 11.5
-        },
-        {
-          "x": 3.5,
-          "y": 7.5
-        },
-        {
-          "x": 4.1,
-          "y": 6
-        },
-        {
-          "x": 4.8,
-          "y": 5.4
-        },
-        {
-          "x": 5.2,
-          "y": 4
-        },
-        {
-          "x": 5.5,
-          "y": 2
-        },
-        {
-          "x": 5.7,
-          "y": 0
-        },
-        {
-          "x": 4.5,
-          "y": -2.2
-        },
-        {
-          "x": 3,
-          "y": -4.2
-        },
-        {
-          "x": 1.5,
-          "y": -6.4
-        },
-        {
-          "x": 0,
-          "y": -8
         }
       ]
     },
     {
       "id": "rho_g_0.04",
-      "label": "rho_g = 0.04",
+      "label": "ρg = 0.04",
       "parameterValue": 0.04,
       "points": [
         {
           "x": 0,
-          "y": 21.2
+          "y": 19.8
+        },
+        {
+          "x": 0.8,
+          "y": 19.6
         },
         {
           "x": 1.5,
-          "y": 21.2
+          "y": 18.5
+        },
+        {
+          "x": 2.2,
+          "y": 16.8
         },
         {
           "x": 3,
-          "y": 20.2
+          "y": 14.5
+        },
+        {
+          "x": 3.8,
+          "y": 11.8
         },
         {
           "x": 4.5,
-          "y": 17.5
+          "y": 9.2
+        },
+        {
+          "x": 5.2,
+          "y": 7
+        },
+        {
+          "x": 5.8,
+          "y": 5.5
+        },
+        {
+          "x": 6.2,
+          "y": 4.5
+        },
+        {
+          "x": 6,
+          "y": 3.5
         },
         {
           "x": 5.5,
-          "y": 12.5
+          "y": 2.5
+        },
+        {
+          "x": 5,
+          "y": 1.5
+        },
+        {
+          "x": 4.5,
+          "y": 0.5
+        },
+        {
+          "x": 4,
+          "y": -0.5
+        },
+        {
+          "x": 3.5,
+          "y": -1.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.05",
+      "label": "ρg = 0.05",
+      "parameterValue": 0.05,
+      "points": [
+        {
+          "x": 0,
+          "y": 22
+        },
+        {
+          "x": 1,
+          "y": 21.8
+        },
+        {
+          "x": 2,
+          "y": 20
+        },
+        {
+          "x": 3,
+          "y": 17.5
+        },
+        {
+          "x": 4,
+          "y": 14.5
+        },
+        {
+          "x": 4.8,
+          "y": 12
+        },
+        {
+          "x": 5.5,
+          "y": 9.5
         },
         {
           "x": 6.2,
           "y": 7.5
         },
         {
+          "x": 6.8,
+          "y": 6
+        },
+        {
+          "x": 7.2,
+          "y": 5
+        },
+        {
           "x": 7,
-          "y": 5.8
+          "y": 4
         },
         {
-          "x": 8,
-          "y": 5.5
-        },
-        {
-          "x": 9,
-          "y": 2.5
-        },
-        {
-          "x": 9.5,
-          "y": 0
-        },
-        {
-          "x": 8,
-          "y": -3.5
+          "x": 6.5,
+          "y": 3
         },
         {
           "x": 6,
-          "y": -7.5
+          "y": 2
         },
         {
-          "x": 4,
-          "y": -10.5
+          "x": 5.5,
+          "y": 1
         },
         {
-          "x": 2,
-          "y": -13.5
+          "x": 5,
+          "y": 0
         },
         {
-          "x": 0,
-          "y": -16
+          "x": 4.5,
+          "y": -1
         }
       ]
     },
     {
       "id": "rho_g_0.06",
-      "label": "rho_g = 0.06",
+      "label": "ρg = 0.06",
       "parameterValue": 0.06,
+      "points": [
+        {
+          "x": 0,
+          "y": 24.2
+        },
+        {
+          "x": 1.2,
+          "y": 23.8
+        },
+        {
+          "x": 2.5,
+          "y": 21.5
+        },
+        {
+          "x": 3.8,
+          "y": 18.5
+        },
+        {
+          "x": 5,
+          "y": 15
+        },
+        {
+          "x": 6,
+          "y": 12
+        },
+        {
+          "x": 6.8,
+          "y": 9.5
+        },
+        {
+          "x": 7.5,
+          "y": 7.5
+        },
+        {
+          "x": 8,
+          "y": 6
+        },
+        {
+          "x": 8.2,
+          "y": 5.2
+        },
+        {
+          "x": 8,
+          "y": 4.5
+        },
+        {
+          "x": 7.5,
+          "y": 3.5
+        },
+        {
+          "x": 7,
+          "y": 2.5
+        },
+        {
+          "x": 6.5,
+          "y": 1.5
+        },
+        {
+          "x": 6,
+          "y": 0.5
+        },
+        {
+          "x": 5.5,
+          "y": -0.5
+        }
+      ]
+    },
+    {
+      "id": "rho_g_0.07",
+      "label": "ρg = 0.07",
+      "parameterValue": 0.07,
       "points": [
         {
           "x": 0,
           "y": 26.5
         },
         {
-          "x": 2,
-          "y": 26.3
+          "x": 1.5,
+          "y": 25.8
         },
         {
-          "x": 4,
-          "y": 25
+          "x": 3,
+          "y": 23
         },
         {
-          "x": 6,
-          "y": 20.8
+          "x": 4.5,
+          "y": 19.5
         },
         {
-          "x": 8,
-          "y": 12.8
+          "x": 5.8,
+          "y": 16
+        },
+        {
+          "x": 6.8,
+          "y": 13
+        },
+        {
+          "x": 7.8,
+          "y": 10
+        },
+        {
+          "x": 8.5,
+          "y": 8
         },
         {
           "x": 9,
-          "y": 7.8
+          "y": 6.5
         },
         {
-          "x": 10.2,
-          "y": 6
+          "x": 9.2,
+          "y": 5.5
         },
         {
-          "x": 11.5,
-          "y": 5.2
+          "x": 9,
+          "y": 4.8
         },
         {
-          "x": 12.5,
-          "y": 2.5
-        },
-        {
-          "x": 13,
-          "y": 0
-        },
-        {
-          "x": 10,
-          "y": -6.5
+          "x": 8.5,
+          "y": 3.8
         },
         {
           "x": 8,
-          "y": -11
+          "y": 2.8
         },
         {
-          "x": 5,
-          "y": -16.5
+          "x": 7.5,
+          "y": 1.8
         },
         {
-          "x": 2.5,
-          "y": -20.5
+          "x": 7,
+          "y": 0.8
         },
         {
-          "x": 0,
-          "y": -24
+          "x": 6.5,
+          "y": -0.2
         }
       ]
     },
     {
       "id": "rho_g_0.08",
-      "label": "rho_g = 0.08",
+      "label": "ρg = 0.08",
       "parameterValue": 0.08,
       "points": [
         {
           "x": 0,
-          "y": 31.8
+          "y": 28.8
         },
         {
-          "x": 2,
-          "y": 31.5
+          "x": 1.8,
+          "y": 27.8
         },
         {
-          "x": 4,
-          "y": 30.2
+          "x": 3.5,
+          "y": 24.5
         },
         {
-          "x": 6,
-          "y": 26.5
+          "x": 5.2,
+          "y": 20.5
+        },
+        {
+          "x": 6.5,
+          "y": 17
+        },
+        {
+          "x": 7.8,
+          "y": 13.5
+        },
+        {
+          "x": 8.8,
+          "y": 10.5
+        },
+        {
+          "x": 9.5,
+          "y": 8.5
+        },
+        {
+          "x": 10,
+          "y": 7
+        },
+        {
+          "x": 10.2,
+          "y": 5.8
+        },
+        {
+          "x": 10,
+          "y": 5
+        },
+        {
+          "x": 9.5,
+          "y": 4
+        },
+        {
+          "x": 9,
+          "y": 3
+        },
+        {
+          "x": 8.5,
+          "y": 2
         },
         {
           "x": 8,
-          "y": 20
+          "y": 1
         },
         {
-          "x": 10,
-          "y": 12.5
-        },
-        {
-          "x": 11.5,
-          "y": 7.5
-        },
-        {
-          "x": 12,
-          "y": 6.5
-        },
-        {
-          "x": 13.5,
-          "y": 5.3
-        },
-        {
-          "x": 13.8,
-          "y": 4.8
-        },
-        {
-          "x": 14.5,
-          "y": 4.4
-        },
-        {
-          "x": 13,
-          "y": -2
-        },
-        {
-          "x": 10,
-          "y": -10
-        },
-        {
-          "x": 5,
-          "y": -21.5
-        },
-        {
-          "x": 0,
-          "y": -32
+          "x": 7.5,
+          "y": 0
         }
       ]
     }
   ],
-  "verificationSummary": "Se calibraron los ejes utilizando el origen (0,0) como pivote. El eje Y se escaló de -32 a 36 MPa con una rejilla principal cada 4 unidades. El eje X se escaló de 0 a 14 MPa con una rejilla principal cada 1 unidad. Los puntos de balance (fs=fy) se identificaron consistentemente cerca del nivel horizontal de y=5.5 MPa. La zona de compresión controlada (líneas discontinuas en la parte superior) se digitalizó siguiendo la meseta de carga máxima permitida.",
+  "verificationSummary": "Calibración basada en la cuadrícula principal. Eje X de 0 a 14 con divisiones principales cada 1. Eje Y de -32 a 36 con divisiones principales cada 4. Origen en (0,0) identificado en la intersección de los ejes. Se verificó que las curvas ρg=0.01 a 0.08 siguen la tendencia de reducción de capacidad axial con aumento de momento, presentando el quiebre característico (cambio de falla por compresión a tracción) alrededor de φPn/bh ≈ 5-7 MPa según la cuantía.",
   "metadata": {
     "fck": "25 MPa",
     "fyk": "420 MPa",
-    "sectionType": "Rectangular (barras en caras extremas)",
+    "sectionType": "Rectangular con barras en caras extremas",
     "units": "MPa"
   }
 }

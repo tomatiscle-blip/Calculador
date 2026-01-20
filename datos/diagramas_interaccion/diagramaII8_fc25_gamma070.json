@@ -1,5 +1,5 @@
 {
-  "title": "DIAGRAMA DE INTERACCIÓN II.8",
+  "title": "DIAGRAMA II.8 - rectangulares con barras en las cuatro caras(f'c=25MPa, fy=420MPa, gamma=0.70)",
   "xAxisLabel": "phi * Pn / Ag * e/h = phi * Mn / (b * h^2) [MPa]",
   "yAxisLabel": "phi * Pn / (b * h) [MPa]",
   "curves": [

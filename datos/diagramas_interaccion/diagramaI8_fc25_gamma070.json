@@ -1,5 +1,5 @@
 {
-  "title": "DIAGRAMA I.8 - Diagrama de interacción de la resistencia de secciones rectangulares con barras en las caras extremas",
+  "title": "DIAGRAMA I.8 - rectangulares con barras en las caras extremas (f'c=25MPa, fy=420MPa, gamma=0.70)",
   "xAxisLabel": "phi.Pn/Ag * e/h = phi.Mn/b.h^2 [MPa]",
   "yAxisLabel": "phi.Pn/b.h [MPa]",
   "curves": [
