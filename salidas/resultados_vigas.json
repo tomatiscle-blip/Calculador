@@ -1,0 +1,580 @@
+{
+  "tramos": [
+    {
+      "id": "V01.T1",
+      "viga": "V01",
+      "tipo": "interior",
+      "L_m": 6.0,
+      "PI_izq_m": 0.77,
+      "PI_der_m": 5.12
+    },
+    {
+      "id": "V02.V02.1_v",
+      "viga": "V02",
+      "tipo": "voladizo",
+      "L_m": 1.65
+    },
+    {
+      "id": "V02.V02.2",
+      "viga": "V02",
+      "tipo": "interior",
+      "L_m": 4.0,
+      "PI_izq_m": 1.0,
+      "PI_der_m": 3.5
+    },
+    {
+      "id": "V02.V02.3_v",
+      "viga": "V02",
+      "tipo": "voladizo",
+      "L_m": 1.2
+    },
+    {
+      "id": "V04.T1",
+      "viga": "V04",
+      "tipo": "interior",
+      "L_m": 3.5,
+      "PI_izq_m": 0.7,
+      "PI_der_m": 2.8
+    }
+  ],
+  "flexion": [
+    {
+      "viga": "V01",
+      "tramo": "T1",
+      "As_req_cm2": 10.8,
+      "As_adop_cm2": 12.566370614359172,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "As_req_cm2": 14.58,
+      "As_adop_cm2": 14.58,
+      "cumple": true
+    },
+    {
+      "viga": "V02",
+      "tramo": "V02.2",
+      "As_req_cm2": 3.65,
+      "As_adop_cm2": 3.9269908169872414,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "As_req_cm2": 2.6,
+      "As_adop_cm2": 3.42,
+      "cumple": true
+    },
+    {
+      "viga": "V04",
+      "tramo": "T1",
+      "As_req_cm2": 3.47,
+      "As_adop_cm2": 3.9269908169872414,
+      "cumple": true
+    }
+  ],
+  "estado": [
+    {
+      "tramo": "V01.T1",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    },
+    {
+      "tramo": "V02.V02.2",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    },
+    {
+      "tramo": "V04.T1",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    }
+  ],
+  "materiales": [
+    {
+      "tramo": "V01.T1",
+      "fc_MPa": 20.0,
+      "fy_MPa": 420.0,
+      "Ec_MPa": 21019.038988498025,
+      "V_m3": 0.6732,
+      "peso_kg": 1615.68
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "fc_MPa": 21.0,
+      "fy_MPa": 420.0,
+      "Ec_MPa": 21538.105766292447,
+      "V_m3": 0.185625,
+      "peso_kg": 445.50000000000006
+    },
+    {
+      "tramo": "V02.V02.2",
+      "fc_MPa": 21.0,
+      "fy_MPa": 420.0,
+      "Ec_MPa": 21538.105766292447,
+      "V_m3": 0.45,
+      "peso_kg": 1080.0
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "fc_MPa": 21.0,
+      "fy_MPa": 420.0,
+      "Ec_MPa": 21538.105766292447,
+      "V_m3": 0.135,
+      "peso_kg": 324.0
+    },
+    {
+      "tramo": "V04.T1",
+      "fc_MPa": 25.0,
+      "fy_MPa": 420.0,
+      "Ec_MPa": 23500.0,
+      "V_m3": 0.28,
+      "peso_kg": 672.0000000000001
+    }
+  ],
+  "inercias": [
+    {
+      "tramo": "V01.T1",
+      "Ig_m4": 0.002431935,
+      "Ief_m4": 0.002351467427765944,
+      "ratio_Ief_Ig": 0.9669121204990857,
+      "Mcr_tramo_kNm": 35.0898223863209,
+      "c_usado_cm": 18.14707812208887,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    },
+    {
+      "tramo": "V02.V02.2",
+      "Ig_m4": 0.0018984375000000002,
+      "Ief_m4": 0.0015719886769799967,
+      "ratio_Ief_Ig": 0.8280434183269118,
+      "Mcr_tramo_kNm": 26.423595910197996,
+      "c_usado_cm": 9.779190585895497,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    },
+    {
+      "tramo": "V04.T1",
+      "Ig_m4": 0.001066666666666667,
+      "Ief_m4": 0.000828179695956622,
+      "ratio_Ief_Ig": 0.776418464959333,
+      "Mcr_tramo_kNm": 18.56906609227003,
+      "c_usado_cm": 9.621273711184523,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    }
+  ],
+  "armaduras": [
+    {
+      "tramo": "V01.T1",
+      "pos": 1,
+      "cantidad": 3,
+      "diam_mm": 25,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 1.77,
+      "peso_kg": 20.459430000000005
+    },
+    {
+      "tramo": "V01.T1",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 20,
+      "detalle": "Inf. tramo",
+      "longitud_m": 4.83,
+      "peso_kg": 23.82156
+    },
+    {
+      "tramo": "V01.T1",
+      "pos": 3,
+      "cantidad": 2,
+      "diam_mm": 20,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 6.48,
+      "peso_kg": 31.959360000000004
+    },
+    {
+      "tramo": "V01.T1",
+      "pos": 4,
+      "cantidad": 3,
+      "diam_mm": 25,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 1.88,
+      "peso_kg": 21.73092
+    },
+    {
+      "tramo": "V01.T1",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 6.24,
+      "peso_kg": 4.929600000000001
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "pos": 1,
+      "cantidad": 3,
+      "diam_mm": 25,
+      "detalle": "Sup. voladizo",
+      "longitud_m": 2.65,
+      "peso_kg": 30.631349999999998
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. mínima",
+      "longitud_m": 1.65,
+      "peso_kg": 2.0361
+    },
+    {
+      "tramo": "V02.V02.2",
+      "pos": 1,
+      "cantidad": 3,
+      "diam_mm": 25,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 2.0,
+      "peso_kg": 23.118000000000002
+    },
+    {
+      "tramo": "V02.V02.2",
+      "pos": 2,
+      "cantidad": 3,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo",
+      "longitud_m": 2.74,
+      "peso_kg": 5.07174
+    },
+    {
+      "tramo": "V02.V02.2",
+      "pos": 3,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 4.24,
+      "peso_kg": 5.23216
+    },
+    {
+      "tramo": "V02.V02.2",
+      "pos": 4,
+      "cantidad": 5,
+      "diam_mm": 10,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 0.9,
+      "peso_kg": 2.7765
+    },
+    {
+      "tramo": "V02.V02.2",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 4.24,
+      "peso_kg": 3.3496
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "pos": 1,
+      "cantidad": 5,
+      "diam_mm": 10,
+      "detalle": "Sup. voladizo",
+      "longitud_m": 1.6,
+      "peso_kg": 4.936
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. mínima",
+      "longitud_m": 1.2,
+      "peso_kg": 1.4808
+    },
+    {
+      "tramo": "V04.T1",
+      "pos": 1,
+      "cantidad": 6,
+      "diam_mm": 10,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 1.1,
+      "peso_kg": 4.0722000000000005
+    },
+    {
+      "tramo": "V04.T1",
+      "pos": 2,
+      "cantidad": 3,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo",
+      "longitud_m": 2.34,
+      "peso_kg": 4.33134
+    },
+    {
+      "tramo": "V04.T1",
+      "pos": 3,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 3.74,
+      "peso_kg": 4.61516
+    },
+    {
+      "tramo": "V04.T1",
+      "pos": 4,
+      "cantidad": 4,
+      "diam_mm": 12,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 1.1800000000000002,
+      "peso_kg": 4.19136
+    },
+    {
+      "tramo": "V04.T1",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 3.74,
+      "peso_kg": 2.9546
+    }
+  ],
+  "estribos": [
+    {
+      "tramo": "V01.T1",
+      "zona": "apoyo_izq",
+      "diam_mm": 6,
+      "separacion_cm": 14,
+      "cantidad": 7,
+      "longitud_m": 1.32,
+      "peso_kg": 2.05128
+    },
+    {
+      "tramo": "V01.T1",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 20,
+      "cantidad": 21,
+      "longitud_m": 1.32,
+      "peso_kg": 6.153840000000001
+    },
+    {
+      "tramo": "V01.T1",
+      "zona": "apoyo_der",
+      "diam_mm": 6,
+      "separacion_cm": 12,
+      "cantidad": 9,
+      "longitud_m": 1.32,
+      "peso_kg": 2.63736
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "zona": "empotramiento",
+      "diam_mm": 6,
+      "separacion_cm": 14,
+      "cantidad": 8,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 2.2377600000000006
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "zona": "extremo_libre",
+      "diam_mm": 6,
+      "separacion_cm": 20,
+      "cantidad": 4,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 1.1188800000000003
+    },
+    {
+      "tramo": "V02.V02.2",
+      "zona": "apoyo_izq",
+      "diam_mm": 6,
+      "separacion_cm": 14,
+      "cantidad": 8,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 2.2377600000000006
+    },
+    {
+      "tramo": "V02.V02.2",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 20,
+      "cantidad": 12,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 3.3566400000000005
+    },
+    {
+      "tramo": "V02.V02.2",
+      "zona": "apoyo_der",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 4,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 1.1188800000000003
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "zona": "empotramiento",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 3,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 0.8391600000000001
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "zona": "extremo_libre",
+      "diam_mm": 6,
+      "separacion_cm": 20,
+      "cantidad": 4,
+      "longitud_m": 1.2600000000000002,
+      "peso_kg": 1.1188800000000003
+    },
+    {
+      "tramo": "V04.T1",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 18,
+      "cantidad": 20,
+      "longitud_m": 1.06,
+      "peso_kg": 4.7064
+    }
+  ],
+  "flecha": [
+    {
+      "viga": "V01",
+      "tramo": "T1",
+      "tipo_tramo": "interior",
+      "L_m": 6.0,
+      "q_serv_kN_m": 61.9,
+      "delta_mm": 20.77396000224179,
+      "lim_L250_mm": 24.0,
+      "lim_L360_mm": 16.666666666666668,
+      "lim_L480_mm": 12.5,
+      "cumple_L250": true,
+      "cumple_L360": false,
+      "cumple_L480": false,
+      "Ie_tramo_m4": 0.0016330328299063376,
+      "Ie_apoyo_izq_m4": 0.0030699020256255505,
+      "Ie_apoyo_der_m4": 0.0030699020256255505,
+      "criterio": "Carga virtual – rigidez variable"
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "tipo_tramo": "voladizo",
+      "L_m": 1.65,
+      "q_serv_kN_m": 36.9,
+      "delta_mm": 0.6798816626644013,
+      "lim_L180_mm": 9.166666666666666,
+      "cumple_L180": true,
+      "Ie_m4": 0.002334701288006084
+    },
+    {
+      "viga": "V02",
+      "tramo": "V02.2",
+      "tipo_tramo": "interior",
+      "L_m": 4.0,
+      "q_serv_kN_m": 36.9,
+      "delta_mm": 3.843019402506188,
+      "lim_L250_mm": 16.0,
+      "lim_L360_mm": 11.11111111111111,
+      "lim_L480_mm": 8.333333333333334,
+      "cumple_L250": true,
+      "cumple_L360": true,
+      "cumple_L480": true,
+      "Ie_tramo_m4": 0.0009353356909937872,
+      "Ie_apoyo_izq_m4": 0.002360936864455887,
+      "Ie_apoyo_der_m4": 0.0020563464614765255,
+      "criterio": "Carga virtual – rigidez variable"
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "tipo_tramo": "voladizo",
+      "L_m": 1.2,
+      "q_serv_kN_m": 36.9,
+      "delta_mm": 0.21927226625435461,
+      "lim_L180_mm": 6.666666666666667,
+      "cumple_L180": true,
+      "Ie_m4": 0.002025210418212926
+    },
+    {
+      "viga": "V04",
+      "tramo": "T1",
+      "tipo_tramo": "interior",
+      "L_m": 3.5,
+      "q_serv_kN_m": 30.0,
+      "delta_mm": 3.268114915198317,
+      "lim_L250_mm": 14.0,
+      "lim_L360_mm": 9.722222222222221,
+      "lim_L480_mm": 7.291666666666667,
+      "cumple_L250": true,
+      "cumple_L360": true,
+      "cumple_L480": true,
+      "Ie_tramo_m4": 0.0004685670490584135,
+      "Ie_apoyo_izq_m4": 0.0011897037131813782,
+      "Ie_apoyo_der_m4": 0.0011858809725282832,
+      "criterio": "Carga virtual – rigidez variable"
+    }
+  ],
+  "corte": [
+    {
+      "tramo": "V01.T1",
+      "V_izq_kN": 120,
+      "V_der_kN": 131,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "V_kN": 157.0,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "V_kN": 157.0,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.2",
+      "V_izq_kN": 112.5,
+      "V_der_kN": 89.0,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "V_kN": 60.4,
+      "cumple": true
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "V_kN": 60.4,
+      "cumple": true
+    },
+    {
+      "tramo": "V04.T1",
+      "V_izq_kN": 35.0,
+      "V_der_kN": 32.0,
+      "cumple": true
+    }
+  ],
+  "hormigon": [
+    {
+      "tramo": "V01.T1",
+      "V_m3": 0.6732,
+      "peso_kg": 1615.68
+    },
+    {
+      "tramo": "V02.V02.1_v",
+      "V_m3": 0.185625,
+      "peso_kg": 445.50000000000006
+    },
+    {
+      "tramo": "V02.V02.2",
+      "V_m3": 0.45,
+      "peso_kg": 1080.0
+    },
+    {
+      "tramo": "V02.V02.3_v",
+      "V_m3": 0.135,
+      "peso_kg": 324.0
+    },
+    {
+      "tramo": "V04.T1",
+      "V_m3": 0.28,
+      "peso_kg": 672.0000000000001
+    }
+  ]
+}

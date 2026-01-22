@@ -4,14 +4,15 @@ PLANILLA DE DOBLADO – V02 – TRAMO INTERIOR – TRAMO V02.2
 Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
 1    | 3     | 25   | Sup. apoyo izq        | 2.00    | 23.12     
-2    | 5     | 10   | Inf. tramo            | 2.74    | 8.45      
-3    | 7     | 8    | Sup. apoyo der        | 0.82    | 2.27      
-4    | 2     | 8    | Auxiliar superior     | 4.24    | 3.35      
-5    | 8     | 6    | Estribo apoyo_izq     | 1.26    | 2.24       | c/14cm (Ø6)
-6    | 12    | 6    | Estribo central       | 1.26    | 3.36       | c/20cm (Ø6)
-7    | 4     | 6    | Estribo apoyo_der     | 1.26    | 1.12       | c/16cm (Ø6)
+2    | 3     | 10   | Inf. tramo            | 2.74    | 5.07      
+3    | 2     | 10   | Inf. tramo completo   | 4.24    | 5.23      
+4    | 5     | 10   | Sup. apoyo der        | 0.90    | 2.78      
+5    | 2     | 8    | Auxiliar superior     | 4.24    | 3.35      
+6    | 8     | 6    | Estribo apoyo_izq     | 1.26    | 2.24       | c/14cm (Ø6)
+7    | 12    | 6    | Estribo central       | 1.26    | 3.36       | c/20cm (Ø6)
+8    | 4     | 6    | Estribo apoyo_der     | 1.26    | 1.12       | c/16cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 43.90 kg
+TOTAL PESO                                            | 46.26 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
@@ -34,13 +35,12 @@ NOTAS TÉCNICAS
    fy  = 420.0 MPa
    Ec  = 21538 MPa
 
-4 INERCIAS
-- Inercia bruta Ig: 0.001898 m⁴ | 189,844 cm⁴
-- Inercia fisurada Icr: 0.000524 m⁴ | 52,356 cm⁴
-- Inercia efectiva Ie (Branson): 0.000646 m⁴ | 64,610 cm⁴
-- Momento de fisuración Mcr: 24.17 kNm
-- Kc usado para sección: 0.104
-- kd_lookup: 0.836
+4 INERCIAS (Rigidez global de la viga)
+- Inercia bruta Ig              = 0.001898 m⁴
+- Inercia efectiva global Ief   = 0.001572 m⁴
+- Relación Ief / Ig             = 0.828  (fisuración normal (esperable))
+- Momento de fisuración Mcr     = 26.42 kNm (tramo)
+- c usado                       = 9.78 cm
 
 5 HORMIGÓN
    Volumen = 0.450 m³
@@ -53,7 +53,7 @@ NOTAS TÉCNICAS
 7 ARMADURAS (As calculadas)
    As apoyo izq = 14.73 cm²
    As tramo     = 3.93 cm²
-   As apoyo der = 3.52 cm²
+   As apoyo der = 3.93 cm²
 
 8 ESTRIBOS
    Cantidad total Ø6 = 24 unidades (s_teor≈143.9 mm → s_final=14 cm)
@@ -61,7 +61,19 @@ NOTAS TÉCNICAS
    Zonificación   = apoyo_izq=0.00-1.04 m | central=1.04-3.42 m | apoyo_der=3.42-4.00 m
 
 9 FLECHA DE SERVICIO
-   δmax = 8.84 mm
-   Flecha adm L/250 (Vigas y losas en general) = 16.00 mm | q_serv = 36.90 kN/m → ✅ Cumple
-   Flecha adm L/360 (Vigas con tabiques o acabados frágiles) = 11.11 mm | q_serv = 36.90 kN/m → ✅ Cumple
-   Flecha adm L/480 (Losas con cielorrasos/terminaciones sensibles) = 8.33 mm | q_serv = 36.90 kN/m → ❌ No cumple
+   Método: Carga virtual con rigidez variable (tramo + apoyos)
+   δmax = 3.84 mm
+   Flecha adm L/250 = 16.00 mm | q_serv = 36.90 kN/m → ✅ Cumple
+   Flecha adm L/360 = 11.11 mm | q_serv = 36.90 kN/m → ✅ Cumple
+   Flecha adm L/480 = 8.33 mm | q_serv = 36.90 kN/m → ✅ Cumple
+
+   Inercias usadas (tramo + apoyos)
+   Ie tramo       = 9.353e-04 m⁴
+   Ie apoyo izq   = 2.361e-03 m⁴
+   Ie apoyo der   = 2.056e-03 m⁴
+   c usado        = 9.78 cm
+
+10 ABERTURA DE FISURAS
+   dc = 35.0 mm | fs = 280.0 MPa | A_barra = 78.5 mm²
+   w ≈ 53.9 μm / 0.054 mm
+   Limite CIRSOC = 0.10 mm → ✅ Cumple

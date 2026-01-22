@@ -495,15 +495,23 @@ def armado_sunchos(Ast_min, diam_cm, fck, fy, diametros=[12, 16, 20], diam_espir
 # ==============================
 
 def guardar_resultados_csv(
-    id_columna, Pu, Mu, fck, b, h, lambda_val,
-    clasificacion, Ast, detalle_armadura, nota_diagrama,
+    id_columna, tipo_seccion, b, h, altura_libre_m, d_recubrimiento_cm,
+    Pu, Mu, fck, lambda_val, clasificacion,
+    Ast, detalle_armadura, nota_diagrama,
     carpeta="salidas"
 ):
+    import os, csv
+
     archivo = os.path.join(carpeta, "planilla_columnas.csv")
     campos = [
-        "ID", "Pu(kN)", "Mu(kNm)", "f'c(MPa)",
-        "b(cm)", "h(cm)", "λ", "Clasificación",
-        "Ast(cm²)", "Armadura", "Estribos/Sunchos", "Nota_diagrama"
+        # 1️⃣ Identificación y sección
+        "ID", "Tipo_seccion", "b(cm)", "h(cm)", "Altura_libre(m)", "Recubrimiento(cm)",
+        # 2️⃣ Cargas y esbeltez
+        "Pu(kN)", "Mu(kNm)", "f'c(MPa)", "λ", "Clasificación",
+        # 3️⃣ Armaduras
+        "Ast(cm²)", "n_barras", "diam_long(cm)", "diam_estribo(cm)", "paso_estribo(cm)", "cumple_estribo",
+        # 4️⃣ Notas técnicas
+        "Nota_diagrama"
     ]
 
     os.makedirs(carpeta, exist_ok=True)
@@ -514,25 +522,28 @@ def guardar_resultados_csv(
             writer = csv.writer(f, delimiter=";")
             writer.writerow(campos)
 
-    # Construir campos compactos
-    armadura = f"{detalle_armadura.get('n_barras','')}Ø{detalle_armadura.get('diam_long','')}"
-
-    if "diam_estribo" in detalle_armadura:
-        refuerzo = f"Ø{detalle_armadura.get('diam_estribo','')} c/{detalle_armadura.get('sep_max','')}cm"
-    elif "diam_espiral" in detalle_armadura:
-        cumple = detalle_armadura.get("cumple", "")
-        refuerzo = f"Ø{detalle_armadura.get('diam_espiral','')} c/{detalle_armadura.get('paso','')}cm (cumple={cumple})"
-    else:
-        refuerzo = ""
+    # Datos de armadura
+    n_barras = detalle_armadura.get('n_barras', "")
+    diam_long = detalle_armadura.get('diam_long', "")
+    diam_estribo = detalle_armadura.get('diam_estribo', detalle_armadura.get('diam_espiral', ""))
+    paso_estribo = round(detalle_armadura.get('sep_max', detalle_armadura.get('paso', 0)), 1) if diam_estribo else ""
+    cumple_estribo = detalle_armadura.get('cumple', "") if diam_estribo else ""
 
     # Agregar fila
     with open(archivo, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow([
-            id_columna, Pu, Mu, fck, b, h,
-            f"{lambda_val:.2f}", clasificacion,
-            f"{Ast:.2f}", armadura, refuerzo, nota_diagrama
+            # 1️⃣ Identificación y sección
+            id_columna, tipo_seccion, f"{b:.2f}", f"{h:.2f}", f"{altura_libre_m:.2f}", f"{d_recubrimiento_cm:.2f}",
+            # 2️⃣ Cargas y esbeltez
+            Pu, Mu, fck, f"{lambda_val:.2f}", clasificacion,
+            # 3️⃣ Armaduras
+            f"{Ast:.2f}", n_barras, diam_long, diam_estribo, paso_estribo, cumple_estribo,
+            # 4️⃣ Notas técnicas
+            nota_diagrama
         ])
+
+
 # ==============================
 # Ejemplo de uso completo
 # ==============================
@@ -624,15 +635,21 @@ if __name__ == "__main__":
             clasificacion="CORTA" if lambda_val <= limite else "ESBELTA",
             Ast=Ast_min_adopt,
             detalle_armadura=detalle_armadura,
-            nota_diagrama=nota_diagrama
+            nota_diagrama=nota_diagrama,
+            altura_libre_m=Lc,        # <--- PASAR valor real
+            d_recubrimiento_cm=3.8,   # <--- PASAR valor de recubrimiento usado
+            tipo_seccion=tipo          # <--- para indicar si es circular o rectangular
         )
+
+
+
         print("\n✅ Resultados guardados en salida/planilla_columnas.csv")
 
     else:
         # === FLEXO-COMPRESIÓN ===
         dprima_cm = float(input("Ingrese d' (cm): "))
-        h = float(input("Altura h (cm): "))
-        b = float(input("Base b (cm, si circular poner igual a h): "))
+        h = float(input("Lado mayor (o diametro en redondas) h (cm): "))
+        b = float(input("Lado menor b (cm, si circular poner igual a h): "))
         seccion_tipo = input("Tipo de sección (I=rectangular 2 lados, II=rectangular 4 lados, III=circular): ").upper()
 
         gamma = calcular_gamma(h, dprima_cm)
@@ -719,6 +736,10 @@ if __name__ == "__main__":
             clasificacion="CORTA" if lambda_val <= limite else "ESBELTA",
             Ast=Ast_adoptado,
             detalle_armadura=detalle_armadura,
-            nota_diagrama=nota_diagrama
+            nota_diagrama=nota_diagrama,
+            altura_libre_m=Lc,        # <--- valor ingresado por usuario
+            d_recubrimiento_cm=dprima_cm, # <--- recubrimiento ingresado
+            tipo_seccion=seccion_tipo     # I, II o III
         )
+
         print("\n✅ Resultados guardados en salida/planilla_columnas.csv")

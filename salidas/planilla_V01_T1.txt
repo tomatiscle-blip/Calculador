@@ -4,14 +4,15 @@ PLANILLA DE DOBLADO – V01 – TRAMO INTERIOR – TRAMO T1
 Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
 1    | 3     | 25   | Sup. apoyo izq        | 1.77    | 20.46     
-2    | 6     | 16   | Inf. tramo            | 4.73    | 44.82     
-3    | 3     | 25   | Sup. apoyo der        | 1.88    | 21.73     
-4    | 2     | 8    | Auxiliar superior     | 6.24    | 4.93      
-5    | 7     | 6    | Estribo apoyo_izq     | 1.32    | 2.05       | c/14cm (Ø6)
-6    | 21    | 6    | Estribo central       | 1.32    | 6.15       | c/20cm (Ø6)
-7    | 9     | 6    | Estribo apoyo_der     | 1.32    | 2.64       | c/12cm (Ø6)
+2    | 2     | 20   | Inf. tramo            | 4.83    | 23.82     
+3    | 2     | 20   | Inf. tramo completo   | 6.48    | 31.96     
+4    | 3     | 25   | Sup. apoyo der        | 1.88    | 21.73     
+5    | 2     | 8    | Auxiliar superior     | 6.24    | 4.93      
+6    | 7     | 6    | Estribo apoyo_izq     | 1.32    | 2.05       | c/14cm (Ø6)
+7    | 21    | 6    | Estribo central       | 1.32    | 6.15       | c/20cm (Ø6)
+8    | 9     | 6    | Estribo apoyo_der     | 1.32    | 2.64       | c/12cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 102.78 kg
+TOTAL PESO                                            | 113.74 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
@@ -19,7 +20,7 @@ NOTAS TÉCNICAS
    As requerida       = 10.80 cm²
    As mínima          = 3.45 cm²
    As máxima          = 15.69 cm²
-   As adoptada        = 12.06 cm²
+   As adoptada        = 12.57 cm²
    Estado             = ✅ Cuantía dentro del rango permitido
    Luz libre = 6.00 m
 
@@ -34,13 +35,12 @@ NOTAS TÉCNICAS
    fy  = 420.0 MPa
    Ec  = 21019 MPa
 
-4 INERCIAS
-- Inercia bruta Ig: 0.002432 m⁴ | 243,194 cm⁴
-- Inercia fisurada Icr: 0.001504 m⁴ | 150,373 cm⁴
-- Inercia efectiva Ie (Branson): 0.001507 m⁴ | 150,750 cm⁴
-- Momento de fisuración Mcr: 26.66 kNm
-- Kc usado para sección: 0.304
-- kd_lookup: 0.512
+4 INERCIAS (Rigidez global de la viga)
+- Inercia bruta Ig              = 0.002432 m⁴
+- Inercia efectiva global Ief   = 0.002351 m⁴
+- Relación Ief / Ig             = 0.967  (sección poco fisurada)
+- Momento de fisuración Mcr     = 35.09 kNm (tramo)
+- c usado                       = 18.15 cm
 
 5 HORMIGÓN
    Volumen = 0.673 m³
@@ -52,7 +52,7 @@ NOTAS TÉCNICAS
 
 7 ARMADURAS (As calculadas)
    As apoyo izq = 14.73 cm²
-   As tramo     = 12.06 cm²
+   As tramo     = 12.57 cm²
    As apoyo der = 14.73 cm²
 
 8 ESTRIBOS
@@ -61,7 +61,19 @@ NOTAS TÉCNICAS
    Zonificación   = apoyo_izq=0.00-0.86 m | central=0.86-4.99 m | apoyo_der=4.99-6.00 m
 
 9 FLECHA DE SERVICIO
-   δmax = 32.97 mm
-   Flecha adm L/250 (Vigas y losas en general) = 24.00 mm | q_serv = 61.90 kN/m → ❌ No cumple
-   Flecha adm L/360 (Vigas con tabiques o acabados frágiles) = 16.67 mm | q_serv = 61.90 kN/m → ❌ No cumple
-   Flecha adm L/480 (Losas con cielorrasos/terminaciones sensibles) = 12.50 mm | q_serv = 61.90 kN/m → ❌ No cumple
+   Método: Carga virtual con rigidez variable (tramo + apoyos)
+   δmax = 20.77 mm
+   Flecha adm L/250 = 24.00 mm | q_serv = 61.90 kN/m → ✅ Cumple
+   Flecha adm L/360 = 16.67 mm | q_serv = 61.90 kN/m → ❌ No cumple
+   Flecha adm L/480 = 12.50 mm | q_serv = 61.90 kN/m → ❌ No cumple
+
+   Inercias usadas (tramo + apoyos)
+   Ie tramo       = 1.633e-03 m⁴
+   Ie apoyo izq   = 3.070e-03 m⁴
+   Ie apoyo der   = 3.070e-03 m⁴
+   c usado        = 18.15 cm
+
+10 ABERTURA DE FISURAS
+   dc = 40.0 mm | fs = 280.0 MPa | A_barra = 314.2 mm²
+   w ≈ 89.5 μm / 0.090 mm
+   Limite CIRSOC = 0.10 mm → ✅ Cumple

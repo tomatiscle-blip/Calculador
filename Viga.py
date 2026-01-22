@@ -2,6 +2,18 @@ import json
 import math
 from pathlib import Path
 
+RESULTADOS = {
+    "tramos": [],
+    "flexion": [],
+    "estado": [],
+    "materiales": [],
+    "inercias": [],
+    "armaduras": [],
+    "estribos": [],
+    "flecha": [],
+    "corte": [],
+    "hormigon": []   # ✅ faltaba esta
+}
 
 class DisenadorViga:
     def __init__(self, nombre, b_cm, h_cm, rec_cm=None, fc_MPa=25, fy_MPa=420,rec_sup_cm=None):
@@ -411,46 +423,63 @@ class DisenadorViga:
         Mcr_Nm = fr_MPa * 1e6 * Ig / yt
         return Mcr_Nm / 1000.0  # kNm
      
-    def inercias_seccion(self, As_cm2, Kc=0.40, M_kNm=None, factor_servicio=1.0, Es_MPa=210000):
+    def inercias_seccion(self, As_cm2, c=None, M_kNm=None, factor_servicio=0.73, Es_MPa=210000):
         """
         Devuelve:
-        Ig  : inercia bruta
-        Icr : inercia fisurada (Steiner)
-        Mcr : momento de fisuración
-        Ie  : inercia efectiva (Branson) si se pasa M
+        Ig   : inercia bruta (sección completa)
+        Jh   : inercia transformada completa (Steiner con Yg)
+        Jhf  : inercia fisurada (Steiner con bloque comprimido c)
+        Mcr  : momento de fisuración (usando Jh)
+        Ie   : inercia efectiva (Branson, usando Jh si M < Mcr)
         """
+
         # --- Inercia bruta ---
         Ig = self.b * self.h**3 / 12.0
 
-        # --- Momento de fisuración ---
-        fr_MPa = 0.625 * math.sqrt(self.fc)
-        Mcr = fr_MPa * 1e6 * Ig / (self.h / 2.0) / 1000.0  # kNm
-
-        # --- Icr estilo Steiner ---
+        # --- Datos de acero y módulo relativo ---
         As = As_cm2 / 10000.0  # cm² → m²
         Ec = 4700.0 * math.sqrt(self.fc)  # MPa
         n = Es_MPa / Ec  # módulo relativo
 
-        # c (eje neutro) ajustado a servicio
-        c = Kc * self.d * factor_servicio
-        # Distancias centroides
-        y_hormigon = c / 2.0           # centroide bloque hormigón
-        y_acero = self.d - c            # centroide acero (aprox desde el eje neutro)
+        # --- Jh: inercia transformada completa (Steiner con Yg) ---
+        Ah = self.b * self.h + (n - 1) * As
+        y_horm = self.h / 2.0
+        y_s = self.d
+        Yg = (self.b * self.h * y_horm + (n - 1) * As * y_s) / Ah
 
-        # Inercia del bloque de hormigón
-        I_h = (self.b * c**3) / 12.0 + (self.b * c) * y_hormigon**2
+        Jh = (self.b * self.h**3) / 12.0 \
+            + (self.b * self.h) * (y_horm - Yg)**2 \
+            + n * As * (y_s - Yg)**2
 
-        # Inercia del acero transformado a hormigón
-        I_s = n * As * y_acero**2
-        Icr = I_h + I_s
-        # --- Inercia efectiva ---
-        Ie = None
-        if M_kNm is not None and M_kNm > Mcr:
-            ratio = (Mcr / M_kNm) ** 3
-            Ie = ratio * Ig + (1 - ratio) * Icr
+        # --- Momento de fisuración (según libro) ---
+        fr_MPa = 0.625 * math.sqrt(self.fc)
+        Mcr = fr_MPa * 1e6 * Jh / (self.h - Yg) / 1000.0  # kNm
+
+        # --- Jhf: inercia fisurada (bloque comprimido c) ---
+        if c is None:
+            c = 0.40 * self.d * factor_servicio
         else:
-            Ie = Ig
-        return Ig, Icr, Mcr, Ie
+            c = c * factor_servicio
+
+        y_hormigon = c / 2.0
+        y_acero = self.d - c
+
+        I_h = (self.b * c**3) / 12.0 + (self.b * c) * y_hormigon**2
+        I_s = n * As * y_acero**2
+        Jhf = I_h + I_s
+
+        # --- Ie: inercia efectiva (Branson corregida) ---
+        if M_kNm is not None:
+            M_servicio = M_kNm * factor_servicio
+            if M_servicio > Mcr:
+                ratio = (Mcr / M_servicio) ** 3
+                Ie = ratio * Jh + (1 - ratio) * Jhf
+            else:
+                Ie = Jh
+        else:
+            Ie = Jh
+        
+        return Ig, Jh, Jhf, Mcr, Ie
 
     def hormigon_tramo(self, L_m, gamma_kg_m3=2500):
         """
@@ -469,28 +498,43 @@ class DisenadorViga:
         mejor_opcion = None
         area_min_exceso = float('inf')
 
-        sep_min = 2.0
+        sep_min = 2.5  # separación mínima normativa en cm (≈25 mm)
         b_util_cm = self.b * 100 - 2 * self.rec
         max_barras_simple = 8
 
         for diam in opciones:
             area_barra = math.pi * (diam / 10)**2 / 4
-            n_barras = max(2, math.ceil(as_cm2 / area_barra))
+            n_barras = max(2, math.ceil(as_cm2 / area_barra))  # mínimo 2 barras
+
             area_total = n_barras * area_barra
             exceso = area_total - as_cm2
 
+            # chequeo de ancho requerido
             ancho_requerido = n_barras * (diam / 10) + (n_barras - 1) * sep_min
             entra_simple = (ancho_requerido <= b_util_cm) and (n_barras <= max_barras_simple)
             capa = "simple" if entra_simple else "doble"
 
-            penalizacion = 0.0 if entra_simple else 1e6
-            exceso_eval = exceso + penalizacion
-            rec_geom_mm = self.rec * 1000                # recubrimiento geométrico en mm
-            rec_ef_mm = rec_geom_mm + diam / 2.0         # recubrimiento efectivo
-            Ld_mm = max(12 * diam, self.d * 1000)        # longitud de desarrollo
+            # penalización: doble capa o demasiadas barras finas
+            penalizacion = 0.0
+            if not entra_simple:
+                penalizacion += 1e6
+            if n_barras > 6 and diam < 12:
+                penalizacion += 5000  # penaliza soluciones tipo "7 Ø8"
 
+            exceso_eval = exceso + penalizacion
+
+            # recubrimientos
+            rec_geom_mm = self.rec * 1000
+            rec_ef_mm = rec_geom_mm + diam / 2.0
+            rec_sup_mm = (self.recubrimiento_sup_cm or self.rec * 100) * 10
+            rec_sup_ef_mm = rec_sup_mm + diam / 2.0
+
+            # longitud de desarrollo
+            Ld_mm = max(12 * diam, self.d * 1000)
+
+            # selección de mejor opción
             if (exceso_eval < area_min_exceso) or (
-                abs(exceso_eval - area_min_exceso) < 1e-6 and 
+                abs(exceso_eval - area_min_exceso) < 1e-6 and
                 (mejor_opcion is None or diam > mejor_opcion["diam"])
             ):
                 area_min_exceso = exceso_eval
@@ -502,8 +546,9 @@ class DisenadorViga:
                     "capa": capa,
                     "ancho_requerido_cm": ancho_requerido,
                     "b_util_cm": b_util_cm,
-                    "recubrimiento_efectivo_mm": rec_ef_mm,
-                    "Ld_mm": Ld_mm      
+                    "recubrimiento_inf_ef_mm": rec_ef_mm,
+                    "recubrimiento_sup_ef_mm": rec_sup_ef_mm,
+                    "Ld_mm": Ld_mm
                 }
         return mejor_opcion
     
@@ -624,7 +669,6 @@ class DisenadorViga:
             "tau_seccion_MPa": tau_n,
             "tau_limite_MPa": tau_limite
     }
-
 
     def calcular_estribos_alt(self, Vu_kN, diam_mm=8, ramas=2, zona="central"):
         datos = self.calcular_estribos(Vu_kN, diam_mm=diam_mm, ramas=ramas, zona=zona)
@@ -780,7 +824,33 @@ class DisenadorViga:
             "phiVc_kN": phiVc_kN,
             "zonas": zonas
         }
-# =========================================================
+
+# Función para calcular k y c
+# =======================================
+def calcular_k_c(b_cm, d_cm, As_cm2, fc_MPa, Es_MPa=210000):
+    Ec = 4700.0 * math.sqrt(fc_MPa)
+    n = Es_MPa / Ec
+
+    A = (b_cm * d_cm**2) / 2.0
+    B = n * As_cm2 * d_cm       # positivo
+    C = - n * As_cm2 * d_cm     # negativo
+
+    disc = B**2 - 4*A*C
+    print(f"[DEBUG] A={A:.6f}, B={B:.6f}, C={C:.6f}, disc={disc:.6f}")
+    if disc < 0:
+        print(f"[DEBUG] Discriminante negativo: {disc:.6f}")
+        # fallback: usar c aproximado del libro
+        k = 0.40
+        c = 0.40 * d_cm
+        return k, c
+
+    k1 = (-B + math.sqrt(disc)) / (2*A)
+    k2 = (-B - math.sqrt(disc)) / (2*A)
+    k = k1 if 0 < k1 < 1 else k2
+    c = k * d_cm
+    print(f"[DEBUG] k={k:.6f}, c={c:.6f}")
+    return k, c
+
 # FUNCIÓN PLANILLA (VOLADIZO + INTERIOR)
 # =========================================================
 def generar_planilla(
@@ -801,6 +871,7 @@ def generar_planilla(
 
     lineas = []
     v = DisenadorViga(nombre_viga, b_cm, h_cm, rec_cm, fc_MPa, fy_MPa)
+    tramo_id = f"{nombre_viga}.{id_tramo}"
 
     # -----------------------------------------------------
     # Funciones auxiliares
@@ -848,6 +919,16 @@ def generar_planilla(
         L = L_viga + lon_anclaje(d)
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. voladizo         | {L:<7.2f} | {P:<10.2f}")
+        RESULTADOS["armaduras"].append({
+            "tramo": tramo_id,
+            "pos": pos,
+            "cantidad": n,
+            "diam_mm": d,
+            "detalle": "Sup. voladizo",
+            "longitud_m": L,
+            "peso_kg": P
+        })
+
         total_peso += P
         pos += 1
 
@@ -856,11 +937,20 @@ def generar_planilla(
         L = L_viga
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. mínima           | {L:<7.2f} | {P:<10.2f}")
+        RESULTADOS["armaduras"].append({
+            "tramo": tramo_id,
+            "pos": pos,
+            "cantidad": n,
+            "diam_mm": d,
+            "detalle": "Inf. mínima",
+            "longitud_m": L,
+            "peso_kg": P
+        })
         total_peso += P
         pos += 1
 
         # Estribos
-        zonas = v.zonificar_estribos_voladizo(L_viga, viga_data["v_izq"])
+        zonas = v.zonificar_estribos_voladizo(L_viga, viga_data["Vu_emp"])
 
         for z in zonas["zonas"]:
             e = z["estribos"]
@@ -872,6 +962,21 @@ def generar_planilla(
                 f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<12} "
                 f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm"
             )
+            RESULTADOS["estribos"].append({
+                "tramo": tramo_id,
+                "zona": z["zona"],
+                "diam_mm": e["diam_mm"],
+                "separacion_cm": e["s_cm"],
+                "cantidad": n_est,
+                "longitud_m": L_est,
+                "peso_kg": P
+            })
+            # Corte (solo valor directo, sin phiVc ni xcrit)
+            RESULTADOS["corte"].append({
+                "tramo": tramo_id,
+                "V_kN": viga_data["Vu_emp"],
+                "cumple": True
+            })
             total_peso += P
             pos += 1
 
@@ -881,47 +986,59 @@ def generar_planilla(
         # -----------------------------------------------------
         # Inercias para voladizo (usando misma lógica que tramo)
         # -----------------------------------------------------
-        # Mini función para obtener Kc en voladizo
-        def kc_usado_vol(as_vol):
-            if as_vol.get("doble_armadura", False):
-                kc = 0.003 / (0.003 + 0.005)  # 0.375
-                fuente = "deformaciones; no aplica tabla"
-            else:
-                kc = as_vol.get("fila", {}).get("Kc")
-                fuente = "tabla de flexión"
-                if kc is None or kc == 0.0:
-                    kc = 0.003 / (0.003 + 0.005)  # 0.375
-                    fuente = "deformaciones (respaldo por fila sin Kc)"
-            return kc, fuente
+        if es_voladizo:
+            # --- Calcular k y c con la función cuadrática ---
+            k_emp, c_emp = calcular_k_c(
+                b_cm=b_cm,
+                d_cm=v.d*100,                   # altura útil en cm
+                As_cm2=arm_sup["area_total_cm2"],
+                fc_MPa=fc_MPa
+            )
 
-        Kc_usado, fuente_kc = kc_usado_vol(as_emp)
+            # --- Calcular inercias solo del empotramiento ---
+            Ig_emp, Jh_emp, Jhf_emp, Mcr_emp, Ie_emp = v.inercias_seccion(
+                As_cm2=arm_sup["area_total_cm2"],
+                c=c_emp/ 100.0,  # ✅ convertir cm → m
+                M_kNm=Mu         # momento máximo en el empotramiento
+            )
 
-        Ig, Icr, Mcr, Ie = v.inercias_seccion(
-            As_cm2=arm_sup["area_total_cm2"],
-            Kc=Kc_usado,
-            M_kNm=Mu
-        )
+            # --- Guardar resultados en diccionario ---
+            viga_data["inercias"] = {
+                "empotramiento": {
+                    "Ig": Ig_emp,
+                    "Jh": Jh_emp,
+                    "Jhf": Jhf_emp,
+                    "Icr": Jhf_emp,
+                    "Ie": Ie_emp,
+                    "Mcr": Mcr_emp,
+                    "k": k_emp,
+                    "c": c_emp
+                },
+                "Ief": Ie_emp  # para la flecha
+            }
 
+            # --- Flecha de servicio ---
+            q_serv = cargas["servicio"]             # kN/m
+            q_serv = q_serv * 1e3 / 1000           # convertir a N/mm si lo tenés así
+            L = L_viga * 1000                       # mm
+            Ec = 4700 * math.sqrt(fc_MPa)           # N/mm²
 
-        # Flecha con carga de servicio (voladizo)
-        q_serv = cargas["servicio"]  # kN/m
-        q_serv = q_serv * 1.0        # N/mm
-        L = L_viga * 1000            # mm
-        Ec = 4700 * (fc_MPa ** 0.5)  # N/mm²
+            delta = q_serv * L**4 / (8 * Ec * (Ie_emp * 1e12))  # mm
 
-        delta = q_serv * L**4 / (8 * Ec * (Ie * 1e12))  # mm
+        # Volumen y peso de hormigón (válido para cualquier tramo)
         A_cm2 = b_cm * h_cm
         V_cm3 = A_cm2 * (L_viga * 100)   # L en cm
         V_m3 = V_cm3 / 1e6
-        peso_hormigon = V_m3 * 2400
+        peso_hormigon = V_m3 * 2400  # kg
 
         lineas.append("")
         lineas.append("SECCIÓN Y VOLUMEN (Voladizo)")
-        lineas.append(f"   b = {b_cm} cm | h = {h_cm} cm")
+        lineas.append(f"   b = {b_cm} cm | h = {h_cm} cm | Recubrimiento = {rec_cm} cm")
         lineas.append(f"   Área sección = {A_cm2:.0f} cm²")
         lineas.append(f"   Longitud L = {L_viga:.2f} m")
         lineas.append(f"   Volumen hormigón = {V_m3:.3f} m³")
         lineas.append(f"   Peso aprox. = {peso_hormigon:.0f} kg")
+
         lineas.append("")
         lineas.append("CUANTÍA DE ARMADURA (Voladizo)")
         lineas.append(f"   As requerido = {as_emp['As_req_cm2']:.2f} cm²")
@@ -934,9 +1051,52 @@ def generar_planilla(
         lineas.append("FLECHA DE SERVICIO (Voladizo)")
         lineas.append(f"   δmax = {delta:.2f} mm")
         lineas.append(f"   Flecha adm L/180 (Voladizos) = {L/180:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/180 else '❌ No cumple'}")
-        lineas.append(f"   Inercia efectiva Ie = {Ie:.3e} m⁴")
-        lineas.append(f"   Kc usado = {Kc_usado:.3f} (fuente: {fuente_kc})")
 
+        lineas.append("")
+        lineas.append("INERCIAS Y MOMENTO DE FISURACIÓN")
+        lineas.append(f"   Ig  (bruta)       = {Ig_emp:.3e} m⁴")
+        lineas.append(f"   Icr (fisurada)    = {Jhf_emp:.3e} m⁴")
+        lineas.append(f"   Ie  (efectiva)    = {Ie_emp:.3e} m⁴")
+        lineas.append(f"   Mcr (fisuración)  = {Mcr_emp:.2f} kNm")
+        lineas.append(f"   Relación Ie/Ig    = {Ie_emp/Ig_emp:.3f}")
+        lineas.append(f"   k usado           = {k_emp:.3f} | c usado = {c_emp:.2f} cm")
+        lineas.append(f"   Materiales: fc = {fc_MPa} MPa | fy = {fy_MPa} MPa | Ec = {Ec:.0f} MPa")  
+
+        # Guardado homogéneo en RESULTADOS
+        tramo_id = f"{nombre_viga}.{id_tramo}"
+
+        RESULTADOS["tramos"].append({
+            "id": tramo_id,
+            "viga": nombre_viga,
+            "tipo": "voladizo",
+            "L_m": L_viga
+        })
+        RESULTADOS["flexion"].append({
+            "tramo": tramo_id,
+            "As_req_cm2": as_emp["As_req_cm2"],
+            "As_adop_cm2": as_emp["As_final_cm2"],
+            "cumple": as_emp["As_final_cm2"] >= as_emp["As_req_cm2"]
+        })
+
+        RESULTADOS["flecha"].append({
+            "tramo": tramo_id,
+            "tipo_tramo": "voladizo",
+            "L_m": L_viga,
+            "q_serv_kN_m": cargas["servicio"],
+            "delta_mm": delta,
+            "lim_L180_mm": L/180,
+            "cumple_L180": delta <= L/180,
+            "Ie_m4": Ie_emp
+        })
+
+        RESULTADOS["materiales"].append({
+            "tramo": tramo_id,
+            "fc_MPa": fc_MPa,
+            "fy_MPa": fy_MPa,
+            "Ec_MPa": Ec,
+            "V_m3": V_m3,
+            "peso_kg": peso_hormigon
+        })
 
         return "\n".join(lineas)
 
@@ -949,6 +1109,31 @@ def generar_planilla(
         PI_izq, PI_der = puntos_inflexion_m
     else:
         PI_izq, PI_der = 0.15 * L_viga, 0.85 * L_viga
+    RESULTADOS["tramos"].append({
+        "id": tramo_id,
+        "viga": nombre_viga,
+        "tipo": "voladizo" if es_voladizo else "interior",
+        "L_m": L_viga
+    })
+    RESULTADOS["tramos"][-1].update({
+        "PI_izq_m": PI_izq,
+        "PI_der_m": PI_der
+    })
+
+    # Materiales y hormigón
+    A_cm2 = b_cm * h_cm
+    V_cm3 = A_cm2 * (L_viga * 100)   # L en cm
+    V_m3 = V_cm3 / 1e6
+    peso_hormigon = V_m3 * 2400
+
+    RESULTADOS["materiales"].append({
+        "tramo": tramo_id,
+        "fc_MPa": v.fc,
+        "fy_MPa": v.fy,
+        "Ec_MPa": v.Ec_MPa(),
+        "V_m3": V_m3,
+        "peso_kg": peso_hormigon
+    })
 
     # -----------------------------------------------------
     # CÁLCULO REAL DE ARMADURAS
@@ -985,23 +1170,64 @@ def generar_planilla(
 
     nota_tra = "Verificar armado según normativa"
 
-
     # -----------------------------------------------------
     # Superiores e inferiores
     # -----------------------------------------------------
+    # Superior apoyo izquierdo
     n, d = arm_sup_izq["n"], arm_sup_izq["diam"]
     L = PI_izq + 40 * d / 1000  # lon_anclaje
     P = L * n * v.barras_comerciales[d]
     lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo izq        | {L:<7.2f} | {P:<10.2f}")
+    RESULTADOS["armaduras"].append({
+        "tramo": tramo_id,
+        "pos": pos,
+        "cantidad": n,
+        "diam_mm": d,
+        "detalle": "Sup. apoyo izq",
+        "longitud_m": L,
+        "peso_kg": P
+    })
     total_peso += P
     pos += 1
 
-    n, d = arm_inf_tra["n"], arm_inf_tra["diam"]
-    L = (PI_der - PI_izq) + 2 * (12 * d / 1000)  # ganchos tracción
-    P = L * n * v.barras_comerciales[d]
-    lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Inf. tramo            | {L:<7.2f} | {P:<10.2f}")
-    total_peso += P
+    # Armadura inferior tramo (solo vano)
+    n_total, d = arm_inf_tra["n"], arm_inf_tra["diam"]
+    n_prol = max(2, n_total//2)   # mínimo 2 prolongadas
+    n_tramo = n_total - n_prol    # las que quedan solo en vano
+
+    if n_tramo > 0:
+        L_tramo = (PI_der - PI_izq) + 2 * (12 * d / 1000)
+        P_tramo = L_tramo * n_tramo * v.barras_comerciales[d]
+        lineas.append(f"{pos:<4} | {n_tramo:<5} | {d:<4} | Inf. tramo            | {L_tramo:<7.2f} | {P_tramo:<10.2f}")
+        RESULTADOS["armaduras"].append({
+            "tramo": tramo_id,
+            "pos": pos,
+            "cantidad": n_tramo,
+            "diam_mm": d,
+            "detalle": "Inf. tramo",
+            "longitud_m": L_tramo,
+            "peso_kg": P_tramo
+        })
+        total_peso += P_tramo
+        pos += 1
+
+    # Armadura inferior tramo completo (prolongada a apoyos)
+    L_completo = L_viga + 2 * (12 * d / 1000)  # recorre todo el vano + ganchos
+    P_completo = L_completo * n_prol * v.barras_comerciales[d]
+    lineas.append(f"{pos:<4} | {n_prol:<5} | {d:<4} | Inf. tramo completo   | {L_completo:<7.2f} | {P_completo:<10.2f}")
+    RESULTADOS["armaduras"].append({
+        "tramo": tramo_id,
+        "pos": pos,
+        "cantidad": n_prol,
+        "diam_mm": d,
+        "detalle": "Inf. tramo completo",
+        "longitud_m": L_completo,
+        "peso_kg": P_completo
+    })
+    total_peso += P_completo
     pos += 1
+
+
 
     # Armadura comprimida según tabla (si corresponde)
     if as_tra["Asp_req_cm2"] > 0:
@@ -1010,6 +1236,15 @@ def generar_planilla(
         L = (PI_der - PI_izq)
         P = L * n * v.barras_comerciales[d]
         lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Arm. comprimida   | {L:<7.2f} | {P:<10.2f}")
+        RESULTADOS["armaduras"].append({
+            "tramo": tramo_id,
+            "pos": pos,
+            "cantidad": n,
+            "diam_mm": d,
+            "detalle": "Arm. comprimida",
+            "longitud_m": L,
+            "peso_kg": P
+        })
         total_peso += P
         pos += 1
 
@@ -1018,6 +1253,15 @@ def generar_planilla(
     L = (L_viga - PI_der) + 40 * d / 1000
     P = L * n * v.barras_comerciales[d]
     lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Sup. apoyo der        | {L:<7.2f} | {P:<10.2f}")
+    RESULTADOS["armaduras"].append({
+        "tramo": tramo_id,
+        "pos": pos,
+        "cantidad": n,
+        "diam_mm": d,
+        "detalle": "Sup. apoyo der",
+        "longitud_m": L,
+        "peso_kg": P
+    })
     total_peso += P
     pos += 1
 
@@ -1026,15 +1270,23 @@ def generar_planilla(
     L = L_viga + 2 * 15 * d / 1000  # lon_gancho
     P = L * n * v.barras_comerciales[d]
     lineas.append(f"{pos:<4} | {n:<5} | {d:<4} | Auxiliar superior     | {L:<7.2f} | {P:<10.2f}")
+    RESULTADOS["armaduras"].append({
+        "tramo": tramo_id,
+        "pos": pos,
+        "cantidad": n,
+        "diam_mm": d,
+        "detalle": "Auxiliar superior",
+        "longitud_m": L,
+        "peso_kg": P
+    })
     total_peso += P
     pos += 1
-
     # Estribos
     zonas = v.zonificar_estribos_continuo(
         L_viga,
-        viga_data["v_izq"],
-        viga_data["v_der"],
-        viga["cargas"]["1.2D+1.6L"]
+        viga_data["Vu_izq"],
+        viga_data["Vu_der"],
+        cargas["1.2D+1.6L"]
     )
 
     total_peso_6 = 0
@@ -1050,47 +1302,108 @@ def generar_planilla(
             f"{pos:<4} | {n_est:<5} | {e['diam_mm']:<4} | Estribo {z['zona']:<13} "
             f"| {L_est:<7.2f} | {P:<10.2f} | c/{e['s_cm']}cm (Ø6)"
         )
+        RESULTADOS["estribos"].append({
+            "tramo": tramo_id,
+            "zona": z["zona"],
+            "diam_mm": e["diam_mm"],
+            "separacion_cm": e["s_cm"],
+            "cantidad": n_est,
+            "longitud_m": L_est,
+            "peso_kg": P
+        })
+        
         total_peso += P
         pos += 1
-
-
+    
     # después de terminar de agregar todas las barras
     lineas.append("--------------------------------------------------------------------------------")
     lineas.append(f"TOTAL PESO                                            | {total_peso:.2f} kg")
 
     #=============================
-    # Cálculo de inercias usando Kc
-    # =======================================
-    def kc_usado(as_tra):
-        if as_tra.get("doble_armadura", False):
-            kc = 0.003 / (0.003 + 0.005)  # 0.375
-            fuente = "deformaciones; no aplica tabla"
-        else:
-            kc = as_tra.get("fila", {}).get("Kc")
-            fuente = "tabla de flexión"
-            if kc is None or kc == 0.0:
-                kc = 0.003 / (0.003 + 0.005)  # 0.375
-                fuente = "deformaciones (respaldo por fila sin Kc)"
-        return kc, fuente
+    # Recopilación de As para inercias
 
-    Kc_usado, fuente_kc = kc_usado(as_tra)
+    # Tramo central
+    # Armadura inferior total (ya la tenés en arm_inf_tra)
+    As_total_inf = arm_inf_tra["area_total_cm2"]
 
-    # Inercias con el Kc elegido
-    Ig, Icr, Mcr, Ie = v.inercias_seccion(
-        As_cm2=arm_inf_tra["area_total_cm2"],
-        Kc=Kc_usado,
-        M_kNm=as_tra.get("Mu_kNm")
+    # Armadura inferior tramo completo (prolongadas)
+    arm_inf_completo = {
+        "n": n_prol,
+        "diam": d,
+        "area_total_cm2": (n_prol * (math.pi * d**2 / 4)) / 100
+    }
+    # Armadura inferior tramo (solo vano)
+    As_tramo = As_total_inf - arm_inf_completo["area_total_cm2"]
+
+    # Ahora sí podés usar:
+    As_tramo_completo = arm_inf_completo["area_total_cm2"]
+
+    As_aux_comp = arm_sup_comp.get("area_total_cm2", 0.0)
+    arm_comp = {}
+    if as_tra["Asp_req_cm2"] > 0:
+        arm_comp = v.seleccionar_armadura(as_tra["Asp_req_cm2"])
+
+    As_comp = arm_comp.get("area_total_cm2", 0.0)
+
+    As_tramo_total = As_tramo + As_tramo_completo + As_aux_comp + As_comp
+
+    # Apoyo izquierdo
+    As_apoyo_izq = arm_sup_izq["area_total_cm2"] + As_tramo_completo
+
+    # Apoyo derecho
+    As_apoyo_der = arm_sup_der["area_total_cm2"] + As_tramo_completo
+       
+    # --- Calculo de inercias ---
+    # Tramo central
+    k_tramo, c_tramo = calcular_k_c(b_cm, v.d*100, As_tramo_total, fc_MPa)
+    Ig_t, Jh_t, Jhf_t, Mcr_t, Ie_t = v.inercias_seccion(
+     As_cm2=As_tramo_total,
+        c=c_tramo / 100.0,   # ✅ cm → m
+        M_kNm=viga_data["m_tra"]
     )
 
+    # Apoyo izquierdo
+    k_izq, c_izq = calcular_k_c(b_cm, v.d*100, As_apoyo_izq, fc_MPa)
+    Ig_i, Jh_i, Jhf_i, Mcr_i, Ie_i = v.inercias_seccion(
+        As_cm2=As_apoyo_izq,
+        c=c_tramo / 100.0,   # ✅ cm → m
+        M_kNm=viga_data["m_izq"]
+    )
+
+    # Apoyo derecho
+    k_der, c_der = calcular_k_c(b_cm, v.d*100, As_apoyo_der, fc_MPa)
+    Ig_d, Jh_d, Jhf_d, Mcr_d, Ie_d = v.inercias_seccion(
+        As_cm2=As_apoyo_der,
+        c=c_tramo / 100.0,   # ✅ cm → m
+        M_kNm=viga_data["m_der"]
+    )   
+
+    # Promedio de apoyos y efectiva
+    Ie_apoyo = (Ie_i + Ie_d)
+    Ief = 0.50 * Ie_t + 0.25 * Ie_apoyo
+
+    # --- Guardado ---
     inercias = {
-        "Ig_m4": Ig,
-        "Icr_m4": Icr,
-        "Ie_m4": Ie,
-        "Mcr_kNm": Mcr,
-        "Kc_usado": Kc_usado,
-        "fuente_kc": fuente_kc,
-        "kd_lookup": as_tra.get("kd_lookup")
+        "tramo": {
+            "Ig": Ig_t, "Jh": Jh_t, "Jhf": Jhf_t,
+            "Icr": Jhf_t, "Ie": Ie_t, "Mcr": Mcr_t,
+            "k": k_tramo, "c": c_tramo
+        },
+        "apoyo_izq": {
+            "Ig": Ig_i, "Jh": Jh_i, "Jhf": Jhf_i,
+            "Icr": Jhf_i, "Ie": Ie_i, "Mcr": Mcr_i,
+            "k": k_izq, "c": c_izq
+        },
+        "apoyo_der": {
+            "Ig": Ig_d, "Jh": Jh_d, "Jhf": Jhf_d,
+            "Icr": Jhf_d, "Ie": Ie_d, "Mcr": Mcr_d,
+            "k": k_der, "c": c_der
+        },
+        "Ie_apoyo_prom": Ie_apoyo,
+        "Ief": Ief
     }
+    viga_data["inercias"] = inercias
+
 
     # Hormigón
     V_horm = v.b * v.h * L_viga
@@ -1165,7 +1478,6 @@ def generar_planilla(
 
         lineas.append(f"   Luz libre = {L_viga:.2f} m")
 
-
     else:
         # Caso flexión simple: mantener lógica tradicional
         lineas.append(f"   As requerida       = {notas_tecnicas['flexion']['As_req_cm2']:.2f} cm²")
@@ -1194,6 +1506,20 @@ def generar_planilla(
             f"(fila {notas_tecnicas['flexion']['fila']})"
         )
 
+    RESULTADOS["flexion"].append({
+        "viga": nombre_viga,
+        "tramo": id_tramo,
+        "As_req_cm2": notas_tecnicas['flexion']['As_req_cm2'],
+        "As_adop_cm2": notas_tecnicas['flexion'].get('As_adopt_cm2', 0.0),
+        "cumple": notas_tecnicas['flexion'].get('As_adopt_cm2', 0.0) >= notas_tecnicas['flexion']['As_req_cm2']
+    })
+    RESULTADOS["estado"].append({
+        "tramo": tramo_id,
+        "flexion": notas_tecnicas["flexion"]["estado"],
+        "nota": notas_tecnicas["flexion"]["nota"]
+    })
+
+
     lineas.append("")
     lineas.append("2 SECCIÓN")
     lineas.append(f"   b = {notas_tecnicas['seccion']['b_cm']:.1f} cm")
@@ -1217,18 +1543,38 @@ def generar_planilla(
     lineas.append(f"   fy  = {fy} MPa")
     lineas.append(f"   Ec  = {Ec:.0f} MPa")
 
-    lineas.append("")
-    lineas.append("4 INERCIAS")
-    Ig_cm4  = Ig * 1e8
-    Icr_cm4 = Icr * 1e8
-    Ie_cm4  = Ie * 1e8
 
-    lineas.append(f"- Inercia bruta Ig: {Ig:.6f} m⁴ | {Ig_cm4:,.0f} cm⁴")
-    lineas.append(f"- Inercia fisurada Icr: {Icr:.6f} m⁴ | {Icr_cm4:,.0f} cm⁴")
-    lineas.append(f"- Inercia efectiva Ie (Branson): {Ie:.6f} m⁴ | {Ie_cm4:,.0f} cm⁴")
-    lineas.append(f"- Momento de fisuración Mcr: {Mcr:.2f} kNm")
-    lineas.append(f"- Kc usado para sección: {inercias.get('Kc_usado', 0.0):.3f}")
-    lineas.append(f"- kd_lookup: {inercias.get('kd_lookup', 0.0):.3f}")
+    lineas.append("")
+    lineas.append("4 INERCIAS (Rigidez global de la viga)")
+
+    lineas.append(f"- Inercia bruta Ig              = {Ig_t:.6f} m⁴")
+    lineas.append(f"- Inercia efectiva global Ief   = {Ief:.6f} m⁴")
+    ratio = Ief / Ig_t
+    if ratio > 0.95:
+        nota = "sección poco fisurada"
+    elif ratio > 0.85:
+        nota = "buen comportamiento en servicio"
+    elif ratio > 0.70:
+        nota = "fisuración normal (esperable)"
+    else:
+        nota = "fisuración elevada – revisar flechas"
+
+    lineas.append(f"- Relación Ief / Ig             = {ratio:.3f}  ({nota})")
+    lineas.append(f"- Momento de fisuración Mcr     = {Mcr_t:.2f} kNm (tramo)")
+    lineas.append(f"- c usado                       = {c_tramo:.2f} cm")  # Mostrar c usado
+
+
+    RESULTADOS["inercias"].append({
+        "tramo": tramo_id,
+        "Ig_m4": Ig_t,
+        "Ief_m4": Ief,
+        "ratio_Ief_Ig": Ief / Ig_t,
+        "Mcr_tramo_kNm": Mcr_t,
+        "c_usado_cm": c_tramo,
+        "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    })
+
+
 
     lineas.append("")
     lineas.append("5 HORMIGÓN")
@@ -1251,10 +1597,10 @@ def generar_planilla(
     lineas.append(f"   As tramo     = {arm_inf_tra['area_total_cm2']:.2f} cm²")
     lineas.append(f"   As apoyo der = {arm_sup_der['area_total_cm2']:.2f} cm²")
 
-
-
     if as_tra.get("Asp_req_cm2", 0.0) > 0:
         lineas.append(f"   As’ (compresión) = {as_tra['Asp_req_cm2']:.2f} cm²")
+
+    # Estribos: totales y zonificación
 
     total_estribos_6 = sum(
         math.ceil((z["hasta_m"] - z["desde_m"]) / (z["estribos"]["Ø6"]["s_cm"] / 100))
@@ -1286,30 +1632,185 @@ def generar_planilla(
         for z in zonas["zonas"]
     )
     lineas.append(f"   Zonificación   = {zonas_txt}")
+    # Guardar estribos en RESULTADOS
+    for z in zonas["zonas"]:
+        for diam in ["Ø6", "Ø8"]:
+            e = z["estribos"].get(diam)
+            if e:
+                n_est = math.ceil((z["hasta_m"] - z["desde_m"]) / (e["s_cm"] / 100))
+
+    # =============================================================================
+    # 9 FLECHA DE SERVICIO – MÉTODO DE CARGA VIRTUAL
+    # =============================================================================
+
+    # Inercias ya calculadas para ESTA viga
+    inercias = viga_data.get("inercias", None)
+    if inercias is None:
+        raise ValueError("Inercias no calculadas para este tramo")
+    
+    # Inercias ya calculadas para ESTA viga
+    Ec = 4700 * math.sqrt(fc_MPa)  # N/mm²
+    L = L_viga * 1000              # mm
+    q = cargas["servicio"]         # N/mm
+
+    Ie_t = inercias["tramo"]["Ie"] * 1e12
+    Ie_i = inercias["apoyo_izq"]["Ie"] * 1e12
+    Ie_d = inercias["apoyo_der"]["Ie"] * 1e12
+
+    # Coeficientes del método de carga virtual
+    alpha_tramo = 5 / 12
+    alpha_apoyo = 1 / 4
+
+    inv_Ie_eq = (
+        alpha_tramo / Ie_t +
+        alpha_apoyo / Ie_i +
+        alpha_apoyo / Ie_d
+    )
+    # --- Flecha máxima de servicio ---
+    coef_global = 5 / 384
+
+    delta = coef_global * q * L**4 / Ec * inv_Ie_eq   # mm
 
 
-    # Flecha con carga de servicio
-    q_serv = cargas["servicio"]  # kN/m
-    q_serv = q_serv * 1.0        # N/mm (porque 1 kN/m = 1 N/mm)
-    L = tramo["longitud_m"] * 1000  # m → mm
-    Ec = 4700 * (fc_MPa ** 0.5)  # N/mm²
-    Ie = inercias["Ie_m4"] * 1e12  # m⁴ → mm⁴
-
-    if tramo["es_voladizo"]:
-        delta = q_serv * L**4 / (8 * Ec * Ie)  # mm
-    else:
-        delta = 5 * q_serv * L**4 / (384 * Ec * Ie)  # mm
-
-    # Guardar en notas técnicas
     lineas.append("")
     lineas.append("9 FLECHA DE SERVICIO")
+    lineas.append("   Método: Carga virtual con rigidez variable (tramo + apoyos)")
     lineas.append(f"   δmax = {delta:.2f} mm")
-    lineas.append(f"   Flecha adm L/250 (Vigas y losas en general) = {L/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/250 else '❌ No cumple'}")
-    lineas.append(f"   Flecha adm L/360 (Vigas con tabiques o acabados frágiles) = {L/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/360 else '❌ No cumple'}")
-    lineas.append(f"   Flecha adm L/480 (Losas con cielorrasos/terminaciones sensibles) = {L/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/480 else '❌ No cumple'}")
+
+    lineas.append(
+        f"   Flecha adm L/250 = {L/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L/250 else '❌ No cumple'}"
+    )
+    lineas.append(
+        f"   Flecha adm L/360 = {L/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L/360 else '❌ No cumple'}"
+    )
+    lineas.append(
+        f"   Flecha adm L/480 = {L/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L/480 else '❌ No cumple'}"
+    )
+    lineas.append("")
+    lineas.append("   Inercias usadas (tramo + apoyos)")
+    lineas.append(f"   Ie tramo       = {inercias['tramo']['Ie']:.3e} m⁴")
+    lineas.append(f"   Ie apoyo izq   = {inercias['apoyo_izq']['Ie']:.3e} m⁴")
+    lineas.append(f"   Ie apoyo der   = {inercias['apoyo_der']['Ie']:.3e} m⁴")
+    lineas.append(f"   c usado        = {c_tramo:.2f} cm")
+    RESULTADOS["flecha"].append({
+        "viga": nombre_viga,
+        "tramo": id_tramo,
+        "tipo_tramo": "voladizo" if es_voladizo else "interior",
+        "L_m": L_viga,
+        "q_serv_kN_m": cargas["servicio"],
+        "delta_mm": delta,
+        "lim_L250_mm": L / 250,
+        "lim_L360_mm": L / 360,
+        "lim_L480_mm": L / 480,
+        "cumple_L250": delta <= L / 250,
+        "cumple_L360": delta <= L / 360,
+        "cumple_L480": delta <= L / 480,
+        "Ie_tramo_m4": inercias["tramo"]["Ie"],
+        "Ie_apoyo_izq_m4": inercias["apoyo_izq"]["Ie"],
+        "Ie_apoyo_der_m4": inercias["apoyo_der"]["Ie"],
+        "criterio": "Carga virtual – rigidez variable"
+    })
+
+    # Corte (interior)
+    RESULTADOS["corte"].append({
+        "tramo": tramo_id,
+        "V_izq_kN": viga_data.get("Vu_izq", 0.0),
+        "V_der_kN": viga_data.get("Vu_der", 0.0),
+        "cumple": True
+    })
+    # -----------------------------
+    # 10 ABERTURA DE FISURAS
+    # -----------------------------
+    beta = 1.25  # viga, 1.35 losa
+    fy = notas_tecnicas["materiales"]["fy_MPa"]
+    fs = 2/3 * fy  # MPa
+    # recubrimiento hasta centroide de la barra más cercana [mm]
+    diametro_barra_mm = arm_inf_tra["diam"]  # tomamos la barra inferior del tramo
+    dc = notas_tecnicas["seccion"]["rec_inf_cm"]*10 + (diametro_barra_mm/2)
+
+    # número de barras y área efectiva
+    n_barras = arm_inf_tra["n"]  # total de barras inferiores
+    A_barra_cm2 = arm_inf_tra["area_total_cm2"] / n_barras
+    A_barra_mm2 = A_barra_cm2 * 100  # convertir a mm²
+
+    # cálculo aproximado de apertura de fisuras
+    w_um = 0.011 * beta * fs * (dc * A_barra_mm2) ** (1/3)  # µm
+    w_mm = w_um / 1000  # convertir a mm
+
+    lineas.append("")
+    lineas.append("10 ABERTURA DE FISURAS")
+    lineas.append(f"   dc = {dc:.1f} mm | fs = {fs:.1f} MPa | A_barra = {A_barra_mm2:.1f} mm²")
+    lineas.append(f"   w ≈ {w_um:.1f} μm / {w_mm:.3f} mm")
+    # límites según CIRSOC 201
+    limites_w_mm = {
+        "aire_seco": 0.41,
+        "aire_humedo": 0.30,
+        "contencion_agua": 0.10
+    }
+
+    # elegimos el límite más restrictivo para comparar
+    w_lim_mm = min(limites_w_mm.values())  # 0.10 mm
+    cumple = w_mm <= w_lim_mm
+
+    lineas.append(f"   Limite CIRSOC = {w_lim_mm:.2f} mm → {'✅ Cumple' if cumple else '❌ No cumple'}")
 
     return "\n".join(lineas)
 
+def procesar_vigas(datos_vigas, coef_kd, salidas):
+
+    for viga_id, viga in datos_vigas.items():
+
+        b = viga["b_cm"]
+        h = viga["h_cm"]
+        rec = viga["recubrimiento_cm"]
+        fc = viga.get("fc_MPa", 21.0)
+        fy = viga.get("fy_MPa", 420.0)
+
+        for tramo in viga["tramos"]:
+
+            if tramo["es_voladizo"]:
+                datos_tramo = {
+                    "m_izq": tramo["Mu_kNm"],
+                    "m_tra": tramo["Mu_kNm"],
+                    "m_der": 0.0,
+                    "Vu_emp": tramo["Vu_kN_emp"],
+                    "Vu_izq": tramo["Vu_kN_emp"],  # opcional
+                    "Vu_der": 0.0
+                }
+            else:
+                datos_tramo = {
+                    "m_izq": tramo["Mu_kNm_apoyo_izq"],
+                    "m_tra": tramo["Mu_kNm_campo"],
+                    "m_der": tramo["Mu_kNm_apoyo_der"],
+                    "Vu_izq": tramo["Vu_kN_izq"],
+                    "Vu_der": tramo["Vu_kN_der"]
+                }
+            texto = generar_planilla(
+                viga_data=datos_tramo,
+                nombre_viga=viga_id,
+                id_tramo=tramo["id"],
+                coef_kd=coef_kd,
+                L_viga=tramo["longitud_m"],
+                b_cm=b,
+                h_cm=h,
+                rec_cm=rec,
+                fc_MPa=fc,
+                fy_MPa=fy,
+                es_voladizo=tramo["es_voladizo"],
+                puntos_inflexion_m=tramo.get("puntos_inflexion_m"),
+                cargas=viga["cargas"]
+            )
+
+            with open(salidas / f"planilla_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
+                f.write(texto)
+            print(f"✅ Guardado: planilla_{viga_id}_{tramo['id']}.txt")
+
+def guardar_resultados_json(ruta):
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump(RESULTADOS, f, indent=2, ensure_ascii=False)
 
 # =========================================================
 # PROGRAMA PRINCIPAL
@@ -1326,55 +1827,9 @@ salidas = BASE / "salidas"
 salidas.mkdir(exist_ok=True)
 tabla_flexion = coef_kd["coeficientes_flexion"]
 tabla_compresion = coef_kd["tabla_compresion"]["H20_H25_H30_fy420"]
+# 🔹 UNA sola llamada
+procesar_vigas(datos_vigas, coef_kd, salidas)
 
-
-for viga_id, viga in datos_vigas.items():
-
-    b = viga["b_cm"]
-    h = viga["h_cm"]
-    rec = viga["recubrimiento_cm"]
-    fc = viga.get("fc_MPa", 21.0)
-    fy = viga.get("fy_MPa", 420.0)
-
-    for tramo in viga["tramos"]:
-
-        if tramo["es_voladizo"]:
-            datos_tramo = {
-                "m_izq": tramo["Mu_kNm"],
-                "m_tra": tramo["Mu_kNm"],
-                "m_der": 0.0,
-                "v_izq": tramo["Vu_kN_emp"],
-                "v_der": 0.0
-            }
-        else:
-            datos_tramo = {
-                "m_izq": tramo["Mu_kNm_apoyo_izq"],
-                "m_tra": tramo["Mu_kNm_campo"],
-                "m_der": tramo["Mu_kNm_apoyo_der"],
-                "v_izq": tramo["Vu_kN_izq"],
-                "v_der": tramo["Vu_kN_der"]
-            }
-
-        texto = generar_planilla(
-            viga_data=datos_tramo,
-            nombre_viga=viga_id,
-            id_tramo=tramo["id"],
-            coef_kd=coef_kd,
-            L_viga=tramo["longitud_m"],
-            b_cm=b,
-            h_cm=h,
-            rec_cm=rec,
-            fc_MPa=fc,
-            fy_MPa=fy,
-            es_voladizo=tramo["es_voladizo"],
-            puntos_inflexion_m=tramo.get("puntos_inflexion_m"),
-            cargas=viga["cargas"]
-        )
-        # Mostrar en consola
-        #print(texto)
-
-        # Guardar en archivo
-        with open(salidas / f"planilla_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
-            f.write(texto)
-
+# 🔹 Guardado global
+guardar_resultados_json(salidas / "resultados_vigas.json")
 
