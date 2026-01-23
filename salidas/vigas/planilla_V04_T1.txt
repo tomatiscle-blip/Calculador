@@ -1,0 +1,85 @@
+================================================================================
+PLANILLA DE DOBLADO – V04 – TRAMO INTERIOR – TRAMO T1
+================================================================================
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 4     | 16   | Sup. apoyo izq        | 1.34    | 8.46      
+2    | 2     | 25   | Inf. tramo completo   | 4.10    | 31.59     
+3    | 5     | 6    | Arm. comprimida   | 2.10    | 2.33      
+4    | 6     | 12   | Sup. apoyo der        | 1.18    | 6.29      
+5    | 2     | 8    | Auxiliar superior     | 3.74    | 2.95      
+6    | 1     | 6    | Estribo apoyo_izq     | 0.86    | 0.19       | c/12cm (Ø6)
+7    | 29    | 6    | Estribo central       | 0.86    | 5.54       | c/12cm (Ø6)
+--------------------------------------------------------------------------------
+TOTAL PESO                                            | 57.35 kg
+
+NOTAS TÉCNICAS
+--------------------------------------------------------------------------------
+1 FLEXIÓN
+   Ke (tracción)      = 28.141 cm²/MN
+   K’e (compresión)   = 4.021 cm²/MN
+   As requerida       = 9.62 cm²
+   As adoptada        = 9.82 cm²
+   ΔAs (inf)          = +0.20 cm²
+   As’ requerida      = 1.37 cm²
+   As’ adoptada       = 1.41 cm²
+   ΔAs’ (sup)         = +0.04 cm²
+   Estado             = ℹ️ Doble armadura activa; menor ductilidad (Kc límite aplicado)
+   Nota               = Verificar armado según normativa
+   Luz libre = 3.50 m
+
+2 SECCIÓN
+   b = 20.0 cm
+   h = 30.0 cm
+   d = 26.0 cm
+   recubrimiento inf = 3.0 cm
+   recubrimiento sup = 3.0 cm
+
+3 MATERIALES
+   f'c = 25.0 MPa
+   fy  = 420.0 MPa
+   Ec  = 23500 MPa
+
+4 INERCIAS (Rigidez global de la viga)
+- Inercia bruta Ig              = 0.000450 m⁴
+- Inercia efectiva global Ief   = 0.000454 m⁴
+- Relación Ief / Ig             = 1.008  (sección poco fisurada)
+- Momento de fisuración Mcr     = 13.16 kNm (tramo)
+- c usado                       = 12.40 cm
+
+5 HORMIGÓN
+   Volumen = 0.210 m³
+   Peso ≈ 525 kg
+
+6 PUNTOS DE INFLEXIÓN
+   PI izquierdo = 0.70 m
+   PI derecho   = 2.80 m
+
+7 ARMADURAS (As calculadas)
+   As apoyo izq = 8.04 cm²
+   As tramo     = 9.82 cm²
+   As apoyo der = 6.79 cm²
+   As’ (compresión) = 1.37 cm²
+
+8 ESTRIBOS
+   Cantidad total Ø6 = 30 unidades (s_teor≈1858.7 mm → s_final=12 cm)
+   Cantidad total Ø8 = 30 unidades (s_teor≈3304.4 mm → s_final=12 cm)
+   Zonificación   = apoyo_izq=0.00-0.05 m | central=0.05-3.50 m
+
+9 FLECHA DE SERVICIO
+   Método: Carga virtual con rigidez variable (tramo + apoyos)
+   δmax = 5.11 mm
+   Flecha adm L/250 = 14.00 mm | q_serv = 30.00 kN/m → ✅ Cumple
+   Flecha adm L/360 = 9.72 mm | q_serv = 30.00 kN/m → ✅ Cumple
+   Flecha adm L/480 = 7.29 mm | q_serv = 30.00 kN/m → ✅ Cumple
+
+   Inercias usadas (tramo + apoyos)
+   Ie tramo       = 3.762e-04 m⁴
+   Ie apoyo izq   = 5.363e-04 m⁴
+   Ie apoyo der   = 5.256e-04 m⁴
+   c usado        = 12.40 cm
+
+10 ABERTURA DE FISURAS
+   dc = 42.5 mm | fs = 280.0 MPa | A_barra = 490.9 mm²
+   w ≈ 106.0 μm / 0.106 mm
+   Limite CIRSOC = 0.10 mm → ❌ No cumple

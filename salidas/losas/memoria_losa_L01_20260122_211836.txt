@@ -1,9 +1,9 @@
 MEMORIA DE CÁLCULO - LOSA ALIVIANADA
 =================================
 
-Losa: L02
-Luz libre: 2.10 m
-Luz de cálculo (con tolerancia): 2.20 m
+Losa: L01
+Luz libre: 5.80 m
+Luz de cálculo (con tolerancia): 5.90 m
 
 Materiales seleccionados:
  - Pisos: Porcelanato 10mm + pegamento → 0.200 kN/m²
@@ -21,35 +21,33 @@ Cargas consideradas:
  - Combinación crítica: 1.2D + 1.6L → 8.373 kN/m²
 
 Selección de vigueta:
- - Serie de vigueta: ASTER
- - Tipo de vigueta seleccionada: vigueta_simple
- - Combinación bovedilla/losa: bovedilla_10_losa_15
- - Momento requerido (sin φ): 516.56 kg·m
- - Momento requerido para búsqueda (con φ aplicado): 573.95 kg·m
- - Momento disponible de la vigueta seleccionada: 1113.00 kg·m
- - Momento reducido aplicado φ=0.9: 1001.70 kg·m (9.82 kN·m)
+ - Serie de vigueta: D
+ - Tipo de vigueta seleccionada: vigueta_doble
+ - Combinación bovedilla/losa: bovedilla_12_losa_17
+ - Momento requerido (sin φ): 3715.16 kg·m
+ - Momento requerido para búsqueda (con φ aplicado): 4127.96 kg·m
+ - Momento disponible de la vigueta seleccionada: 4503.00 kg·m
+ - Momento reducido aplicado φ=0.9: 4052.70 kg·m (39.74 kN·m)
  - Referencia de capacidad: Tabla 4 – Tensolite
 
 Cómputo de materiales:
- - Área de losa: 12.76 m²
- - Viguetas: 12 unidades de 2.20 m
- - Bovedillas: 26 unidades EPS n°10
- - Hormigón: 0.740 m³ (capa de compresión)
+ - Área de losa: 35.40 m²
+ - Viguetas: 19 unidades de 5.90 m
+ - Bovedillas: 56 unidades EPS n°12
+ - Hormigón: 2.655 m³ (capa de compresión)
 
 Malla electrosoldada SIMA Q-131 / R-131:
  - Paño comercial: 2.40x6 m (solape 0.20 m)
- - Disposición: 1 filas × 3 columnas
- - Cantidad de paños: 3 unidades
- - Área total de paños: 43.20 m²
- - Área útil cubierta: 12.76 m²
- - Desperdicio ≈ 7046.0 %
+ - Área losa: 35.40 m²
+ - Área efectiva de paño: 12.76 m²
+ - Cantidad adoptada: 3 unidad(es)
 
 Nervios de refuerzo:
  - Tramo máximo: 1.80 m
- - Nervios requeridos: 1 unidades
- - Especificación por nervio: 2 barras Ø8 de 5.80 m
- - Total barras: 2 unidades
- - Longitud total de barras: 11.60 m
+ - Nervios requeridos: 3 unidades
+ - Especificación por nervio: 2 barras Ø8 de 6.00 m
+ - Total barras: 6 unidades
+ - Longitud total de barras: 36.00 m
 
 =================================
 Fin de la memoria de cálculo

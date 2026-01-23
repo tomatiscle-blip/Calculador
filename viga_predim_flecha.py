@@ -112,11 +112,11 @@ def imprimir_resultado(resultado):
 # ==========================
 
 if __name__ == "__main__":
-    L = 6.20
-    q = 20
-    b = 0.20
-    hormigon = "H21"
-    delta_ratio = 360  # L/360 para vigas con tabiques o acabados frágiles
+    L = 7.0
+    q = 36 # kN/m (carga de servicio)
+    b = 0.25
+    hormigon = "H25"
+    delta_ratio = 480  # L/480 para vigas con cielorrasos/terminaciones sensibles
 
     resultado = predimension_viga(L, q, b, hormigon, delta_ratio)
     imprimir_resultado(resultado)

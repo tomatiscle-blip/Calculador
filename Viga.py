@@ -11,8 +11,7 @@ RESULTADOS = {
     "armaduras": [],
     "estribos": [],
     "flecha": [],
-    "corte": [],
-    "hormigon": []   # ✅ faltaba esta
+    "corte": []
 }
 
 class DisenadorViga:
@@ -872,6 +871,10 @@ def generar_planilla(
     lineas = []
     v = DisenadorViga(nombre_viga, b_cm, h_cm, rec_cm, fc_MPa, fy_MPa)
     tramo_id = f"{nombre_viga}.{id_tramo}"
+    # 🔹 Definir las tablas acá, usando coef_kd
+    tabla_compresion = coef_kd["tabla_compresion"]["H20_H25_H30_fy420"]
+    tabla_flexion = coef_kd["coeficientes_flexion"]
+
 
     # -----------------------------------------------------
     # Funciones auxiliares
@@ -970,12 +973,6 @@ def generar_planilla(
                 "cantidad": n_est,
                 "longitud_m": L_est,
                 "peso_kg": P
-            })
-            # Corte (solo valor directo, sin phiVc ni xcrit)
-            RESULTADOS["corte"].append({
-                "tramo": tramo_id,
-                "V_kN": viga_data["Vu_emp"],
-                "cumple": True
             })
             total_peso += P
             pos += 1
@@ -1096,6 +1093,13 @@ def generar_planilla(
             "Ec_MPa": Ec,
             "V_m3": V_m3,
             "peso_kg": peso_hormigon
+        })
+        
+        # ✅ Guardar corte aquí solo una vez
+        RESULTADOS["corte"].append({
+            "tramo": tramo_id,
+            "V_kN": viga_data["Vu_emp"],
+            "cumple": True
         })
 
         return "\n".join(lineas)
@@ -1759,18 +1763,19 @@ def generar_planilla(
 
     return "\n".join(lineas)
 
-def procesar_vigas(datos_vigas, coef_kd, salidas):
+def procesar_vigas(datos_vigas, coef_kd, carpeta_salida):
+    resultados = {}  # diccionario para acumular resultados
 
     for viga_id, viga in datos_vigas.items():
-
         b = viga["b_cm"]
         h = viga["h_cm"]
         rec = viga["recubrimiento_cm"]
         fc = viga.get("fc_MPa", 21.0)
         fy = viga.get("fy_MPa", 420.0)
 
-        for tramo in viga["tramos"]:
+        resultados[viga_id] = []  # cada viga tendrá una lista de tramos
 
+        for tramo in viga["tramos"]:
             if tramo["es_voladizo"]:
                 datos_tramo = {
                     "m_izq": tramo["Mu_kNm"],
@@ -1788,6 +1793,8 @@ def procesar_vigas(datos_vigas, coef_kd, salidas):
                     "Vu_izq": tramo["Vu_kN_izq"],
                     "Vu_der": tramo["Vu_kN_der"]
                 }
+
+            # Generar texto de planilla
             texto = generar_planilla(
                 viga_data=datos_tramo,
                 nombre_viga=viga_id,
@@ -1804,13 +1811,26 @@ def procesar_vigas(datos_vigas, coef_kd, salidas):
                 cargas=viga["cargas"]
             )
 
-            with open(salidas / f"planilla_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
+            # Guardar TXT en carpeta de salida
+            with open(carpeta_salida / f"planilla_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
                 f.write(texto)
-            print(f"✅ Guardado: planilla_{viga_id}_{tramo['id']}.txt")
 
-def guardar_resultados_json(ruta):
+            print(f"✅ Guardado: {carpeta_salida / f'planilla_{viga_id}_{tramo['id']}.txt'}")
+
+            # Acumular resultados en el diccionario
+            resultados[viga_id].append({
+                "tramo_id": tramo["id"],
+                "longitud_m": tramo["longitud_m"],
+                "es_voladizo": tramo["es_voladizo"],
+                "datos_tramo": datos_tramo
+            })
+
+    return resultados
+
+def guardar_resultados_json(ruta, resultados):
     with open(ruta, "w", encoding="utf-8") as f:
-        json.dump(RESULTADOS, f, indent=2, ensure_ascii=False)
+        json.dump(resultados, f, indent=2, ensure_ascii=False)
+
 
 # =========================================================
 # PROGRAMA PRINCIPAL
@@ -1824,12 +1844,15 @@ with open(BASE / "datos" / "coeficientes_kd.json", encoding="utf-8") as f:
     coef_kd = json.load(f)
 
 salidas = BASE / "salidas"
-salidas.mkdir(exist_ok=True)
-tabla_flexion = coef_kd["coeficientes_flexion"]
-tabla_compresion = coef_kd["tabla_compresion"]["H20_H25_H30_fy420"]
-# 🔹 UNA sola llamada
-procesar_vigas(datos_vigas, coef_kd, salidas)
+vigas_dir = salidas / "vigas"
+vigas_dir.mkdir(parents=True, exist_ok=True)
 
-# 🔹 Guardado global
-guardar_resultados_json(salidas / "resultados_vigas.json")
+# 🔹 solo llamás a procesar_vigas para que llene RESULTADOS global
+procesar_vigas(datos_vigas, coef_kd, vigas_dir)
+
+# 🔹 guardás el RESULTADOS global que ya se fue llenando
+guardar_resultados_json(vigas_dir / "resultados_vigas.json", RESULTADOS)
+
+print(f"✅ Resultados guardados en: {vigas_dir / 'resultados_vigas.json'}")
+
 

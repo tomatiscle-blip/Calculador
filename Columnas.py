@@ -498,7 +498,7 @@ def guardar_resultados_csv(
     id_columna, tipo_seccion, b, h, altura_libre_m, d_recubrimiento_cm,
     Pu, Mu, fck, lambda_val, clasificacion,
     Ast, detalle_armadura, nota_diagrama,
-    carpeta="salidas"
+    carpeta="salidas/columnas"
 ):
     import os, csv
 
@@ -739,7 +739,7 @@ if __name__ == "__main__":
             nota_diagrama=nota_diagrama,
             altura_libre_m=Lc,        # <--- valor ingresado por usuario
             d_recubrimiento_cm=dprima_cm, # <--- recubrimiento ingresado
-            tipo_seccion=seccion_tipo     # I, II o III
+            tipo_seccion=seccion_tipo # I, II o III
         )
 
         print("\n✅ Resultados guardados en salida/planilla_columnas.csv")

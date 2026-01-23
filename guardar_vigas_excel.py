@@ -16,8 +16,11 @@ def exportar_vigas_excel(json_path, excel_path):
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(__file__)
-    json_file = os.path.join(base_dir, "salidas", "resultados_vigas.json")
-    excel_file = os.path.join(base_dir, "salidas", "planilla_vigas.xlsx")
+    vigas_dir = os.path.join(base_dir, "salidas", "vigas")
+    os.makedirs(vigas_dir, exist_ok=True)
+
+    json_file = os.path.join(vigas_dir, "resultados_vigas.json")
+    excel_file = os.path.join(vigas_dir, "planilla_vigas.xlsx")
 
     exportar_vigas_excel(json_file, excel_file)
     print(f"✅ Excel generado en: {excel_file}")

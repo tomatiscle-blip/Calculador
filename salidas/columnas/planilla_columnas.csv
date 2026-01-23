@@ -1,0 +1,2 @@
+ID;Tipo_seccion;b(cm);h(cm);Altura_libre(m);Recubrimiento(cm);Pu(kN);Mu(kNm);f'c(MPa);λ;Clasificación;Ast(cm²);n_barras;diam_long(cm);diam_estribo(cm);paso_estribo(cm);cumple_estribo;Nota_diagrama
+C01-1;II;30.00;35.00;2.80;3.80;500.0;30.0;20;27.71;CORTA;10.50;10;12;6;14.4;;γ=0.78, X=0.816, Y=4.762, ρg=0.010

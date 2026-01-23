@@ -567,8 +567,9 @@ if __name__ == "__main__":
     # -------------------------------
     # Guardar en archivo txt
     # -------------------------------
-    SALIDAS_DIR = Path("salidas")
-    SALIDAS_DIR.mkdir(exist_ok=True)
+    SALIDAS_DIR = Path("salidas")/ "analisis_cargas"
+    SALIDAS_DIR.mkdir(parents=True, exist_ok=True)
+
     fecha_hora = datetime.now().strftime("%d-%m-%Y_%H%M")
     archivo_salida = SALIDAS_DIR / f"{analisis.nombre.replace(' ', '_')}_{fecha_hora}.txt"
 

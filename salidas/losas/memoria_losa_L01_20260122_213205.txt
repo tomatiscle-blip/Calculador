@@ -7,47 +7,47 @@ Luz de cálculo (con tolerancia): 5.80 m
 
 Materiales seleccionados:
  - Pisos: Porcelanato 10mm + pegamento → 0.200 kN/m²
- - Contrapiso: Carpeta nivelacion 2.5cm → 0.520 kN/m²
+ - Contrapiso: Carpeta nivelacion 3cm → 0.620 kN/m²
  - Contrapiso: Contrapiso alivianado EPS 10cm → 0.245 kN/m²
- - Cielorrasos: Madera machimbrada → 0.250 kN/m²
-Subtotal cargas accesorias (D2): 1.215 kN/m²
-Total cargas permanentes (D1+D2): 3.096 kN/m²
+ - Cielorrasos: Yeso Suspendido → 0.330 kN/m²
+Subtotal cargas accesorias (D2): 1.395 kN/m²
+Total cargas permanentes (D1+D2): 3.276 kN/m²
 
 Cargas consideradas:
  - D1 (peso propio): 1.881 kN/m²
- - D2 (accesoria): 1.215 kN/m²
- - D total: 3.096 kN/m²
+ - D2 (accesoria): 1.395 kN/m²
+ - D total: 3.276 kN/m²
  - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
- - Combinación crítica: 1.2D + 1.6L → 6.915 kN/m²
+ - Combinación crítica: 1.2D + 1.6L → 7.131 kN/m²
 
 Selección de vigueta:
  - Serie de vigueta: D
  - Tipo de vigueta seleccionada: vigueta_simple
  - Combinación bovedilla/losa: bovedilla_16_5_losa_21_5
- - Momento requerido (sin φ): 2965.13 kg·m
- - Momento requerido para búsqueda (con φ aplicado): 3294.58 kg·m
+ - Momento requerido (sin φ): 3057.74 kg·m
+ - Momento requerido para búsqueda (con φ aplicado): 3397.49 kg·m
  - Momento disponible de la vigueta seleccionada: 3556.00 kg·m
  - Momento reducido aplicado φ=0.9: 3200.40 kg·m (31.39 kN·m)
  - Referencia de capacidad: Tabla 4 – Tensolite
 
 Cómputo de materiales:
- - Área de losa: 33.64 m²
+ - Área de losa: 34.80 m²
  - Viguetas: 12 unidades de 5.80 m
- - Bovedillas: 67 unidades EPS n°16
- - Hormigón: 2.658 m³ (capa de compresión)
+ - Bovedillas: 70 unidades EPS n°16
+ - Hormigón: 2.749 m³ (capa de compresión)
 
 Malla electrosoldada SIMA Q-131 / R-131:
  - Paño comercial: 2.40x6 m (solape 0.20 m)
- - Área losa: 33.64 m²
+ - Área losa: 34.80 m²
  - Área efectiva de paño: 12.76 m²
  - Cantidad adoptada: 3 unidad(es)
 
 Nervios de refuerzo:
  - Tramo máximo: 1.80 m
  - Nervios requeridos: 3 unidades
- - Especificación por nervio: 2 barras Ø8 de 5.80 m
+ - Especificación por nervio: 2 barras Ø8 de 6.00 m
  - Total barras: 6 unidades
- - Longitud total de barras: 34.80 m
+ - Longitud total de barras: 36.00 m
 
 =================================
 Fin de la memoria de cálculo

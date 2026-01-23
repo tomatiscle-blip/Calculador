@@ -4,7 +4,16 @@ import xml.etree.ElementTree as ET
 import math
 import os
 from datetime import datetime
+import csv
 
+# ==========================
+# Crear directorios de salida si no existen
+SALIDAS_DIR = "salidas"
+os.makedirs(SALIDAS_DIR, exist_ok=True)
+
+LOSAS_DIR = "salidas/losas"
+ARCHIVO_LOSAS = os.path.join(LOSAS_DIR, "computo_losas.csv")
+os.makedirs(LOSAS_DIR, exist_ok=True)
 
 # ==========================
 # Cargar archivos JSON
@@ -295,6 +304,46 @@ def computo_nervios_refuerzo(luz_calculo, ancho_losa,
         "longitud_total_barras_m": longitud_total_barras_m
     }
 
+# ======================================
+# Función para guardar cómputo en CSV
+# ======================================
+
+def guardar_computo_losa(
+    losa_nombre, luz_libre, luz_calculo,
+    serie, tipo,
+    n_viguetas, n_bloques, vol_hormigon,
+    momento_req, momento_reducido_kNm,
+    area_losa,
+    malla, nervios
+):
+    if not os.path.exists(ARCHIVO_LOSAS):
+        with open(ARCHIVO_LOSAS, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "ID_Losa","Luz_libre_m","Luz_calculo_m",
+                "Serie","Tipo_vigueta",
+                "N_viguetas","N_bloques","Vol_hormigon_m3",
+                "Momento_req_kgm","Momento_reducido_kNm","Area_losa_m2",
+                "Malla_tamanio","Malla_area_efectiva_m2","Malla_cantidad",
+                "Nervios_n","Barras_por_nervio","Diametro_mm",
+                "Largo_por_nervio_m","Barras_total","Longitud_total_barras_m"
+            ])
+
+    with open(ARCHIVO_LOSAS, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            losa_nombre, luz_libre, luz_calculo,
+            serie, tipo,
+            n_viguetas, n_bloques, vol_hormigon,
+            momento_req, momento_reducido_kNm, area_losa,
+            malla['tamanio_pano'], malla['area_pano_efectiva_m2'], malla['cantidad_mallas'],
+            nervios['n_nervios'], nervios['barras_por_nervio'], nervios['diametro_mm'],
+            nervios['largo_por_nervio_m'], nervios['barras_total'], nervios['longitud_total_barras_m']
+        ])
+
+# ======================================
+# Ejemplo: Generar memoria técnica
+# ======================================
 def generar_memoria(losa_nombre, luz_libre, luz_calculo,
                     D1, D2, D, L, Q,
                     serie, tipo, combo,
@@ -305,6 +354,7 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
                     area_losa, n_viguetas, n_bloques, vol_hormigon,
                     combo_critico, ancho_losa):
     memoria = []
+ 
     memoria.append("MEMORIA DE CÁLCULO - LOSA ALIVIANADA\n")
     memoria.append("=================================\n\n")
 
@@ -386,11 +436,12 @@ def generar_memoria(losa_nombre, luz_libre, luz_calculo,
 
     memoria.append("=================================\n")
     memoria.append("Fin de la memoria de cálculo\n")
-    return memoria
+    return memoria, malla, nervios
 # ==========================
 # Generar memoria técnica
 # ==========================
-memoria = generar_memoria(
+# Generar y guardar memoria técnica
+memoria, malla, nervios = generar_memoria(
     losa_nombre, luz_libre, luz_calculo,
     D1, D2, D, L, Q,
     serie, tipo, combo,
@@ -402,15 +453,25 @@ memoria = generar_memoria(
     combo_critico, ancho_losa
 )
 
+# Guardar cómputo en CSV (recién ahora tenés malla y nervios definidos)
+guardar_computo_losa(
+    losa_nombre, luz_libre, luz_calculo,
+    serie, tipo,
+    n_viguetas, n_bloques, vol_hormigon,
+    momento_req, momento_reducido_kNm,
+    area_losa,
+    malla, nervios
+)
+
+
 # --------------------------
 # Guardado en carpeta salidas (sin sobreescribir)
 # --------------------------
-SALIDAS_DIR = "salidas"
-os.makedirs(SALIDAS_DIR, exist_ok=True)
+
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 nombre_archivo = f"memoria_losa_{losa_nombre}_{timestamp}.txt"
-ruta_salida = os.path.join(SALIDAS_DIR, nombre_archivo)
+ruta_salida = os.path.join(LOSAS_DIR, nombre_archivo)
 
 with open(ruta_salida, "w", encoding="utf-8") as f:
     f.writelines(memoria)
