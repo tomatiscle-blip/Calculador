@@ -1,0 +1,1733 @@
+{
+  "tablas": [
+  {
+  "titulo_tabla": "PERFILES C",
+  "perfiles": [
+    {
+      "nombre": "80x40x15 x 1.6",
+      "dimensiones": {
+        "b_base": "40",
+        "e_espesor_ala": "1.6",
+        "e_espesor_alma": "1.6",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "2.83",
+        "inercia_x": "30.08",
+        "inercia_y": "7.02",
+        "modulo_resistente_x": "7.52",
+        "modulo_resistente_y": "2.78",
+        "peso_LAC": "2.22",
+        "peso_lineal": "2.22",
+        "radio_giro_x": "3.26",
+        "radio_giro_y": "1.57"
+      }
+    },
+    {
+      "nombre": "80x40x15 x 2",
+      "dimensiones": {
+        "b_base": "40",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "3.52",
+        "inercia_x": "36.89",
+        "inercia_y": "8.51",
+        "modulo_resistente_x": "9.22",
+        "modulo_resistente_y": "3.38",
+        "peso_LAC": "2.76",
+        "peso_lineal": "2.76",
+        "radio_giro_x": "3.26",
+        "radio_giro_y": "1.56"
+      }
+    },
+    {
+      "nombre": "80x40x15 x 2.5",
+      "dimensiones": {
+        "b_base": "40",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "4.30",
+        "inercia_x": "45.02",
+        "inercia_y": "10.25",
+        "modulo_resistente_x": "11.25",
+        "modulo_resistente_y": "4.07",
+        "peso_LAC": "3.38",
+        "peso_lineal": "3.38",
+        "radio_giro_x": "3.25",
+        "radio_giro_y": "1.55"
+      }
+    },
+    {
+      "nombre": "80x40x15 x 3.2",
+      "dimensiones": {
+        "b_base": "40",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "5.25",
+        "inercia_x": "55.7",
+        "inercia_y": "12.44",
+        "modulo_resistente_x": "13.93",
+        "modulo_resistente_y": "4.94",
+        "peso_LAC": "4.12",
+        "peso_lineal": "4.12",
+        "radio_giro_x": "3.25",
+        "radio_giro_y": "1.54"
+      }
+    },
+    {
+      "nombre": "80x50x15 x 1.6",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "1.6",
+        "e_espesor_alma": "1.6",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "3.15",
+        "inercia_x": "35",
+        "inercia_y": "11.89",
+        "modulo_resistente_x": "8.75",
+        "modulo_resistente_y": "3.84",
+        "peso_LAC": "2.47",
+        "peso_lineal": "2.47",
+        "radio_giro_x": "3.33",
+        "radio_giro_y": "1.94"
+      }
+    },
+    {
+      "nombre": "80x50x15 x 2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "3.92",
+        "inercia_x": "42.98",
+        "inercia_y": "14.5",
+        "modulo_resistente_x": "10.74",
+        "modulo_resistente_y": "4.69",
+        "peso_LAC": "3.08",
+        "peso_lineal": "3.08",
+        "radio_giro_x": "3.31",
+        "radio_giro_y": "1.93"
+      }
+    },
+    {
+      "nombre": "80x50x15 x 2.5",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "4.80",
+        "inercia_x": "52.53",
+        "inercia_y": "17.56",
+        "modulo_resistente_x": "13.13",
+        "modulo_resistente_y": "5.68",
+        "peso_LAC": "3.77",
+        "peso_lineal": "3.77",
+        "radio_giro_x": "3.33",
+        "radio_giro_y": "1.92"
+      }
+    },
+    {
+      "nombre": "80x50x15 x 3.2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "5.89",
+        "inercia_x": "65.14",
+        "inercia_y": "21.5",
+        "modulo_resistente_x": "16.29",
+        "modulo_resistente_y": "6.95",
+        "peso_LAC": "4.62",
+        "peso_lineal": "4.62",
+        "radio_giro_x": "3.32",
+        "radio_giro_y": "1.91"
+      }
+    },
+    {
+      "nombre": "100x45x10 x 1.6",
+      "dimensiones": {
+        "b_base": "45",
+        "e_espesor_ala": "1.6",
+        "e_espesor_alma": "1.6",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "3.18",
+        "inercia_x": "52.29",
+        "inercia_y": "8.6",
+        "modulo_resistente_x": "10.46",
+        "modulo_resistente_y": "3.39",
+        "peso_LAC": "2.50",
+        "peso_lineal": "2.50",
+        "radio_giro_x": "3.97",
+        "radio_giro_y": "1.61"
+      }
+    },
+    {
+      "nombre": "100x45x10 x 2",
+      "dimensiones": {
+        "b_base": "45",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "3.96",
+        "inercia_x": "64.31",
+        "inercia_y": "10.45",
+        "modulo_resistente_x": "12.86",
+        "modulo_resistente_y": "4.12",
+        "peso_LAC": "3.11",
+        "peso_lineal": "3.11",
+        "radio_giro_x": "3.97",
+        "radio_giro_y": "1.6"
+      }
+    },
+    {
+      "nombre": "100x45x10 x 2.5",
+      "dimensiones": {
+        "b_base": "45",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "4.85",
+        "inercia_x": "78.77",
+        "inercia_y": "12.6",
+        "modulo_resistente_x": "15.75",
+        "modulo_resistente_y": "4.97",
+        "peso_LAC": "3.81",
+        "peso_lineal": "3.81",
+        "radio_giro_x": "3.97",
+        "radio_giro_y": "1.59"
+      }
+    },
+    {
+      "nombre": "100x45x10 x 3.2",
+      "dimensiones": {
+        "b_base": "45",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "5.98",
+        "inercia_x": "97.97",
+        "inercia_y": "15.35",
+        "modulo_resistente_x": "19.59",
+        "modulo_resistente_y": "6.06",
+        "peso_LAC": "4.70",
+        "peso_lineal": "4.70",
+        "radio_giro_x": "3.97",
+        "radio_giro_y": "1.57"
+      }
+    },
+    {
+      "nombre": "100x50x15 x 1.6",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "1.6",
+        "e_espesor_alma": "1.6",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "3.47",
+        "inercia_x": "58.35",
+        "inercia_y": "12.87",
+        "modulo_resistente_x": "11.67",
+        "modulo_resistente_y": "3.95",
+        "peso_LAC": "2.73",
+        "peso_lineal": "2.73",
+        "radio_giro_x": "4.1",
+        "radio_giro_y": "1.92"
+      }
+    },
+    {
+      "nombre": "100x50x15 x 2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "4.32",
+        "inercia_x": "71.8",
+        "inercia_y": "15.69",
+        "modulo_resistente_x": "14.36",
+        "modulo_resistente_y": "4.82",
+        "peso_LAC": "3.39",
+        "peso_lineal": "3.39",
+        "radio_giro_x": "4.1",
+        "radio_giro_y": "1.91"
+      }
+    },
+    {
+      "nombre": "100x50x15 x 2.5",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "5.30",
+        "inercia_x": "88.01",
+        "inercia_y": "19.01",
+        "modulo_resistente_x": "17.6",
+        "modulo_resistente_y": "5.84",
+        "peso_LAC": "4.16",
+        "peso_lineal": "4.16",
+        "radio_giro_x": "4.09",
+        "radio_giro_y": "1.9"
+      }
+    },
+    {
+      "nombre": "100x50x15 x 3.2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "6.59",
+        "inercia_x": "109.58",
+        "inercia_y": "23.28",
+        "modulo_resistente_x": "21.92",
+        "modulo_resistente_y": "7.15",
+        "peso_LAC": "5.17",
+        "peso_lineal": "5.17",
+        "radio_giro_x": "4.09",
+        "radio_giro_y": "1.89"
+      }
+    },
+    {
+      "nombre": "120x50x15 x 1.6",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "1.6",
+        "e_espesor_alma": "1.6",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "3.79",
+        "inercia_x": "88.85",
+        "inercia_y": "13.68",
+        "modulo_resistente_x": "14.81",
+        "modulo_resistente_y": "4.03",
+        "peso_LAC": "2.98",
+        "peso_lineal": "2.98",
+        "radio_giro_x": "4.84",
+        "radio_giro_y": "1.9"
+      }
+    },
+    {
+      "nombre": "120x50x15 x 2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "4.72",
+        "inercia_x": "109.51",
+        "inercia_y": "16.68",
+        "modulo_resistente_x": "18.25",
+        "modulo_resistente_y": "4.92",
+        "peso_LAC": "3.71",
+        "peso_lineal": "3.71",
+        "radio_giro_x": "4.84",
+        "radio_giro_y": "1.88"
+      }
+    },
+    {
+      "nombre": "120x50x15 x 2.5",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "5.80",
+        "inercia_x": "134.48",
+        "inercia_y": "20.21",
+        "modulo_resistente_x": "22.41",
+        "modulo_resistente_y": "5.96",
+        "peso_LAC": "4.55",
+        "peso_lineal": "4.55",
+        "radio_giro_x": "4.61",
+        "radio_giro_y": "1.87"
+      }
+    },
+    {
+      "nombre": "120x50x15 x 3.2",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "7.23",
+        "inercia_x": "167.91",
+        "inercia_y": "24.76",
+        "modulo_resistente_x": "27.99",
+        "modulo_resistente_y": "7.31",
+        "peso_LAC": "5.68",
+        "peso_lineal": "5.68",
+        "radio_giro_x": "4.84",
+        "radio_giro_y": "1.86"
+      }
+    },
+    {
+      "nombre": "140x60x20 x 2",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "140"
+      },
+      "propiedades": {
+        "area_seccion": "5.72",
+        "inercia_x": "181.45",
+        "inercia_y": "30.38",
+        "modulo_resistente_x": "25.92",
+        "modulo_resistente_y": "7.61",
+        "peso_LAC": "4.49",
+        "peso_lineal": "4.49",
+        "radio_giro_x": "5.65",
+        "radio_giro_y": "2.31"
+      }
+    },
+    {
+      "nombre": "140x60x20 x 2.5",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "140"
+      },
+      "propiedades": {
+        "area_seccion": "7.05",
+        "inercia_x": "223.49",
+        "inercia_y": "37.03",
+        "modulo_resistente_x": "31.93",
+        "modulo_resistente_y": "9.28",
+        "peso_LAC": "5.53",
+        "peso_lineal": "5.53",
+        "radio_giro_x": "5.65",
+        "radio_giro_y": "2.3"
+      }
+    },
+    {
+      "nombre": "140x60x20 x 3.2",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "140"
+      },
+      "propiedades": {
+        "area_seccion": "8.77",
+        "inercia_x": "280.2",
+        "inercia_y": "45.73",
+        "modulo_resistente_x": "40.03",
+        "modulo_resistente_y": "11.47",
+        "peso_LAC": "6.88",
+        "peso_lineal": "6.88",
+        "radio_giro_x": "5.65",
+        "radio_giro_y": "2.28"
+      }
+    },
+    {
+      "nombre": "160x60x20 x 2",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "160"
+      },
+      "propiedades": {
+        "area_seccion": "6.12",
+        "inercia_x": "247.54",
+        "inercia_y": "31.74",
+        "modulo_resistente_x": "30.94",
+        "modulo_resistente_y": "7.71",
+        "peso_LAC": "4.80",
+        "peso_lineal": "4.80",
+        "radio_giro_x": "6.38",
+        "radio_giro_y": "2.28"
+      }
+    },
+    {
+      "nombre": "160x60x20 x 2.5",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "160"
+      },
+      "propiedades": {
+        "area_seccion": "7.55",
+        "inercia_x": "305.22",
+        "inercia_y": "38.69",
+        "modulo_resistente_x": "38.15",
+        "modulo_resistente_y": "9.41",
+        "peso_LAC": "5.93",
+        "peso_lineal": "5.93",
+        "radio_giro_x": "6.38",
+        "radio_giro_y": "2.27"
+      }
+    },
+    {
+      "nombre": "160x60x20 x 3.2",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "160"
+      },
+      "propiedades": {
+        "area_seccion": "9.47",
+        "inercia_x": "383.25",
+        "inercia_y": "47.79",
+        "modulo_resistente_x": "47.91",
+        "modulo_resistente_y": "11.63",
+        "peso_LAC": "7.44",
+        "peso_lineal": "7.44",
+        "radio_giro_x": "6.38",
+        "radio_giro_y": "2.25"
+      }
+    },
+    {
+      "nombre": "180x70x20 x 2",
+      "dimensiones": {
+        "b_base": "70",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "180"
+      },
+      "propiedades": {
+        "area_seccion": "6.88",
+        "inercia_x": "357.79",
+        "inercia_y": "47.59",
+        "modulo_resistente_x": "39.75",
+        "modulo_resistente_y": "9.81",
+        "peso_LAC": "5.40",
+        "peso_lineal": "5.40",
+        "radio_giro_x": "7.21",
+        "radio_giro_y": "2.63"
+      }
+    },
+    {
+      "nombre": "180x70x20 x 2.5",
+      "dimensiones": {
+        "b_base": "70",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "180"
+      },
+      "propiedades": {
+        "area_seccion": "8.50",
+        "inercia_x": "441.84",
+        "inercia_y": "58.17",
+        "modulo_resistente_x": "49.09",
+        "modulo_resistente_y": "11.99",
+        "peso_LAC": "6.67",
+        "peso_lineal": "6.67",
+        "radio_giro_x": "7.21",
+        "radio_giro_y": "2.62"
+      }
+    },
+    {
+      "nombre": "180x70x20 x 3.2",
+      "dimensiones": {
+        "b_base": "70",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "180"
+      },
+      "propiedades": {
+        "area_seccion": "10.69",
+        "inercia_x": "555.99",
+        "inercia_y": "72.16",
+        "modulo_resistente_x": "61.78",
+        "modulo_resistente_y": "14.89",
+        "peso_LAC": "8.39",
+        "peso_lineal": "8.39",
+        "radio_giro_x": "7.21",
+        "radio_giro_y": "2.6"
+      }
+    },
+    {
+      "nombre": "200x80x20 x 2",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "200"
+      },
+      "propiedades": {
+        "area_seccion": "7.68",
+        "inercia_x": "496.36",
+        "inercia_y": "67.79",
+        "modulo_resistente_x": "49.64",
+        "modulo_resistente_y": "12.12",
+        "peso_LAC": "6.03",
+        "peso_lineal": "6.03",
+        "radio_giro_x": "8.04",
+        "radio_giro_y": "2.97"
+      }
+    },
+    {
+      "nombre": "200x80x20 x 2.5",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "200"
+      },
+      "propiedades": {
+        "area_seccion": "9.50",
+        "inercia_x": "613.7",
+        "inercia_y": "83.06",
+        "modulo_resistente_x": "61.37",
+        "modulo_resistente_y": "14.86",
+        "peso_LAC": "7.46",
+        "peso_lineal": "7.46",
+        "radio_giro_x": "8.04",
+        "radio_giro_y": "2.96"
+      }
+    },
+    {
+      "nombre": "200x80x20 x 3.2",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "200"
+      },
+      "propiedades": {
+        "area_seccion": "11.97",
+        "inercia_x": "773.57",
+        "inercia_y": "103.38",
+        "modulo_resistente_x": "77.36",
+        "modulo_resistente_y": "18.5",
+        "peso_LAC": "9.39",
+        "peso_lineal": "9.39",
+        "radio_giro_x": "8.04",
+        "radio_giro_y": "2.94"
+      }
+    },
+    {
+      "nombre": "220x80x20 x 2",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "2",
+        "e_espesor_alma": "2",
+        "h_altura": "220"
+      },
+      "propiedades": {
+        "area_seccion": "8.08",
+        "inercia_x": "618.93",
+        "inercia_y": "69.82",
+        "modulo_resistente_x": "56.27",
+        "modulo_resistente_y": "12.24",
+        "peso_LAC": "6.34",
+        "peso_lineal": "6.34",
+        "radio_giro_x": "8.75",
+        "radio_giro_y": "2.94"
+      }
+    },
+    {
+      "nombre": "220x80x20 x 2.5",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "220"
+      },
+      "propiedades": {
+        "area_seccion": "10.00",
+        "inercia_x": "765.68",
+        "inercia_y": "85.55",
+        "modulo_resistente_x": "69.61",
+        "modulo_resistente_y": "15.01",
+        "peso_LAC": "7.85",
+        "peso_lineal": "7.85",
+        "radio_giro_x": "8.75",
+        "radio_giro_y": "2.92"
+      }
+    },
+    {
+      "nombre": "220x80x20 x 3.2",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "220"
+      },
+      "propiedades": {
+        "area_seccion": "12.67",
+        "inercia_x": "965.91",
+        "inercia_y": "106.47",
+        "modulo_resistente_x": "87.81",
+        "modulo_resistente_y": "18.69",
+        "peso_LAC": "9.95",
+        "peso_lineal": "9.95",
+        "radio_giro_x": "8.75",
+        "radio_giro_y": "2.9"
+      }
+    },
+    {
+      "nombre": "240x80x25 x 2.5",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "2.5",
+        "e_espesor_alma": "2.5",
+        "h_altura": "240"
+      },
+      "propiedades": {
+        "area_seccion": "10.75",
+        "inercia_x": "914.98",
+        "inercia_y": "85.68",
+        "modulo_resistente_x": "76.25",
+        "modulo_resistente_y": "14.53",
+        "peso_LAC": "8.44",
+        "peso_lineal": "8.44",
+        "radio_giro_x": "9.31",
+        "radio_giro_y": "2.83"
+      }
+    },
+    {
+      "nombre": "240x80x25 x 3.2",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "3.2",
+        "e_espesor_alma": "3.2",
+        "h_altura": "240"
+      },
+      "propiedades": {
+        "area_seccion": "13.63",
+        "inercia_x": "1146.37",
+        "inercia_y": "106.16",
+        "modulo_resistente_x": "95.53",
+        "modulo_resistente_y": "17.85",
+        "peso_LAC": "10.70",
+        "peso_lineal": "10.70",
+        "radio_giro_x": "9.25",
+        "radio_giro_y": "2.79"
+      }
+    }
+  ],
+  "unidades": {
+    "dimensiones": "mm",
+    "area": "cm2",
+    "inercia": "cm4",
+    "modulo_resistente": "cm3",
+    "peso_lineal": "kg/m",
+    "peso_LAC": "kg/m",
+    "radio_giro": "cm"
+  },
+  
+  "norma_o_tipo_general": "Perfiles metálicos conformados en frío tipo C",
+  "notas_adicionales": "Valores estáticos relativos a los ejes XX-YY. Longitudes de 6000 a 13500 mm."
+},
+{
+  "titulo_tabla": "IPN según IRAM-IAS U 500-511",
+  "perfiles": [
+    {
+      "nombre": "80",
+      "dimensiones": {
+        "b_base": "42",
+        "e_espesor_ala": "5.9",
+        "e_espesor_alma": "3.9",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "7.57",
+        "inercia_x": "77.8",
+        "inercia_y": "6.29",
+        "modulo_resistente_x": "19.5",
+        "modulo_resistente_y": "3.00",
+        "peso_LAC": "5.94",
+        "peso_lineal": "5.94",
+        "radio_giro_x": "3.20",
+        "radio_giro_y": "0.91"
+      }
+    },
+    {
+      "nombre": "100",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "6.8",
+        "e_espesor_alma": "4.5",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "10.6",
+        "inercia_x": "171",
+        "inercia_y": "12.2",
+        "modulo_resistente_x": "34.2",
+        "modulo_resistente_y": "4.88",
+        "peso_LAC": "8.34",
+        "peso_lineal": "8.34",
+        "radio_giro_x": "4.01",
+        "radio_giro_y": "1.07"
+      }
+    },
+    {
+      "nombre": "120",
+      "dimensiones": {
+        "b_base": "58",
+        "e_espesor_ala": "7.7",
+        "e_espesor_alma": "5.1",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "14.2",
+        "inercia_x": "328",
+        "inercia_y": "21.5",
+        "modulo_resistente_x": "54.7",
+        "modulo_resistente_y": "7.41",
+        "peso_LAC": "11.1",
+        "peso_lineal": "11.1",
+        "radio_giro_x": "4.81",
+        "radio_giro_y": "1.23"
+      }
+    },
+    {
+      "nombre": "140",
+      "dimensiones": {
+        "b_base": "66",
+        "e_espesor_ala": "8.6",
+        "e_espesor_alma": "5.7",
+        "h_altura": "140"
+      },
+      "propiedades": {
+        "area_seccion": "18.2",
+        "inercia_x": "573",
+        "inercia_y": "35.2",
+        "modulo_resistente_x": "81.9",
+        "modulo_resistente_y": "10.7",
+        "peso_LAC": "14.3",
+        "peso_lineal": "14.3",
+        "radio_giro_x": "5.61",
+        "radio_giro_y": "1.40"
+      }
+    },
+    {
+      "nombre": "160",
+      "dimensiones": {
+        "b_base": "74",
+        "e_espesor_ala": "9.5",
+        "e_espesor_alma": "6.3",
+        "h_altura": "160"
+      },
+      "propiedades": {
+        "area_seccion": "22.8",
+        "inercia_x": "935",
+        "inercia_y": "54.7",
+        "modulo_resistente_x": "117",
+        "modulo_resistente_y": "14.8",
+        "peso_LAC": "17.9",
+        "peso_lineal": "17.9",
+        "radio_giro_x": "6.40",
+        "radio_giro_y": "1.55"
+      }
+    },
+    {
+      "nombre": "180",
+      "dimensiones": {
+        "b_base": "82",
+        "e_espesor_ala": "10.4",
+        "e_espesor_alma": "6.9",
+        "h_altura": "180"
+      },
+      "propiedades": {
+        "area_seccion": "27.9",
+        "inercia_x": "1450",
+        "inercia_y": "81.3",
+        "modulo_resistente_x": "161",
+        "modulo_resistente_y": "19.8",
+        "peso_LAC": "21.9",
+        "peso_lineal": "21.9",
+        "radio_giro_x": "7.20",
+        "radio_giro_y": "1.71"
+      }
+    },
+    {
+      "nombre": "200",
+      "dimensiones": {
+        "b_base": "90",
+        "e_espesor_ala": "11.3",
+        "e_espesor_alma": "7.5",
+        "h_altura": "200"
+      },
+      "propiedades": {
+        "area_seccion": "33.4",
+        "inercia_x": "2140",
+        "inercia_y": "117",
+        "modulo_resistente_x": "214",
+        "modulo_resistente_y": "26.0",
+        "peso_LAC": "26.2",
+        "peso_lineal": "26.2",
+        "radio_giro_x": "8.00",
+        "radio_giro_y": "1.87"
+      }
+    },
+    {
+      "nombre": "220",
+      "dimensiones": {
+        "b_base": "98",
+        "e_espesor_ala": "12.2",
+        "e_espesor_alma": "8.1",
+        "h_altura": "220"
+      },
+      "propiedades": {
+        "area_seccion": "39.5",
+        "inercia_x": "3060",
+        "inercia_y": "162",
+        "modulo_resistente_x": "278",
+        "modulo_resistente_y": "33.1",
+        "peso_LAC": "31.1",
+        "peso_lineal": "31.1",
+        "radio_giro_x": "8.80",
+        "radio_giro_y": "2.02"
+      }
+    },
+    {
+      "nombre": "240",
+      "dimensiones": {
+        "b_base": "106",
+        "e_espesor_ala": "13.1",
+        "e_espesor_alma": "8.7",
+        "h_altura": "240"
+      },
+      "propiedades": {
+        "area_seccion": "46.1",
+        "inercia_x": "4250",
+        "inercia_y": "221",
+        "modulo_resistente_x": "354",
+        "modulo_resistente_y": "41.7",
+        "peso_LAC": "36.2",
+        "peso_lineal": "36.2",
+        "radio_giro_x": "9.59",
+        "radio_giro_y": "2.20"
+      }
+    },
+    {
+      "nombre": "260",
+      "dimensiones": {
+        "b_base": "113",
+        "e_espesor_ala": "14.1",
+        "e_espesor_alma": "9.4",
+        "h_altura": "260"
+      },
+      "propiedades": {
+        "area_seccion": "53.3",
+        "inercia_x": "5740",
+        "inercia_y": "288",
+        "modulo_resistente_x": "442",
+        "modulo_resistente_y": "51.0",
+        "peso_LAC": "41.9",
+        "peso_lineal": "41.9",
+        "radio_giro_x": "10.4",
+        "radio_giro_y": "2.32"
+      }
+    },
+    {
+      "nombre": "280",
+      "dimensiones": {
+        "b_base": "119",
+        "e_espesor_ala": "15.2",
+        "e_espesor_alma": "10.1",
+        "h_altura": "280"
+      },
+      "propiedades": {
+        "area_seccion": "61.0",
+        "inercia_x": "7590",
+        "inercia_y": "364",
+        "modulo_resistente_x": "542",
+        "modulo_resistente_y": "61.2",
+        "peso_LAC": "47.9",
+        "peso_lineal": "47.9",
+        "radio_giro_x": "11.1",
+        "radio_giro_y": "2.45"
+      }
+    },
+    {
+      "nombre": "300",
+      "dimensiones": {
+        "b_base": "125",
+        "e_espesor_ala": "16.2",
+        "e_espesor_alma": "10.8",
+        "h_altura": "300"
+      },
+      "propiedades": {
+        "area_seccion": "69.0",
+        "inercia_x": "9800",
+        "inercia_y": "451",
+        "modulo_resistente_x": "653",
+        "modulo_resistente_y": "72.2",
+        "peso_LAC": "54.2",
+        "peso_lineal": "54.2",
+        "radio_giro_x": "11.9",
+        "radio_giro_y": "2.56"
+      }
+    },
+    {
+      "nombre": "320",
+      "dimensiones": {
+        "b_base": "131",
+        "e_espesor_ala": "17.3",
+        "e_espesor_alma": "11.5",
+        "h_altura": "320"
+      },
+      "propiedades": {
+        "area_seccion": "77.7",
+        "inercia_x": "12510",
+        "inercia_y": "555",
+        "modulo_resistente_x": "782",
+        "modulo_resistente_y": "84.7",
+        "peso_LAC": "61.0",
+        "peso_lineal": "61.0",
+        "radio_giro_x": "12.7",
+        "radio_giro_y": "2.67"
+      }
+    },
+    {
+      "nombre": "340",
+      "dimensiones": {
+        "b_base": "137",
+        "e_espesor_ala": "18.3",
+        "e_espesor_alma": "12.2",
+        "h_altura": "340"
+      },
+      "propiedades": {
+        "area_seccion": "86.7",
+        "inercia_x": "15700",
+        "inercia_y": "674",
+        "modulo_resistente_x": "923",
+        "modulo_resistente_y": "98.4",
+        "peso_LAC": "68.0",
+        "peso_lineal": "68.0",
+        "radio_giro_x": "13.5",
+        "radio_giro_y": "2.80"
+      }
+    },
+    {
+      "nombre": "360",
+      "dimensiones": {
+        "b_base": "143",
+        "e_espesor_ala": "19.5",
+        "e_espesor_alma": "13.0",
+        "h_altura": "360"
+      },
+      "propiedades": {
+        "area_seccion": "97.0",
+        "inercia_x": "19610",
+        "inercia_y": "818",
+        "modulo_resistente_x": "1090",
+        "modulo_resistente_y": "114",
+        "peso_LAC": "76.1",
+        "peso_lineal": "76.1",
+        "radio_giro_x": "14.2",
+        "radio_giro_y": "2.90"
+      }
+    },
+    {
+      "nombre": "380",
+      "dimensiones": {
+        "b_base": "149",
+        "e_espesor_ala": "20.5",
+        "e_espesor_alma": "13.7",
+        "h_altura": "380"
+      },
+      "propiedades": {
+        "area_seccion": "107",
+        "inercia_x": "24010",
+        "inercia_y": "975",
+        "modulo_resistente_x": "1260",
+        "modulo_resistente_y": "131",
+        "peso_LAC": "84.0",
+        "peso_lineal": "84.0",
+        "radio_giro_x": "15.0",
+        "radio_giro_y": "3.02"
+      }
+    },
+    {
+      "nombre": "400",
+      "dimensiones": {
+        "b_base": "155",
+        "e_espesor_ala": "21.6",
+        "e_espesor_alma": "14.4",
+        "h_altura": "400"
+      },
+      "propiedades": {
+        "area_seccion": "118",
+        "inercia_x": "29210",
+        "inercia_y": "1160",
+        "modulo_resistente_x": "1460",
+        "modulo_resistente_y": "149",
+        "peso_LAC": "92.4",
+        "peso_lineal": "92.4",
+        "radio_giro_x": "15.7",
+        "radio_giro_y": "3.13"
+      }
+    },
+    {
+      "nombre": "425",
+      "dimensiones": {
+        "b_base": "163",
+        "e_espesor_ala": "23.0",
+        "e_espesor_alma": "15.3",
+        "h_altura": "425"
+      },
+      "propiedades": {
+        "area_seccion": "132",
+        "inercia_x": "36970",
+        "inercia_y": "1440",
+        "modulo_resistente_x": "1740",
+        "modulo_resistente_y": "176",
+        "peso_LAC": "104",
+        "peso_lineal": "104",
+        "radio_giro_x": "16.7",
+        "radio_giro_y": "3.30"
+      }
+    },
+    {
+      "nombre": "450",
+      "dimensiones": {
+        "b_base": "170",
+        "e_espesor_ala": "24.3",
+        "e_espesor_alma": "16.2",
+        "h_altura": "450"
+      },
+      "propiedades": {
+        "area_seccion": "147",
+        "inercia_x": "45850",
+        "inercia_y": "1730",
+        "modulo_resistente_x": "2040",
+        "modulo_resistente_y": "203",
+        "peso_LAC": "115",
+        "peso_lineal": "115",
+        "radio_giro_x": "17.7",
+        "radio_giro_y": "3.43"
+      }
+    },
+    {
+      "nombre": "475",
+      "dimensiones": {
+        "b_base": "178",
+        "e_espesor_ala": "25.6",
+        "e_espesor_alma": "17.1",
+        "h_altura": "475"
+      },
+      "propiedades": {
+        "area_seccion": "163",
+        "inercia_x": "56480",
+        "inercia_y": "2090",
+        "modulo_resistente_x": "2380",
+        "modulo_resistente_y": "235",
+        "peso_LAC": "128",
+        "peso_lineal": "128",
+        "radio_giro_x": "18.6",
+        "radio_giro_y": "3.60"
+      }
+    },
+    {
+      "nombre": "500",
+      "dimensiones": {
+        "b_base": "185",
+        "e_espesor_ala": "27.0",
+        "e_espesor_alma": "18.0",
+        "h_altura": "500"
+      },
+      "propiedades": {
+        "area_seccion": "179",
+        "inercia_x": "68740",
+        "inercia_y": "2480",
+        "modulo_resistente_x": "2750",
+        "modulo_resistente_y": "268",
+        "peso_LAC": "141",
+        "peso_lineal": "141",
+        "radio_giro_x": "19.6",
+        "radio_giro_y": "3.72"
+      }
+    },
+    {
+      "nombre": "550",
+      "dimensiones": {
+        "b_base": "200",
+        "e_espesor_ala": "30.0",
+        "e_espesor_alma": "19.0",
+        "h_altura": "550"
+      },
+      "propiedades": {
+        "area_seccion": "212",
+        "inercia_x": "99180",
+        "inercia_y": "3490",
+        "modulo_resistente_x": "3610",
+        "modulo_resistente_y": "349",
+        "peso_LAC": "166",
+        "peso_lineal": "166",
+        "radio_giro_x": "21.6",
+        "radio_giro_y": "4.02"
+      }
+    },
+    {
+      "nombre": "600",
+      "dimensiones": {
+        "b_base": "215",
+        "e_espesor_ala": "32.4",
+        "e_espesor_alma": "21.6",
+        "h_altura": "600"
+      },
+      "propiedades": {
+        "area_seccion": "254",
+        "inercia_x": "139000",
+        "inercia_y": "4670",
+        "modulo_resistente_x": "4630",
+        "modulo_resistente_y": "434",
+        "peso_LAC": "199",
+        "peso_lineal": "199",
+        "radio_giro_x": "23.4",
+        "radio_giro_y": "4.30"
+      }
+    }
+  ],
+  "unidades": {
+    "dimensiones": "mm",
+    "area": "cm2",
+    "inercia": "cm4",
+    "modulo_resistente": "cm3",
+    "peso_lineal": "kg/m",
+    "peso_LAC": "kg/m",
+    "radio_giro": "cm"
+  },
+  "norma_o_tipo_general": "IRAM-IAS U 500-511",
+  "notas_adicionales": "Ag = Área bruta; I = Momento de Inercia; r = Radio de giro; S = Módulo resistente elástico; Q = Momento estático; Z = Módulo plástico."
+    },
+    {
+  "titulo_tabla": "UPN según IRAM-IAS U 500-509-2",
+  "perfiles": [
+    {
+      "nombre": "30x15",
+      "dimensiones": {
+        "b_base": "15",
+        "e_espesor_ala": "4.5",
+        "e_espesor_alma": "4",
+        "h_altura": "30"
+      },
+      "propiedades": {
+        "area_seccion": "2.21",
+        "inercia_x": "2.53",
+        "inercia_y": "0.38",
+        "modulo_resistente_x": "1.69",
+        "modulo_resistente_y": "0.39",
+        "peso_LAC": "1.74",
+        "peso_lineal": "1.74",
+        "radio_giro_x": "1.07",
+        "radio_giro_y": "0.42"
+      }
+    },
+    {
+      "nombre": "30",
+      "dimensiones": {
+        "b_base": "33",
+        "e_espesor_ala": "7",
+        "e_espesor_alma": "5",
+        "h_altura": "30"
+      },
+      "propiedades": {
+        "area_seccion": "5.44",
+        "inercia_x": "6.39",
+        "inercia_y": "5.33",
+        "modulo_resistente_x": "4.26",
+        "modulo_resistente_y": "2.68",
+        "peso_LAC": "4.27",
+        "peso_lineal": "4.27",
+        "radio_giro_x": "1.08",
+        "radio_giro_y": "0.99"
+      }
+    },
+    {
+      "nombre": "40x20",
+      "dimensiones": {
+        "b_base": "20",
+        "e_espesor_ala": "5.5",
+        "e_espesor_alma": "5",
+        "h_altura": "40"
+      },
+      "propiedades": {
+        "area_seccion": "2.87",
+        "inercia_x": "7.58",
+        "inercia_y": "1.14",
+        "modulo_resistente_x": "3.79",
+        "modulo_resistente_y": "0.86",
+        "peso_LAC": "2.25",
+        "peso_lineal": "2.25",
+        "radio_giro_x": "1.44",
+        "radio_giro_y": "0.56"
+      }
+    },
+    {
+      "nombre": "40",
+      "dimensiones": {
+        "b_base": "35",
+        "e_espesor_ala": "7",
+        "e_espesor_alma": "5",
+        "h_altura": "40"
+      },
+      "propiedades": {
+        "area_seccion": "6.21",
+        "inercia_x": "14.1",
+        "inercia_y": "6.68",
+        "modulo_resistente_x": "7.05",
+        "modulo_resistente_y": "3.08",
+        "peso_LAC": "4.87",
+        "peso_lineal": "4.87",
+        "radio_giro_x": "1.50",
+        "radio_giro_y": "1.04"
+      }
+    },
+    {
+      "nombre": "50x25",
+      "dimensiones": {
+        "b_base": "25",
+        "e_espesor_ala": "6",
+        "e_espesor_alma": "5",
+        "h_altura": "50"
+      },
+      "propiedades": {
+        "area_seccion": "4.92",
+        "inercia_x": "16.8",
+        "inercia_y": "2.49",
+        "modulo_resistente_x": "6.73",
+        "modulo_resistente_y": "1.48",
+        "peso_LAC": "3.86",
+        "peso_lineal": "3.86",
+        "radio_giro_x": "1.85",
+        "radio_giro_y": "0.71"
+      }
+    },
+    {
+      "nombre": "50",
+      "dimensiones": {
+        "b_base": "38",
+        "e_espesor_ala": "7",
+        "e_espesor_alma": "5",
+        "h_altura": "50"
+      },
+      "propiedades": {
+        "area_seccion": "7.12",
+        "inercia_x": "26.4",
+        "inercia_y": "9.12",
+        "modulo_resistente_x": "10.6",
+        "modulo_resistente_y": "3.75",
+        "peso_LAC": "5.59",
+        "peso_lineal": "5.59",
+        "radio_giro_x": "1.92",
+        "radio_giro_y": "1.13"
+      }
+    },
+    {
+      "nombre": "60",
+      "dimensiones": {
+        "b_base": "30",
+        "e_espesor_ala": "6",
+        "e_espesor_alma": "6",
+        "h_altura": "60"
+      },
+      "propiedades": {
+        "area_seccion": "6.46",
+        "inercia_x": "31.6",
+        "inercia_y": "4.51",
+        "modulo_resistente_x": "10.5",
+        "modulo_resistente_y": "2.16",
+        "peso_LAC": "5.07",
+        "peso_lineal": "5.07",
+        "radio_giro_x": "2.21",
+        "radio_giro_y": "0.84"
+      }
+    },
+    {
+      "nombre": "65",
+      "dimensiones": {
+        "b_base": "42",
+        "e_espesor_ala": "7.5",
+        "e_espesor_alma": "5.5",
+        "h_altura": "65"
+      },
+      "propiedades": {
+        "area_seccion": "9.03",
+        "inercia_x": "57.5",
+        "inercia_y": "14.1",
+        "modulo_resistente_x": "17.7",
+        "modulo_resistente_y": "5.07",
+        "peso_LAC": "7.09",
+        "peso_lineal": "7.09",
+        "radio_giro_x": "2.52",
+        "radio_giro_y": "1.25"
+      }
+    },
+    {
+      "nombre": "80",
+      "dimensiones": {
+        "b_base": "45",
+        "e_espesor_ala": "8",
+        "e_espesor_alma": "6",
+        "h_altura": "80"
+      },
+      "propiedades": {
+        "area_seccion": "11.00",
+        "inercia_x": "106",
+        "inercia_y": "19.4",
+        "modulo_resistente_x": "26.5",
+        "modulo_resistente_y": "6.36",
+        "peso_LAC": "8.64",
+        "peso_lineal": "8.64",
+        "radio_giro_x": "3.10",
+        "radio_giro_y": "1.33"
+      }
+    },
+    {
+      "nombre": "100",
+      "dimensiones": {
+        "b_base": "50",
+        "e_espesor_ala": "8.5",
+        "e_espesor_alma": "6",
+        "h_altura": "100"
+      },
+      "propiedades": {
+        "area_seccion": "13.50",
+        "inercia_x": "206",
+        "inercia_y": "29.3",
+        "modulo_resistente_x": "41.2",
+        "modulo_resistente_y": "8.49",
+        "peso_LAC": "10.60",
+        "peso_lineal": "10.60",
+        "radio_giro_x": "3.91",
+        "radio_giro_y": "1.47"
+      }
+    },
+    {
+      "nombre": "120",
+      "dimensiones": {
+        "b_base": "55",
+        "e_espesor_ala": "9",
+        "e_espesor_alma": "7",
+        "h_altura": "120"
+      },
+      "propiedades": {
+        "area_seccion": "17.00",
+        "inercia_x": "364",
+        "inercia_y": "43.2",
+        "modulo_resistente_x": "60.7",
+        "modulo_resistente_y": "11.1",
+        "peso_LAC": "13.40",
+        "peso_lineal": "13.40",
+        "radio_giro_x": "4.62",
+        "radio_giro_y": "1.59"
+      }
+    },
+    {
+      "nombre": "140",
+      "dimensiones": {
+        "b_base": "60",
+        "e_espesor_ala": "10",
+        "e_espesor_alma": "7",
+        "h_altura": "140"
+      },
+      "propiedades": {
+        "area_seccion": "20.40",
+        "inercia_x": "605",
+        "inercia_y": "62.7",
+        "modulo_resistente_x": "86.4",
+        "modulo_resistente_y": "14.8",
+        "peso_LAC": "16.00",
+        "peso_lineal": "16.00",
+        "radio_giro_x": "5.45",
+        "radio_giro_y": "1.75"
+      }
+    },
+    {
+      "nombre": "160",
+      "dimensiones": {
+        "b_base": "65",
+        "e_espesor_ala": "10.5",
+        "e_espesor_alma": "7.5",
+        "h_altura": "160"
+      },
+      "propiedades": {
+        "area_seccion": "24.00",
+        "inercia_x": "925",
+        "inercia_y": "85.3",
+        "modulo_resistente_x": "116",
+        "modulo_resistente_y": "18.3",
+        "peso_LAC": "18.80",
+        "peso_lineal": "18.80",
+        "radio_giro_x": "6.21",
+        "radio_giro_y": "1.89"
+      }
+    },
+    {
+      "nombre": "180",
+      "dimensiones": {
+        "b_base": "70",
+        "e_espesor_ala": "11",
+        "e_espesor_alma": "8",
+        "h_altura": "180"
+      },
+      "propiedades": {
+        "area_seccion": "28.00",
+        "inercia_x": "1350",
+        "inercia_y": "114",
+        "modulo_resistente_x": "150",
+        "modulo_resistente_y": "22.4",
+        "peso_LAC": "22.00",
+        "peso_lineal": "22.00",
+        "radio_giro_x": "6.95",
+        "radio_giro_y": "2.02"
+      }
+    },
+    {
+      "nombre": "200",
+      "dimensiones": {
+        "b_base": "75",
+        "e_espesor_ala": "11.5",
+        "e_espesor_alma": "8.5",
+        "h_altura": "200"
+      },
+      "propiedades": {
+        "area_seccion": "32.20",
+        "inercia_x": "1910",
+        "inercia_y": "148",
+        "modulo_resistente_x": "191",
+        "modulo_resistente_y": "27",
+        "peso_LAC": "25.30",
+        "peso_lineal": "25.30",
+        "radio_giro_x": "7.70",
+        "radio_giro_y": "2.14"
+      }
+    },
+    {
+      "nombre": "220",
+      "dimensiones": {
+        "b_base": "80",
+        "e_espesor_ala": "12.5",
+        "e_espesor_alma": "9",
+        "h_altura": "220"
+      },
+      "propiedades": {
+        "area_seccion": "37.40",
+        "inercia_x": "2690",
+        "inercia_y": "197",
+        "modulo_resistente_x": "245",
+        "modulo_resistente_y": "33.6",
+        "peso_LAC": "29.40",
+        "peso_lineal": "29.40",
+        "radio_giro_x": "8.48",
+        "radio_giro_y": "2.3"
+      }
+    },
+    {
+      "nombre": "240",
+      "dimensiones": {
+        "b_base": "85",
+        "e_espesor_ala": "13",
+        "e_espesor_alma": "9.5",
+        "h_altura": "240"
+      },
+      "propiedades": {
+        "area_seccion": "42.30",
+        "inercia_x": "3600",
+        "inercia_y": "248",
+        "modulo_resistente_x": "300",
+        "modulo_resistente_y": "39.6",
+        "peso_LAC": "33.20",
+        "peso_lineal": "33.20",
+        "radio_giro_x": "9.22",
+        "radio_giro_y": "2.42"
+      }
+    },
+    {
+      "nombre": "260",
+      "dimensiones": {
+        "b_base": "90",
+        "e_espesor_ala": "14",
+        "e_espesor_alma": "10",
+        "h_altura": "260"
+      },
+      "propiedades": {
+        "area_seccion": "48.30",
+        "inercia_x": "4820",
+        "inercia_y": "317",
+        "modulo_resistente_x": "371",
+        "modulo_resistente_y": "47.7",
+        "peso_LAC": "37.90",
+        "peso_lineal": "37.90",
+        "radio_giro_x": "9.99",
+        "radio_giro_y": "2.56"
+      }
+    },
+    {
+      "nombre": "280",
+      "dimensiones": {
+        "b_base": "95",
+        "e_espesor_ala": "15",
+        "e_espesor_alma": "10",
+        "h_altura": "280"
+      },
+      "propiedades": {
+        "area_seccion": "53.30",
+        "inercia_x": "6280",
+        "inercia_y": "399",
+        "modulo_resistente_x": "448",
+        "modulo_resistente_y": "57.2",
+        "peso_LAC": "41.80",
+        "peso_lineal": "41.80",
+        "radio_giro_x": "10.90",
+        "radio_giro_y": "2.74"
+      }
+    },
+    {
+      "nombre": "300",
+      "dimensiones": {
+        "b_base": "100",
+        "e_espesor_ala": "16",
+        "e_espesor_alma": "10",
+        "h_altura": "300"
+      },
+      "propiedades": {
+        "area_seccion": "58.80",
+        "inercia_x": "8030",
+        "inercia_y": "495",
+        "modulo_resistente_x": "535",
+        "modulo_resistente_y": "67.8",
+        "peso_LAC": "46.20",
+        "peso_lineal": "46.20",
+        "radio_giro_x": "11.70",
+        "radio_giro_y": "2.9"
+      }
+    },
+    {
+      "nombre": "320",
+      "dimensiones": {
+        "b_base": "100",
+        "e_espesor_ala": "17.5",
+        "e_espesor_alma": "14",
+        "h_altura": "320"
+      },
+      "propiedades": {
+        "area_seccion": "75.80",
+        "inercia_x": "10870",
+        "inercia_y": "597",
+        "modulo_resistente_x": "679",
+        "modulo_resistente_y": "80.6",
+        "peso_LAC": "59.50",
+        "peso_lineal": "59.50",
+        "radio_giro_x": "12.10",
+        "radio_giro_y": "2.81"
+      }
+    },
+    {
+      "nombre": "350",
+      "dimensiones": {
+        "b_base": "100",
+        "e_espesor_ala": "16",
+        "e_espesor_alma": "14",
+        "h_altura": "350"
+      },
+      "propiedades": {
+        "area_seccion": "77.30",
+        "inercia_x": "12840",
+        "inercia_y": "570",
+        "modulo_resistente_x": "734",
+        "modulo_resistente_y": "75",
+        "peso_LAC": "60.60",
+        "peso_lineal": "60.60",
+        "radio_giro_x": "12.90",
+        "radio_giro_y": "2.72"
+      }
+    },
+    {
+      "nombre": "380",
+      "dimensiones": {
+        "b_base": "102",
+        "e_espesor_ala": "16",
+        "e_espesor_alma": "13.5",
+        "h_altura": "380"
+      },
+      "propiedades": {
+        "area_seccion": "80.40",
+        "inercia_x": "15760",
+        "inercia_y": "615",
+        "modulo_resistente_x": "829",
+        "modulo_resistente_y": "78.7",
+        "peso_LAC": "63.10",
+        "peso_lineal": "63.10",
+        "radio_giro_x": "14.00",
+        "radio_giro_y": "2.77"
+      }
+    },
+    {
+      "nombre": "400",
+      "dimensiones": {
+        "b_base": "110",
+        "e_espesor_ala": "18",
+        "e_espesor_alma": "14",
+        "h_altura": "400"
+      },
+      "propiedades": {
+        "area_seccion": "91.50",
+        "inercia_x": "20350",
+        "inercia_y": "846",
+        "modulo_resistente_x": "1020",
+        "modulo_resistente_y": "102",
+        "peso_LAC": "71.80",
+        "peso_lineal": "71.80",
+        "radio_giro_x": "14.90",
+        "radio_giro_y": "3.04"
+      }
+    }
+  ],
+  "unidades": {
+    "dimensiones": "mm",
+    "area": "cm2",
+    "inercia": "cm4",
+    "modulo_resistente": "cm3",
+    "peso_lineal": "kg/m",
+    "peso_LAC": "kg/m",
+    "radio_giro": "cm"
+  },
+  "norma_o_tipo_general": "UPN según IRAM-IAS U 500-509-2",
+  "notas_adicionales": "Pendiente de las alas: Para U<=300 pend.=8%; Para U>300 pend.=5%"
+  }
+]
+}

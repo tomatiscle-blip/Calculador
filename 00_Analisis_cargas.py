@@ -68,6 +68,16 @@ SISTEMAS = {
             "q": 0.65
         }
     },
+        "EstructuraCubierta": {
+        "correas_metalicas": {
+            "nombre": "Correas metálicas livianas",
+            "q": 0.05
+        },
+        "correas_madera": {
+            "nombre": "Correas de madera liviana",
+            "q": 0.08
+        }
+    },
 
     "Cielorrasos": {
         "yeso_suspendido": {
@@ -239,7 +249,7 @@ class AnalisisCargas:
 # ACTIVACIÓN DE ELEMENTOS
 # ===============================
 # Nombre general del análisis
-NOMBRE_ANALISIS = "Cubierta Ch-01"
+NOMBRE_ANALISIS = "analisis V0-01"
 # -------------------------------
 # Cubiertas completas con componentes, sobrecarga y viento opcional
 # -------------------------------
@@ -250,15 +260,16 @@ CUBIERTAS = {
     1: {
         "nombre": "Cubierta liviana de chapa con correas y cielorraso suspendido",
         "activo": 1,
-        "b": 2.025,
+        "b": 3.00, # ancho tributario para calcular correas.
         "componentes": [
             (SISTEMAS["Cubiertas"]["chapa_ondulada"]["nombre"], SISTEMAS["Cubiertas"]["chapa_ondulada"]["q"]),
+            (SISTEMAS["EstructuraCubierta"]["correas_metalicas"]["nombre"], SISTEMAS["EstructuraCubierta"]["correas_metalicas"]["q"]),
             (SISTEMAS["Cielorrasos"]["yeso_suspendido"]["nombre"], SISTEMAS["Cielorrasos"]["yeso_suspendido"]["q"])
         ],
         "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"],
         "viento_activo": 0,     # activa succión
         "pendiente": 6,         # grados de la cubierta
-        "altura_vertical": 1.20  # altura vertical de la cubierta
+        "altura_vertical": None  # se completa después
     },
     2: {
         "nombre": "Cubierta de teja cerámica con cielorraso incorporado",
@@ -271,7 +282,7 @@ CUBIERTAS = {
         "sobrecarga": SOBRECARGAS["cubierta_acceso_poco_frecuente"],
         "viento_activo": 0,
         "pendiente": 6,
-        "altura_vertical": 1.0
+        "altura_vertical": None  # se completa después
     }
 }
 
@@ -345,7 +356,7 @@ MUROS = {
     },
 
     "muro_comun_18": {
-        "activo": 1,
+        "activo": 0,
         "tipo": "ladrillo_comun",
         "e": 0.18,
         "h": 1.33
@@ -366,13 +377,13 @@ MUROS = {
     },
 
     "muro_hueco_np_8": {
-        "activo": 0,
+        "activo": 1,
         "tipo": "ladrillo_hueco",
         "e": 0.08,
         "h": 2.65
     },
     "muro_hueco_np_18": {
-        "activo": 1,
+        "activo": 0,
         "tipo": "ladrillo_hueco",
         "e": 0.18,
         "h": 2.80
@@ -412,7 +423,7 @@ ENCADENADOS = {
 # Este viento se aplica solo en análisis generales (pórticos, muros, encadenados),
 # y no se suma al viento de cubiertas locales si 'viento_activo' de la cubierta está activo.
 
-viento_global_activo = True   # True = se calcula; False = se desactiva para no sumar al análisis
+viento_global_activo = 1   # 1 = activo, 0 = desactivado # True = se calcula; False = se desactiva para no sumar al análisis
 altura_global = 3.0           # Altura de referencia para columnas/muros/pórticos
 Cd_global = VIENTO["Cd"]      # Coeficiente del viento
 
@@ -456,8 +467,15 @@ if __name__ == "__main__":
             # Viento / succión (opcional)
             # -------------------------------
             if c.get("viento_activo", 0):
-                altura_vertical = c.get("altura_vertical", 3.0)
                 pendiente = c.get("pendiente", 0)  # grados, opcional
+                b = c["b"]
+                # Si no está definida la altura_vertical, calcularla automáticamente
+                if c.get("altura_vertical") is None:
+                        from math import tan, radians
+                        altura_vertical = b * tan(radians(pendiente))
+                else:
+                    altura_vertical = c["altura_vertical"]
+
                 from math import cos, radians
                 # Altura tributaria ajustada por pendiente
                 altura_tributaria = altura_vertical * cos(radians(pendiente))

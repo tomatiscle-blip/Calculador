@@ -1,12 +1,13 @@
-ANALISIS DE CARGAS: Cubierta Ch-01
+ANALISIS DE CARGAS: analisis V0-01
 ------------------------------------------------------------
-Cubierta liviana de chapa con correas y cielorraso suspendido – cargas permanentes    0.97 kN/m (D)
+Cubierta liviana de chapa con correas y cielorraso suspendido – cargas permanentes    1.59 kN/m (D)
   Cubierta liviana (chapa ondulada + fijaciones + correas) 0.15 kN/m2
+  Correas metálicas livianas          0.05 kN/m2
   Cielorraso de yeso suspendido       0.33 kN/m2
-  q total = 0.48 kN/m2 · b = 2.02 m
+  q total = 0.53 kN/m2 · b = 3.00 m
 
-Cubierta liviana de chapa con correas y cielorraso suspendido – sobrecarga    2.02 kN/m (L)
-  q = 1.00 kN/m2 · b = 2.02 m
+Cubierta liviana de chapa con correas y cielorraso suspendido – sobrecarga    3.00 kN/m (L)
+  q = 1.00 kN/m2 · b = 3.00 m
 
 Losa Alivianada completa – cargas permanentes   12.47 kN/m (D)
   Porcelanato 10mm + pegamento        0.20 kN/m2
@@ -33,14 +34,11 @@ Losa Alivianada completa – sobrecarga    2.20 kN/m (L)
 Muro de Ladrillo cerámico común (e=24 cm · h=1.33 m)    5.43 kN/m (D)
   γ=17.0 kN/m3 · e=0.24 m · h=1.33 m
 
-Muro de Ladrillo cerámico común (e=18 cm · h=1.33 m)    4.07 kN/m (D)
-  γ=17.0 kN/m3 · e=0.18 m · h=1.33 m
-
 Muro de Ladrillo cerámico común (e=12 cm · h=2.65 m)    5.41 kN/m (D)
   γ=17.0 kN/m3 · e=0.12 m · h=2.65 m
 
-Muro de Ladrillo hueco (e=18 cm · h=2.80 m)    5.29 kN/m (D)
-  γ=10.5 kN/m3 · e=0.18 m · h=2.8 m
+Muro de Ladrillo hueco (e=8 cm · h=2.65 m)    2.23 kN/m (D)
+  γ=10.5 kN/m3 · e=0.08 m · h=2.65 m
 
 Encadenado de Hormigón armado (20x20 cm) × 1    1.00 kN/m (D)
   γ=25.0 kN/m3 · b=0.2 m · h=0.2 m · cantidad=1
@@ -49,12 +47,12 @@ Viento diseño Santa Fe (V=51 m/s) – general    6.22 kN/m (W)
   h = 3.00 m · Cd = 1.3
 
 ------------------------------------------------------------
-D total = 39.40 kN/m
-L total = 9.98 kN/m
+D total = 32.88 kN/m
+L total = 10.96 kN/m
 W total = 6.22 kN/m
 
 COMBINACIONES CIRSOC:
-1.4D: 55.16 kN/m
-1.2D+1.6L: 63.26 kN/m
-1.2D+0.5L+1.6W: 62.22 kN/m
-0.9D+1.6W: 45.41 kN/m
+1.4D: 46.03 kN/m
+1.2D+1.6L: 56.99 kN/m
+1.2D+0.5L+1.6W: 54.89 kN/m
+0.9D+1.6W: 39.54 kN/m

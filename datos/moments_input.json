@@ -94,11 +94,11 @@
       "id": "T1",
       "longitud_m": 3.5,
       "es_voladizo": false,
-      "Mu_kNm_campo": 80.0,
-      "Mu_kNm_apoyo_izq": -60.0,
+      "Mu_kNm_campo": 50.0,
+      "Mu_kNm_apoyo_izq": -55.0,
       "Mu_kNm_apoyo_der": -55.0,
       "Vu_kN_izq": 35.0,
-      "Vu_kN_der": 32.0,
+      "Vu_kN_der": 35.0,
       "puntos_inflexion_m": [0.7, 2.8]
     }
   ]

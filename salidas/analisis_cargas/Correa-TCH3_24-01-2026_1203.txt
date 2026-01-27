@@ -1,0 +1,33 @@
+ANALISIS DE CARGAS: Correa-TCH3
+------------------------------------------------------------
+Cubierta liviana de chapa con correas y cielorraso suspendido – cargas permanentes    0.42 kN/m (D)
+  Cubierta liviana (chapa ondulada + fijaciones + correas) 0.15 kN/m2
+  Correas metálicas livianas          0.05 kN/m2
+  Cielorraso de yeso suspendido       0.33 kN/m2
+  q total = 0.53 kN/m2 · b = 0.80 m
+
+Cubierta liviana de chapa con correas y cielorraso suspendido – sobrecarga    0.80 kN/m (L)
+  q = 1.00 kN/m2 · b = 0.80 m
+
+Viento – succión cubierta Cubierta liviana de chapa con correas y cielorraso suspendido    0.12 kN/m (W)
+  h = 0.08 m · Cd_succion = 0.9
+
+------------------------------------------------------------
+D total = 0.42 kN/m
+L total = 0.80 kN/m
+W total = 0.12 kN/m
+
+COMBINACIONES CIRSOC:
+1.4D: 0.59 kN/m
+1.2D+1.6L: 1.79 kN/m
+1.2D+0.5L+1.6W: 1.10 kN/m
+0.9D+1.6W: 0.57 kN/m
+
+--- Resultado final ---
+Perfil elegido: 120x50x15 x 2
+Wx = 18.25 cm³, Peso = 3.71 kg/m, Espesor = 2.00 mm
+δ calculada (servicio) = 18.58 mm
+δ admisible = 13.50 mm (L/300)
+Relación L/δ = L/218
+❌ No cumple rigidez
+Inercia mínima requerida = 150.75 cm⁴

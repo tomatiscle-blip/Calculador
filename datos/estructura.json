@@ -1,0 +1,232 @@
+{
+  "Portico 1": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "eid": 4,
+            "nodos": [
+              2,
+              4
+            ],
+            "Mu_kNm_apoyo_izq": -69.58,
+            "Mu_kNm_apoyo_der": -151.17,
+            "Mu_kNm_campo": 70.03,
+            "Vu_kN_izq": 126.16,
+            "Vu_kN_der": 158.79,
+            "Mu_servicio_izq": -47.62,
+            "Mu_servicio_der": -121.04,
+            "Mu_servicio_campo": 55.12,
+            "Vu_servicio_izq": -94.91,
+            "Vu_servicio_der": 124.29
+          },
+          {
+            "id": "V0-1 T2",
+            "longitud_m": 6.0,
+            "es_voladizo": false,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "eid": 5,
+            "nodos": [
+              4,
+              6
+            ],
+            "Mu_kNm_apoyo_izq": -152.89,
+            "Mu_kNm_apoyo_der": -139.31,
+            "Mu_kNm_campo": 110.39,
+            "Vu_kN_izq": 173.23,
+            "Vu_kN_der": 168.71,
+            "Mu_servicio_izq": -113.17,
+            "Mu_servicio_der": -112.72,
+            "Mu_servicio_campo": 84.26,
+            "Vu_servicio_izq": -131.6,
+            "Vu_servicio_der": 131.44
+          },
+          {
+            "id": "V0-1 tv_izq",
+            "longitud_m": 1.2,
+            "es_voladizo": true,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "eid": 6,
+            "nodos": [
+              7,
+              2
+            ],
+            "Mu_kNm": -41.03,
+            "Vu_kN_emp": 68.39,
+            "Mu_servicio": -31.56,
+            "Vu_servicio_emp": 52.61
+          }
+        ]
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "eid": 1,
+        "nodos": [
+          1,
+          2
+        ],
+        "Nodo_inferior": {
+          "ux_mm": 0.0,
+          "uy_mm": -0.0,
+          "rot_deg": -0.0
+        },
+        "Nodo_superior": {
+          "ux_mm": 3.24,
+          "uy_mm": -23.52,
+          "rot_deg": 0.36
+        },
+        "Mu_kNm_inf": 28.54,
+        "Mu_kNm_sup": 26.38,
+        "P_kN": -194.55,
+        "Mu_servicio_inf": 30.47,
+        "Mu_servicio_sup": 16.05,
+        "P_servicio": null,
+        "deriva_h": 0.00108,
+        "distancia_campo_cero_m": null
+      },
+      "C0-b": {
+        "x": 5.0,
+        "altura_m": 3.0,
+        "eid": 2,
+        "nodos": [
+          3,
+          4
+        ],
+        "Nodo_inferior": {
+          "ux_mm": 0.0,
+          "uy_mm": -0.0,
+          "rot_deg": -0.0
+        },
+        "Nodo_superior": {
+          "ux_mm": -1.36,
+          "uy_mm": -38.08,
+          "rot_deg": 0.17
+        },
+        "Mu_kNm_inf": 1.73,
+        "Mu_kNm_sup": 25.34,
+        "P_kN": -332.03,
+        "Mu_servicio_inf": 31.05,
+        "Mu_servicio_sup": -7.87,
+        "P_servicio": null,
+        "deriva_h": -0.000453,
+        "distancia_campo_cero_m": null
+      },
+      "C0-c": {
+        "x": 11.0,
+        "altura_m": 3.0,
+        "eid": 3,
+        "nodos": [
+          5,
+          6
+        ],
+        "Nodo_inferior": {
+          "ux_mm": 0.0,
+          "uy_mm": -0.0,
+          "rot_deg": -0.0
+        },
+        "Nodo_superior": {
+          "ux_mm": -11.99,
+          "uy_mm": -18.63,
+          "rot_deg": -0.91
+        },
+        "Mu_kNm_inf": -139.31,
+        "Mu_kNm_sup": 66.89,
+        "P_kN": -168.71,
+        "Mu_servicio_inf": 61.6,
+        "Mu_servicio_sup": -112.72,
+        "P_servicio": null,
+        "deriva_h": -0.003997,
+        "distancia_campo_cero_m": 0.973
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento",
+        "Fx_servicio": -4.81,
+        "Fy_servicio": -147.52,
+        "Tz_servicio": 30.47,
+        "Fx_kN": 0.72,
+        "Fy_kN": -194.55,
+        "Tz_kNm": 26.38
+      },
+      "B0-b": {
+        "x": 5.0,
+        "tipo": "empotramiento",
+        "Fx_servicio": -12.97,
+        "Fy_servicio": -255.88,
+        "Tz_servicio": 31.05,
+        "Fx_kN": -7.87,
+        "Fy_kN": -332.03,
+        "Tz_kNm": 25.34
+      },
+      "B0-c": {
+        "x": 11.0,
+        "tipo": "empotramiento",
+        "Fx_servicio": -58.11,
+        "Fy_servicio": -131.44,
+        "Tz_servicio": 61.6,
+        "Fx_kN": -68.73,
+        "Fy_kN": -168.71,
+        "Tz_kNm": 66.89
+      }
+    },
+    "cargas_puntuales": [
+      {
+        "piso": 0,
+        "coordenadas": {
+          "x": 1.5,
+          "y": 0
+        },
+        "valor_kN": 20.0,
+        "tipo": "muro"
+      },
+      {
+        "piso": 0,
+        "coordenadas": {
+          "x": -1.0,
+          "y": 0
+        },
+        "valor_kN": 15.0,
+        "tipo": "viga"
+      }
+    ]
+  }
+}

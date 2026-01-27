@@ -1,0 +1,118 @@
+{
+  "vigas": {
+    "Viga_1": {
+      "longitud_m": 3.0,
+      "Mu_apoyo_izq_kNm": -9.63,
+      "Mu_apoyo_der_kNm": 23.61,
+      "Mu_campo_kNm": 23.61,
+      "Vu_izq_kN": 11.08,
+      "Vu_der_kN": 11.08,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    },
+    "Viga_2": {
+      "longitud_m": 3.0,
+      "Mu_apoyo_izq_kNm": -17.28,
+      "Mu_apoyo_der_kNm": 26.6,
+      "Mu_campo_kNm": 26.6,
+      "Vu_izq_kN": 14.63,
+      "Vu_der_kN": 14.63,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    },
+    "Viga_3": {
+      "longitud_m": 3.0,
+      "Mu_apoyo_izq_kNm": -65.49,
+      "Mu_apoyo_der_kNm": 11.63,
+      "Mu_campo_kNm": 11.63,
+      "Vu_izq_kN": -25.71,
+      "Vu_der_kN": -25.71,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    },
+    "Viga_4": {
+      "longitud_m": 5.0,
+      "Mu_apoyo_izq_kNm": -35.74,
+      "Mu_apoyo_der_kNm": 73.6,
+      "Mu_campo_kNm": 73.6,
+      "Vu_izq_kN": -79.6,
+      "Vu_der_kN": 84.8,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    },
+    "Viga_5": {
+      "longitud_m": 6.0,
+      "Mu_apoyo_izq_kNm": -65.62,
+      "Mu_apoyo_der_kNm": 100.19,
+      "Mu_campo_kNm": 100.19,
+      "Vu_izq_kN": -104.42,
+      "Vu_der_kN": 92.86,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    },
+    "Viga_6": {
+      "longitud_m": 1.5,
+      "Mu_apoyo_izq_kNm": 0.0,
+      "Mu_apoyo_der_kNm": 36.99,
+      "Mu_campo_kNm": 36.99,
+      "Vu_izq_kN": -0.0,
+      "Vu_der_kN": 49.32,
+      "puntos_inflexion_m": [],
+      "distancias_PI_m": []
+    }
+  },
+  "columnas": {
+    "Nodo_1": {
+      "ux_mm": 0.0,
+      "uy_mm": -0.0,
+      "rot_deg": -0.0
+    },
+    "Nodo_2": {
+      "ux_mm": 1.31,
+      "uy_mm": -25.78,
+      "rot_deg": 0.24
+    },
+    "Nodo_3": {
+      "ux_mm": 0.0,
+      "uy_mm": -0.0,
+      "rot_deg": -0.0
+    },
+    "Nodo_4": {
+      "ux_mm": -2.39,
+      "uy_mm": -37.84,
+      "rot_deg": 0.16
+    },
+    "Nodo_5": {
+      "ux_mm": 0.0,
+      "uy_mm": -0.0,
+      "rot_deg": -0.0
+    },
+    "Nodo_6": {
+      "ux_mm": -12.67,
+      "uy_mm": -18.57,
+      "rot_deg": -0.93
+    },
+    "Nodo_7": {
+      "ux_mm": 1.31,
+      "uy_mm": -23.65,
+      "rot_deg": 0.03
+    }
+  },
+  "bases": {
+    "Base_1": {
+      "Fx_kN": 11.08,
+      "Fy_kN": -128.92,
+      "Tz_kNm": -9.63
+    },
+    "Base_3": {
+      "Fx_kN": 14.63,
+      "Fy_kN": -189.22,
+      "Tz_kNm": -17.28
+    },
+    "Base_5": {
+      "Fx_kN": -25.71,
+      "Fy_kN": -92.86,
+      "Tz_kNm": 11.63
+    }
+  }
+}

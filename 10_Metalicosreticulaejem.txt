@@ -1,0 +1,81 @@
+from anastruct import SystemElements
+
+# Parámetros de la viga
+L = 6.68     # longitud total
+h = 0.25     # altura
+modulo = 0.80
+n = round(L / modulo)
+dx = L / n
+
+# Crear sistema
+ss = SystemElements()
+
+# Definir nodos superiores e inferiores
+nodos_sup = [(i*dx, h) for i in range(n+1)]
+nodos_inf = [(i*dx, 0) for i in range(n+1)]
+
+# Agregar elementos (cordones y diagonales)
+for i in range(n):
+    ss.add_element(location=[nodos_sup[i], nodos_sup[i+1]])   # cordón superior
+    ss.add_element(location=[nodos_inf[i], nodos_inf[i+1]])   # cordón inferior
+    ss.add_element(location=[nodos_inf[i], nodos_sup[i+1]])   # diagonal ascendente
+    ss.add_element(location=[nodos_sup[i], nodos_inf[i]])     # diagonal descendente
+# Agregar barra final para cerrar la cercha
+ss.add_element(location=[nodos_sup[-1], nodos_inf[-1]])
+
+
+# Apoyos
+ss.add_support_hinged(node_id=3)    # apoyo fijo en extremo inferior izquierdo
+ss.add_support_roll(node_id=18)     # apoyo móvil en extremo inferior derecho
+
+# Cargas puntuales en nudos superiores intermedios
+for nid in [2, 5, 7, 9, 11, 13, 15]:
+    ss.point_load(node_id=nid, Fy=-7600)  # carga hacia abajo
+
+# Resolver
+ss.solve()
+
+# Mostrar estructura (sin parámetros extra, tu versión no los soporta)
+ss.show_structure()
+
+# Diagramas
+ss.show_bending_moment()
+ss.show_shear_force()
+
+# Listado de nodos y elementos (para saber los IDs)
+print("Nodos:")
+for nid, node in ss.node_map.items():
+    print(nid, node)
+
+print("\nElementos:")
+for eid, elem in ss.element_map.items():
+    print(eid, elem)
+
+# Resultados numéricos
+for eid in ss.element_map.keys():
+    res = ss.get_element_results(element_id=eid)
+    Ncrit = max(abs(res["Nmin"]), abs(res["Nmax"]))
+    Mcrit = max(abs(res["Mmin"]), abs(res["Mmax"]))
+    print(f"Elemento {eid}: Axial = {Ncrit/1000:.2f} kN, Momento = {Mcrit:.2f} N·m")
+
+
+ejemplto para itinerar en todas las tablas 
+# -------------------------------
+# 6. Iterar sobre tablas y perfiles
+# -------------------------------
+print("\n--- Verificación de perfiles ---")
+for tabla in data["tablas"]:
+    print("\nTabla:", tabla["titulo_tabla"])
+    print("Norma:", tabla.get("norma_o_tipo_general", ""))
+    print("Notas:", tabla.get("notas_adicionales", ""))
+
+    for perfil in tabla["perfiles"]:
+        nombre = perfil["nombre"]
+        Wx_cm3 = float(perfil["propiedades"]["modulo_resistente_x"])
+        Wx_m3 = convertir_modulo_resistente(Wx_cm3)
+
+        # Momento resistente en kN·m
+        M_resistente = Wx_m3 * fy * 1e6 / 1000
+
+        estado = "✅ OK" if abs(Mmax) <= M_resistente else "❌ NO cumple"
+        print(f"{nombre}: Mres = {M_resistente:.2f} kN·m → {estado}")
