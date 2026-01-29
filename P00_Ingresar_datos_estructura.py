@@ -44,14 +44,21 @@ def ingresar_datos_estructura():
 
     nro_portico = len(estructura) + 1
     portico_id = f"Portico {nro_portico}"
-    estructura[portico_id] = {"vigas": {}, "columnas": {}, "bases": {}}
+    estructura[portico_id] = {"vigas": {}, "columnas": {}, "bases": {}, "cargas_puntuales": []}
 
     # 2. Preguntar cantidad de pisos
     n_pisos = int(input("Cantidad de pisos (0 = PB, 1 = primer piso, etc.): "))
 
+    longitudes_pb = []   # se guarda solo una vez en PB
+    nivel_actual = 0.0   # acumulador de nivel
+
     for piso in range(n_pisos+1):
         print(f"\nPiso {piso}:")
-        n_tramos = int(input("Cantidad de tramos: "))
+        if piso == 0:
+            n_tramos = int(input("Cantidad de tramos: "))
+        else:
+            n_tramos = len(longitudes_pb)  # reutiliza los tramos de PB
+
         altura_col = float(input("Altura columnas [m]: "))
 
         # Generar columnas automáticas
@@ -59,17 +66,27 @@ def ingresar_datos_estructura():
         for j in range(n_tramos+1):
             letra = chr(97+j)
             col_id = f"C{piso}-{letra}"
+
             estructura[portico_id]["columnas"][col_id] = {
                 "x": x_pos,
-                "altura_m": altura_col
+                "altura_m": altura_col,
+                "nivel": nivel_actual
             }
-            base_id = f"B{piso}-{letra}"
-            estructura[portico_id]["bases"][base_id] = {
-                "x": x_pos,
-                "tipo": "empotramiento"
-            }
+
+            # bases solo en planta baja
+            if piso == 0:
+                base_id = f"B{piso}-{letra}"
+                estructura[portico_id]["bases"][base_id] = {
+                    "x": x_pos,
+                    "tipo": "empotramiento"
+                }
+
             if j < n_tramos:
-                L = float(input(f"Longitud tramo {j+1} [m]: "))
+                if piso == 0:
+                    L = float(input(f"Longitud tramo {j+1} [m]: "))
+                    longitudes_pb.append(L)
+                else:
+                    L = longitudes_pb[j]  # reutiliza
                 x_pos += L
 
         # Crear viga principal
@@ -78,13 +95,14 @@ def ingresar_datos_estructura():
 
         # Guardar tramos
         x_pos = 0.0
-        for t in range(n_tramos):
-            L = float(input(f"Longitud tramo {t+1} [m] (confirmar): "))
-            tramo_id = f"{viga_id} T{t+1}"
+        for t, L in enumerate(longitudes_pb, 1):
+            tramo_id = f"{viga_id} T{t}"
             tramo = {
                 "id": tramo_id,
                 "longitud_m": L,
-                "es_voladizo": False
+                "es_voladizo": False,
+                "x_inicio": x_pos,
+                "x_fin": x_pos + L
             }
             asignar = input("¿Asignar cargas desde TXT? (s/n): ").lower() == "s"
             if asignar:
@@ -92,28 +110,31 @@ def ingresar_datos_estructura():
             estructura[portico_id]["vigas"][viga_id]["tramos"].append(tramo)
             x_pos += L
 
-        # Voladizo izquierdo
+        # Voladizos
         vol_izq = input("¿Voladizo a la izquierda? (s/n): ").lower() == "s"
         if vol_izq:
             Lvi = float(input("Longitud voladizo izq [m]: "))
             tramo_vol = {
                 "id": f"{viga_id} tv_izq",
                 "longitud_m": Lvi,
-                "es_voladizo": True
+                "es_voladizo": True,
+                "x_inicio": 0.0 - Lvi,
+                "x_fin": 0.0
             }
             asignar = input("¿Asignar cargas al voladizo desde TXT? (s/n): ").lower() == "s"
             if asignar:
                 tramo_vol["cargas"] = leer_cargas_txt()
             estructura[portico_id]["vigas"][viga_id]["tramos"].append(tramo_vol)
 
-        # Voladizo derecho
         vol_der = input("¿Voladizo a la derecha? (s/n): ").lower() == "s"
         if vol_der:
             Lvd = float(input("Longitud voladizo der [m]: "))
             tramo_vol = {
                 "id": f"{viga_id} tv_der",
                 "longitud_m": Lvd,
-                "es_voladizo": True
+                "es_voladizo": True,
+                "x_inicio": x_pos,
+                "x_fin": x_pos + Lvd
             }
             asignar = input("¿Asignar cargas al voladizo desde TXT? (s/n): ").lower() == "s"
             if asignar:
@@ -121,31 +142,64 @@ def ingresar_datos_estructura():
             estructura[portico_id]["vigas"][viga_id]["tramos"].append(tramo_vol)
 
         # Cargas puntuales
-        estructura[portico_id].setdefault("cargas_puntuales", [])
         while True:
             agregar = input("¿Ingresar carga puntual en este piso? (s/n): ").lower() == "s"
             if not agregar:
                 break
 
-            x = float(input("Coordenada X desde el origen [m]: "))
-            valor = float(input("Valor de la carga puntual [kN]: "))
-            tipo = input("Tipo de carga (ej. maquinaria, tabique, sobrecarga): ")
+            # calcular rango total de la viga en este piso
+            viga_id = f"V{piso}-1"
+            x_min = min(tramo["x_inicio"] for tramo in estructura[portico_id]["vigas"][viga_id]["tramos"])
+            x_max = max(tramo["x_fin"] for tramo in estructura[portico_id]["vigas"][viga_id]["tramos"])
 
-            altura_y = sum(
-                estructura[portico_id]["columnas"][col]["altura_m"]
-                for col in estructura[portico_id]["columnas"]
-                if col.startswith("C") and int(col.split("-")[0][1:]) < piso
-            )
+            print(f"Rango válido de coordenadas X: {x_min} a {x_max} m")
+            x = float(input("Coordenada X desde el origen [m]: "))
+            if x < x_min or x > x_max:
+                print(f"[WARN] La carga puntual en x={x} está fuera del rango ({x_min} a {x_max}).")
+                print("Se asignará al tramo más cercano.")
+
+            valor = float(input("Valor de la carga puntual [kN]: "))
+            tipo = input("Tipo de carga (ej. maquinaria, tabique, sobrecarga): ")   
+            columnas_piso = [c for cid, c in estructura[portico_id]["columnas"].items() if cid.startswith(f"C{piso}-")]
+            if columnas_piso:
+                y_viga = columnas_piso[0]["nivel"] + columnas_piso[0]["altura_m"]
+            else:
+                y_viga = nivel_actual
 
             carga_puntual = {
                 "piso": piso,
-                "coordenadas": {"x": x, "y": altura_y},
+                "coordenadas": {"x": x, "y": y_viga},
                 "valor_kN": valor,
                 "tipo": tipo
             }
             estructura[portico_id]["cargas_puntuales"].append(carga_puntual)
 
-    # 3. Guardar JSON
+        nivel_actual += altura_col
+
+
+    # 3. Distribuir cargas puntuales en cada tramo (siempre asignar)
+    for viga_id, viga in estructura[portico_id]["vigas"].items():
+        for tramo in viga["tramos"]:
+            tramo.setdefault("cargas_puntuales", [])
+
+        for carga in estructura[portico_id].get("cargas_puntuales", []):
+            x_carga = carga["coordenadas"]["x"]
+            asignado = False
+            for tramo in viga["tramos"]:
+                if tramo["x_inicio"] <= x_carga <= tramo["x_fin"]:
+                    tramo["cargas_puntuales"].append(carga)
+                    asignado = True
+                    break
+            if not asignado:
+                # asignar al tramo más cercano
+                if x_carga < viga["tramos"][0]["x_inicio"]:
+                    viga["tramos"][0]["cargas_puntuales"].append(carga)
+                else:
+                    viga["tramos"][-1]["cargas_puntuales"].append(carga)
+
+    estructura[portico_id]["cargas_puntuales"] = []
+
+    # 4. Guardar JSON
     with open(archivo, "w") as f:
         json.dump(estructura, f, indent=2)
 
