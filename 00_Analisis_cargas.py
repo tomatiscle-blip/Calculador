@@ -151,9 +151,8 @@ def contrapiso_cascotes(espesor_m):
     valor = carga_superficial(gamma, espesor_m)
     return (nombre, valor)
 
-def presion_viento(V):
-    """Presión dinámica básica del viento (kN/m2)"""
-    return 0.613 * (V ** 2) / 1000
+def presion_viento(V, rho=1.25):
+    return 0.5 * rho * (V**2) / 1000  # kN/m2
 
 
 
@@ -175,9 +174,10 @@ class AnalisisCargas:
             "composicion": composicion
         })
 
-    def carga_lineal_viento(V, altura_tributaria, Cd=1.3):
-        q = presion_viento(V)
-        return q * Cd * altura_tributaria
+    def carga_lineal_viento(V, ancho_tributario, Cd=1.3, rho=1.25):
+        """Carga lineal de viento (kN/m)"""
+        q = presion_viento(V, rho)
+        return q * Cd * ancho_tributario
 
 
     def resumen_texto(self):
@@ -219,10 +219,9 @@ class AnalisisCargas:
 
         return "\n".join(lineas)
 
-    
-    # -------------------------------
-    # NUEVO MÉTODO: combinaciones CIRSOC
-    # -------------------------------
+       # -------------------------------
+ 
+    # combinaciones CIRSOC
     def combinaciones_CIRSOC(self):
         D_total = sum(i["valor"] for i in self.items if i["tipo"] == "D")
         L_total = sum(i["valor"] for i in self.items if i["tipo"] == "L")
@@ -243,13 +242,12 @@ class AnalisisCargas:
         #U=1.2 D + 1.0 E + f1 (L + Lr) + f2 S
         #U= 0.9 D + 1.6 W + 1.6 H
         #U= 0.9 D + 1.0 E + 1.6 H   
-    # ======================================================
-
+    
 # ===============================
 # ACTIVACIÓN DE ELEMENTOS
 # ===============================
 # Nombre general del análisis
-NOMBRE_ANALISIS = "analisis V0-01"
+NOMBRE_ANALISIS = "Cargas Portico 2"
 # -------------------------------
 # Cubiertas completas con componentes, sobrecarga y viento opcional
 # -------------------------------
@@ -258,9 +256,9 @@ NOMBRE_ANALISIS = "analisis V0-01"
 
 CUBIERTAS = {
     1: {
-        "nombre": "Cubierta liviana de chapa con correas y cielorraso suspendido",
+        "nombre": "Cubierta liviana de chapa c/estructura y cielorraso suspendido",
         "activo": 1,
-        "b": 3.00, # ancho tributario para calcular correas.
+        "b": 2.10, # ancho tributario para calcular Portico1.
         "componentes": [
             (SISTEMAS["Cubiertas"]["chapa_ondulada"]["nombre"], SISTEMAS["Cubiertas"]["chapa_ondulada"]["q"]),
             (SISTEMAS["EstructuraCubierta"]["correas_metalicas"]["nombre"], SISTEMAS["EstructuraCubierta"]["correas_metalicas"]["q"]),
@@ -303,9 +301,9 @@ FORJADOS = {
         "sobrecarga": SOBRECARGAS["vivienda"]
     },
     2: {
-        "nombre": "Losa Alivianada completa",
+        "nombre": "Losa Alivianada L0-1",
         "activo": 1, #1si, 0no
-        "b": 2.88,  # ancho tributario
+        "b": 2.99,  # ancho tributario
         "componentes": [
             (SISTEMAS["Pisos"]["porcelanato"]["nombre"], SISTEMAS["Pisos"]["porcelanato"]["q"]),
             #(SISTEMAS["Pisos"]["ceramica"]["nombre"], SISTEMAS["Pisos"]["ceramica"]["q"]),
@@ -319,7 +317,7 @@ FORJADOS = {
     },
     3: {
         "nombre": "Losa Alivianada completa",
-        "activo": 1, #1si, 0no
+        "activo": 0, #1si, 0no
         "b": 1.10,  # ancho tributario
         "componentes": [
             (SISTEMAS["Pisos"]["porcelanato"]["nombre"], SISTEMAS["Pisos"]["porcelanato"]["q"]),
@@ -361,12 +359,12 @@ MUROS = {
         "e": 0.18,
         "h": 1.33
     },
-
+    # Muro comun 12 cm pared doble exterior
     "muro_comun_12": {
         "activo": 1,
         "tipo": "ladrillo_comun",
         "e": 0.12,
-        "h": 2.65
+        "h": 5.00 #2.65+2.35
     },
 
     "muro_hueco_port_20": {
@@ -375,12 +373,12 @@ MUROS = {
         "e": 0.20,
         "h": 2.60
     },
-
+    # Muro hueco 8 cm pared doble
     "muro_hueco_np_8": {
         "activo": 1,
         "tipo": "ladrillo_hueco",
         "e": 0.08,
-        "h": 2.65
+        "h": 5.00 #2.65+2.35
     },
     "muro_hueco_np_18": {
         "activo": 0,
@@ -416,7 +414,6 @@ ENCADENADOS = {
     }
 }
 
-# ==============================
 # -------------------------------
 # VIENTO GLOBAL – dato general para otros análisis
 # -------------------------------
@@ -424,11 +421,10 @@ ENCADENADOS = {
 # y no se suma al viento de cubiertas locales si 'viento_activo' de la cubierta está activo.
 
 viento_global_activo = 1   # 1 = activo, 0 = desactivado # True = se calcula; False = se desactiva para no sumar al análisis
-altura_global = 3.0           # Altura de referencia para columnas/muros/pórticos
-Cd_global = VIENTO["Cd"]      # Coeficiente del viento
-
+ancho_tributario_global = 2.85   # Lado transversal del pórtico expuesto al viento (NO el largo de la viga)
+Cd_global = VIENTO["Cd"]        # Coeficiente del viento
 # Inicializamos el valor, se calculará solo si viento_global_activo=True
-w_global = None
+w_global = None # carga lineal de viento (kN/m) = presión * Cd * ancho_tributario
 
 
 
@@ -557,8 +553,8 @@ if __name__ == "__main__":
     if viento_global_activo:
         w_global = AnalisisCargas.carga_lineal_viento(
             VIENTO["V"],
-            altura_global,
-            Cd_global
+            ancho_tributario_global,   # lado transversal del pórtico expuesto al viento
+        Cd_global
         )
 
         analisis.agregar(
@@ -566,7 +562,7 @@ if __name__ == "__main__":
             "W",
             w_global,
             "kN/m",
-            f"h = {altura_global:.2f} m · Cd = {Cd_global}"
+            f"b = {ancho_tributario_global:.2f} m · Cd = {Cd_global}"
         )
 
 

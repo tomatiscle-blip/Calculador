@@ -1,2 +1,7 @@
-ID;Tipo_seccion;b(cm);h(cm);Altura_libre(m);Recubrimiento(cm);Pu(kN);Mu(kNm);f'c(MPa);λ;Clasificación;Ast(cm²);n_barras;diam_long(cm);diam_estribo(cm);paso_estribo(cm);cumple_estribo;Nota_diagrama
-C01-1;II;30.00;35.00;2.80;3.80;500.0;30.0;20;27.71;CORTA;10.50;10;12;6;14.4;;γ=0.78, X=0.816, Y=4.762, ρg=0.010
+Pórtico;Columna;Tipo;Tipo_seccion;Dimensiones;Altura_libre(m);Recubrimiento(cm);Pu(kN);Mu(kNm);f'c(MPa);λ;Clasificación;Ast(cm²);n_barras;diam_long(cm);diam_estribo(cm);paso_estribo(cm);cumple_estribo;Nota_diagrama
+Portico 2;C0-a;sunchos;III;Ø30.0;3.10;4.00;297.94;32.68;20;32.65;CORTA;9.00;8;12;10;8.2;False;γ=0.73, X=1.210, Y=3.310, ρg=0.010
+Portico 2;C0-b;estribos;I;b=20.0, h=27.9;3.10;4.00;246.12;71.83;20;26.94;CORTA;17.22;6;20;8;20.0;;γ=0.71, X=4.614, Y=4.411, ρg=0.031
+Portico 2;C1-a;estribos;II;b=20.0, h=27.3;2.90;4.00;139.9;32.86;20;25.76;CORTA;10.54;4;20;8;20.0;;γ=0.71, X=2.205, Y=2.562, ρg=0.019
+Portico 2;C1-b;estribos;I;b=20.0, h=27.3;2.90;4.00;119.48;87.08;20;25.76;CORTA;21.84;8;20;8;20.0;;γ=0.71, X=5.842, Y=2.188, ρg=0.040
+Portico 1;C0-a;estribos;I;b=20.0, h=25.0;3.10;3.60;163.85;26.46;20;30.07;CORTA;5.00;6;12;6;14.4;;γ=0.71, X=2.117, Y=3.277, ρg=0.010
+Portico 1;C0-b;estribos;I;b=20.0, h=27.7;3.10;4.00;120.83;92.63;20;27.14;CORTA;22.16;8;20;8;20.0;;γ=0.71, X=6.036, Y=2.181, ρg=0.040

@@ -51,23 +51,59 @@ import math, json, os
 
 # Funciones auxiliares
 def aplicar_cargas(portico, ss, caso="servicio"):
+
+    # -------------------------------
+    # FACTORES POR CASO
+    # -------------------------------
+    factores = {
+        "servicio": {"D": 1.0, "L": 1.0, "W": 0.0},
+        "1.4D": {"D": 1.4, "L": 0.0, "W": 0.0},
+        "1.2D+1.6L": {"D": 1.2, "L": 1.6, "W": 0.0},
+        "1.2D+0.5L+1.6W": {"D": 1.2, "L": 0.5, "W": 1.6},
+        "0.9D+1.6W": {"D": 0.9, "L": 0.0, "W": 1.6},
+    }
+
+    f = factores.get(caso)
+    if f is None:
+        raise ValueError(f"Combinación no definida: {caso}")
+
+    # -------------------------------
+    # VIGAS → D + L (vertical)
+    # -------------------------------
     for viga in portico["vigas"].values():
         for tramo in viga["tramos"]:
-            if "cargas" in tramo:
-                # obtener valores de carga
-                if caso == "servicio":
-                    q_d = float(tramo["cargas"].get("D_total", 0.0))
-                    q_l = float(tramo["cargas"].get("L_total", 0.0))
-                    # NO sumar viento aquí
-                    q_total = q_d + q_l
-                else:
-                    q_total = float(tramo["cargas"]["combinaciones"].get(caso, 0.0))
 
-                # aplicar en cada subtramo
-                for sub in tramo.get("subtramos", []):
-                    eid = sub.get("eid")
-                    if q_total > 0 and eid:
-                        ss.q_load(element_id=eid, q=-q_total)
+            if "cargas" not in tramo:
+                continue
+
+            qD = float(tramo["cargas"].get("D_total", 0.0))
+            qL = float(tramo["cargas"].get("L_total", 0.0))
+
+            q = f["D"] * qD + f["L"] * qL
+
+            if abs(q) < 1e-9:
+                continue
+
+            for sub in tramo.get("subtramos", []):
+                ss.q_load(element_id=sub["eid"], q=-q)
+
+    # -------------------------------
+    # COLUMNAS → W (horizontal)
+    # -------------------------------
+    if f["W"] > 0:
+
+        for col in portico["columnas"].values():
+
+            W_col = col.get("carga_viento_kN", 0.0)
+
+            if abs(W_col) < 1e-9:
+                continue
+
+            ss.point_load(
+                node_id=col["Nodo_superior"],
+                Fx=f["W"] * W_col
+            )
+
 
 def guardar_resultados_servicio(portico, ss):
     # vigas
@@ -379,26 +415,33 @@ def crear_portico(portico, ss):
     # -------------------------------
     # Viento
     # -------------------------------
+    # Nota:
+    # W_total = carga lineal de viento (kN/m) con ancho tributario
+    # Se multiplica por la altura del piso para obtener fuerza total (kN)
+    # Luego se divide entre columnas
+    # En combinaciones CIRSOC, el viento se amplifica (ej. 1.6W)
     for viga_id, viga in portico["vigas"].items():
-        total_w = 0.0
-        for tramo in viga.get("tramos", []):
-            if "cargas" in tramo and "W_total" in tramo["cargas"]:
-                L_tramo = tramo["longitud_m"]
-                q_w = float(tramo["cargas"]["W_total"])
-                total_w += q_w * L_tramo
-
         piso_viga = int(viga_id.split("-")[0][1:])
         columnas_piso = [c for cid, c in portico["columnas"].items() if cid.startswith(f"C{piso_viga}-")]
 
-        if columnas_piso and total_w > 0:
+        if not columnas_piso:
+            continue
+        h_piso = columnas_piso[0]["altura_m"]   # altura del piso
+        # tomar W_total de un tramo representativo
+        if viga["tramos"]:
+            q_w = float(viga["tramos"][0]["cargas"]["W_total"])   # kN/m
+            total_w = q_w * h_piso                                # fuerza total en kN
+
+            # dividir entre columnas
             carga_por_columna = total_w / len(columnas_piso)
             for col in columnas_piso:
                 nodo_sup = col.get("Nodo_superior")
                 if nodo_sup:
-                    ss.point_load(node_id=nodo_sup, Fx=carga_por_columna)
                     col["carga_viento_kN"] = carga_por_columna
 
+
     return ss
+
 
 # Funciones auxiliares para retrolimentación de VIGAS.
 
@@ -547,7 +590,11 @@ else:
     # Visualización de varias combinaciones en una sola gráfica
     # -------------------------------
 
-    combinaciones = ["1.2D+1.6L", "servicio"] #"servicio", "1.2D+1.6L", "1.4D", "1.2D+1.0L+0.5W", "1.2D+1.0L+1.0W", "0.9D+1.0W"
+    combinaciones = [
+        "servicio",
+        "1.2D+1.6L",      # 👈 sin viento
+        "1.2D+0.5L+1.6W"  # 👈 con viento
+    ]
 
     for comb in combinaciones:
         ss = SystemElements(mesh=50)

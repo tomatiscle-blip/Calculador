@@ -5,1628 +5,61 @@
         "tramos": [
           {
             "id": "V0-1 T1",
-            "longitud_m": 5.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 4,
-            "nodos": [
-              2,
-              4
-            ],
-            "Mu_kNm_apoyo_izq": -69.58,
-            "Mu_kNm_apoyo_der": -151.17,
-            "Mu_kNm_campo": 70.03,
-            "Vu_kN_izq": 126.16,
-            "Vu_kN_der": 158.79,
-            "Mu_servicio_izq": -47.62,
-            "Mu_servicio_der": -121.04,
-            "Mu_servicio_campo": 55.12,
-            "Vu_servicio_izq": -94.91,
-            "Vu_servicio_der": 124.29
-          },
-          {
-            "id": "V0-1 T2",
-            "longitud_m": 6.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 5,
-            "nodos": [
-              4,
-              6
-            ],
-            "Mu_kNm_apoyo_izq": -152.89,
-            "Mu_kNm_apoyo_der": -139.31,
-            "Mu_kNm_campo": 110.39,
-            "Vu_kN_izq": 173.23,
-            "Vu_kN_der": 168.71,
-            "Mu_servicio_izq": -113.17,
-            "Mu_servicio_der": -112.72,
-            "Mu_servicio_campo": 84.26,
-            "Vu_servicio_izq": -131.6,
-            "Vu_servicio_der": 131.44
-          },
-          {
-            "id": "V0-1 tv_izq",
-            "longitud_m": 1.2,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 6,
-            "nodos": [
-              7,
-              2
-            ],
-            "Mu_kNm": -41.03,
-            "Vu_kN_emp": 68.39,
-            "Mu_servicio": -31.56,
-            "Vu_servicio_emp": 52.61
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 3.0,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": {
-          "ux_mm": 0.0,
-          "uy_mm": -0.0,
-          "rot_deg": -0.0
-        },
-        "Nodo_superior": {
-          "ux_mm": 3.24,
-          "uy_mm": -23.52,
-          "rot_deg": 0.36
-        },
-        "Mu_kNm_inf": 28.54,
-        "Mu_kNm_sup": 26.38,
-        "P_kN": -194.55,
-        "Mu_servicio_inf": 30.47,
-        "Mu_servicio_sup": 16.05,
-        "P_servicio": null,
-        "deriva_h": 0.00108,
-        "distancia_campo_cero_m": null
-      },
-      "C0-b": {
-        "x": 5.0,
-        "altura_m": 3.0,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": {
-          "ux_mm": 0.0,
-          "uy_mm": -0.0,
-          "rot_deg": -0.0
-        },
-        "Nodo_superior": {
-          "ux_mm": -1.36,
-          "uy_mm": -38.08,
-          "rot_deg": 0.17
-        },
-        "Mu_kNm_inf": 1.73,
-        "Mu_kNm_sup": 25.34,
-        "P_kN": -332.03,
-        "Mu_servicio_inf": 31.05,
-        "Mu_servicio_sup": -7.87,
-        "P_servicio": null,
-        "deriva_h": -0.000453,
-        "distancia_campo_cero_m": null
-      },
-      "C0-c": {
-        "x": 11.0,
-        "altura_m": 3.0,
-        "eid": 3,
-        "nodos": [
-          5,
-          6
-        ],
-        "Nodo_inferior": {
-          "ux_mm": 0.0,
-          "uy_mm": -0.0,
-          "rot_deg": -0.0
-        },
-        "Nodo_superior": {
-          "ux_mm": -11.99,
-          "uy_mm": -18.63,
-          "rot_deg": -0.91
-        },
-        "Mu_kNm_inf": -139.31,
-        "Mu_kNm_sup": 66.89,
-        "P_kN": -168.71,
-        "Mu_servicio_inf": 61.6,
-        "Mu_servicio_sup": -112.72,
-        "P_servicio": null,
-        "deriva_h": -0.003997,
-        "distancia_campo_cero_m": 0.973
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -4.81,
-        "Fy_servicio": -147.52,
-        "Tz_servicio": 30.47,
-        "Fx_kN": 0.72,
-        "Fy_kN": -194.55,
-        "Tz_kNm": 26.38
-      },
-      "B0-b": {
-        "x": 5.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -12.97,
-        "Fy_servicio": -255.88,
-        "Tz_servicio": 31.05,
-        "Fx_kN": -7.87,
-        "Fy_kN": -332.03,
-        "Tz_kNm": 25.34
-      },
-      "B0-c": {
-        "x": 11.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -58.11,
-        "Fy_servicio": -131.44,
-        "Tz_servicio": 61.6,
-        "Fx_kN": -68.73,
-        "Fy_kN": -168.71,
-        "Tz_kNm": 66.89
-      }
-    },
-    "cargas_puntuales": [
-      {
-        "piso": 0,
-        "coordenadas": {
-          "x": 1.5,
-          "y": 0
-        },
-        "valor_kN": 20.0,
-        "tipo": "muro"
-      },
-      {
-        "piso": 0,
-        "coordenadas": {
-          "x": -1.0,
-          "y": 0
-        },
-        "valor_kN": 15.0,
-        "tipo": "viga"
-      }
-    ]
-  },
-  "Portico 2": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 5.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 7,
-            "nodos": [
-              2,
-              4
-            ],
-            "Mu_kNm_apoyo_izq": -66.16,
-            "Mu_kNm_apoyo_der": -141.48,
-            "Mu_kNm_campo": 76.26,
-            "Vu_kN_izq": 127.41,
-            "Vu_kN_der": 157.54,
-            "Mu_servicio_izq": -38.07,
-            "Mu_servicio_der": -120.21,
-            "Mu_servicio_campo": 60.93,
-            "Vu_servicio_izq": -93.17,
-            "Vu_servicio_der": 126.03
-          },
-          {
-            "id": "V0-1 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 8,
-            "nodos": [
-              4,
-              6
-            ],
-            "Mu_kNm_apoyo_izq": -3.88,
-            "Mu_kNm_apoyo_der": -163.78,
-            "Mu_kNm_campo": 49.4,
-            "Vu_kN_izq": 72.06,
-            "Vu_kN_der": 155.9,
-            "Mu_servicio_izq": 14.67,
-            "Mu_servicio_der": -139.31,
-            "Mu_servicio_campo": 42.25,
-            "Vu_servicio_izq": -49.18,
-            "Vu_servicio_der": 126.18
-          },
-          {
-            "id": "V0-1 tv_der",
-            "longitud_m": 1.4,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 11,
-            "nodos": [
-              6,
-              10
-            ],
-            "Mu_kNm": -55.85,
-            "Vu_kN_emp": -79.79,
-            "Mu_servicio": 0.0,
-            "Vu_servicio_emp": -0.0
-          }
-        ]
-      },
-      "V1-1": {
-        "tramos": [
-          {
-            "id": "V1-1 T1",
-            "longitud_m": 5.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 9,
-            "nodos": [
-              7,
-              8
-            ],
-            "Mu_kNm_apoyo_izq": -87.97,
-            "Mu_kNm_apoyo_der": -108.98,
-            "Mu_kNm_campo": 79.76,
-            "Vu_kN_izq": 138.27,
-            "Vu_kN_der": 146.68,
-            "Mu_servicio_izq": -60.59,
-            "Mu_servicio_der": -90.0,
-            "Mu_servicio_campo": 62.09,
-            "Vu_servicio_izq": -103.72,
-            "Vu_servicio_der": 115.48
-          },
-          {
-            "id": "V1-1 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 10,
-            "nodos": [
-              8,
-              9
-            ],
-            "Mu_kNm_apoyo_izq": -31.99,
-            "Mu_kNm_apoyo_der": -97.12,
-            "Mu_kNm_campo": 51.75,
-            "Vu_kN_izq": 97.7,
-            "Vu_kN_der": 130.26,
-            "Mu_servicio_izq": -19.44,
-            "Mu_servicio_der": -81.31,
-            "Mu_servicio_campo": 40.03,
-            "Vu_servicio_izq": -72.21,
-            "Vu_servicio_der": 103.15
-          },
-          {
-            "id": "V1-1 tv_izq",
-            "longitud_m": 1.3,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 12,
-            "nodos": [
-              11,
-              7
-            ],
-            "Mu_kNm": -48.16,
-            "Vu_kN_emp": 74.09,
-            "Mu_servicio": -37.04,
-            "Vu_servicio_emp": 56.99
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 3.0,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": 1,
-        "Nodo_superior": 2,
-        "Mu_kNm_inf": 39.67,
-        "Mu_kNm_sup": 23.99,
-        "P_kN": -339.77,
-        "Mu_servicio_inf": 48.38,
-        "Mu_servicio_sup": 9.3,
-        "P_servicio": -253.88,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": null
-      },
-      "C0-b": {
-        "x": 5.0,
-        "altura_m": 3.0,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": 3,
-        "Nodo_superior": 4,
-        "Mu_kNm_inf": 103.76,
-        "Mu_kNm_sup": -89.79,
-        "P_kN": -473.98,
-        "Mu_servicio_inf": 100.31,
-        "Mu_servicio_sup": -83.28,
-        "P_servicio": -362.91,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 1.608
-      },
-      "C0-c": {
-        "x": 9.0,
-        "altura_m": 3.0,
-        "eid": 3,
-        "nodos": [
-          5,
-          6
-        ],
-        "Nodo_inferior": 5,
-        "Nodo_superior": 6,
-        "Mu_kNm_inf": -76.25,
-        "Mu_kNm_sup": 100.79,
-        "P_kN": -365.94,
-        "Mu_servicio_inf": 95.46,
-        "Mu_servicio_sup": -68.13,
-        "P_servicio": -290.7,
-        "deriva_h": 0.024282,
-        "distancia_campo_cero_m": 1.708
-      },
-      "C1-a": {
-        "x": 0.0,
-        "altura_m": 2.8,
-        "eid": 4,
-        "nodos": [
-          2,
-          7
-        ],
-        "Nodo_inferior": 2,
-        "Nodo_superior": 7,
-        "Mu_kNm_inf": 39.81,
-        "Mu_kNm_sup": -42.17,
-        "P_kN": -212.36,
-        "Mu_servicio_inf": -28.77,
-        "Mu_servicio_sup": 23.54,
-        "P_servicio": -160.71,
-        "deriva_h": 0.019988,
-        "distancia_campo_cero_m": 1.44
-      },
-      "C1-b": {
-        "x": 5.0,
-        "altura_m": 2.8,
-        "eid": 5,
-        "nodos": [
-          4,
-          8
-        ],
-        "Nodo_inferior": 4,
-        "Nodo_superior": 8,
-        "Mu_kNm_inf": -77.0,
-        "Mu_kNm_sup": 55.56,
-        "P_kN": -244.37,
-        "Mu_servicio_inf": 51.61,
-        "Mu_servicio_sup": -70.56,
-        "P_servicio": -187.7,
-        "deriva_h": 0.017641,
-        "distancia_campo_cero_m": 1.174
-      },
-      "C1-c": {
-        "x": 9.0,
-        "altura_m": 2.8,
-        "eid": 6,
-        "nodos": [
-          6,
-          9
-        ],
-        "Nodo_inferior": 6,
-        "Nodo_superior": 9,
-        "Mu_kNm_inf": 31.69,
-        "Mu_kNm_sup": -97.12,
-        "P_kN": -130.26,
-        "Mu_servicio_inf": 28.22,
-        "Mu_servicio_sup": -81.31,
-        "P_servicio": -103.15,
-        "deriva_h": 0.013428,
-        "distancia_campo_cero_m": 0.689
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -5.23,
-        "Fy_kN": -339.77,
-        "Tz_kNm": 39.67
-      },
-      "B0-b": {
-        "x": 5.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -64.52,
-        "Fy_kN": -473.98,
-        "Tz_kNm": 103.76
-      },
-      "B0-c": {
-        "x": 9.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -59.01,
-        "Fy_kN": -365.94,
-        "Tz_kNm": 100.79
-      }
-    },
-    "cargas_puntuales": []
-  },
-  "Portico 3": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 13,
-            "nodos": [
-              2,
-              4
-            ],
-            "Mu_kNm_apoyo_izq": -20.64,
-            "Mu_kNm_apoyo_der": -104.16,
-            "Mu_kNm_campo": 55.41,
-            "Vu_kN_izq": 93.1,
-            "Vu_kN_der": 134.86,
-            "Mu_servicio_izq": 7.38,
-            "Mu_servicio_der": -99.76,
-            "Mu_servicio_campo": 49.67,
-            "Vu_servicio_izq": -60.89,
-            "Vu_servicio_der": 114.47
-          },
-          {
-            "id": "V0-1 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 14,
-            "nodos": [
-              4,
-              6
-            ],
-            "Mu_kNm_apoyo_izq": -23.99,
-            "Mu_kNm_apoyo_der": -161.54,
-            "Mu_kNm_campo": 64.04,
-            "Vu_kN_izq": 67.6,
-            "Vu_kN_der": 160.36,
-            "Mu_servicio_izq": 39.86,
-            "Mu_servicio_der": -145.67,
-            "Mu_servicio_campo": 59.28,
-            "Vu_servicio_izq": -41.3,
-            "Vu_servicio_der": 134.06
-          },
-          {
-            "id": "V0-1 T3",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 15,
-            "nodos": [
-              6,
-              8
-            ],
-            "Mu_kNm_apoyo_izq": -66.05,
-            "Mu_kNm_apoyo_der": -222.21,
-            "Mu_kNm_campo": 81.46,
-            "Vu_kN_izq": 41.92,
-            "Vu_kN_der": 186.04,
-            "Mu_servicio_izq": 70.44,
-            "Mu_servicio_der": -194.19,
-            "Mu_servicio_campo": 75.72,
-            "Vu_servicio_izq": -21.52,
-            "Vu_servicio_der": 153.84
-          }
-        ]
-      },
-      "V1-1": {
-        "tramos": [
-          {
-            "id": "V1-1 T1",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 16,
-            "nodos": [
-              9,
-              10
-            ],
-            "Mu_kNm_apoyo_izq": -82.67,
-            "Mu_kNm_apoyo_der": -46.77,
-            "Mu_kNm_campo": 49.93,
-            "Vu_kN_izq": 122.96,
-            "Vu_kN_der": 105.0,
-            "Mu_servicio_izq": -50.91,
-            "Mu_servicio_der": -46.99,
-            "Mu_servicio_campo": 38.74,
-            "Vu_servicio_izq": -88.66,
-            "Vu_servicio_der": 86.7
-          },
-          {
-            "id": "V1-1 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 17,
-            "nodos": [
-              10,
-              11
-            ],
-            "Mu_kNm_apoyo_izq": -1.74,
-            "Mu_kNm_apoyo_der": -125.78,
-            "Mu_kNm_campo": 60.86,
-            "Vu_kN_izq": 82.1,
-            "Vu_kN_der": 145.86,
-            "Mu_servicio_izq": 16.05,
-            "Mu_servicio_der": -111.47,
-            "Mu_servicio_campo": 51.54,
-            "Vu_servicio_izq": -55.8,
-            "Vu_servicio_der": 119.56
-          },
-          {
-            "id": "V1-1 T3",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 18,
-            "nodos": [
-              11,
-              12
-            ],
-            "Mu_kNm_apoyo_izq": -48.65,
-            "Mu_kNm_apoyo_der": -192.67,
-            "Mu_kNm_campo": 73.86,
-            "Vu_kN_izq": 53.65,
-            "Vu_kN_der": 174.31,
-            "Mu_servicio_izq": 48.43,
-            "Mu_servicio_der": -160.9,
-            "Mu_servicio_campo": 62.68,
-            "Vu_servicio_izq": -35.35,
-            "Vu_servicio_der": 140.01
-          }
-        ]
-      },
-      "V2-1": {
-        "tramos": [
-          {
-            "id": "V2-1 T1",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 19,
-            "nodos": [
-              13,
-              14
-            ],
-            "Mu_kNm_apoyo_izq": -76.92,
-            "Mu_kNm_apoyo_der": -32.43,
-            "Mu_kNm_campo": 60.39,
-            "Vu_kN_izq": 125.1,
-            "Vu_kN_der": 102.86,
-            "Mu_servicio_izq": -54.03,
-            "Mu_servicio_der": -28.6,
-            "Mu_servicio_campo": 46.81,
-            "Vu_servicio_izq": -94.04,
-            "Vu_servicio_der": 81.32
-          },
-          {
-            "id": "V2-1 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 20,
-            "nodos": [
-              14,
-              15
-            ],
-            "Mu_kNm_apoyo_izq": -24.21,
-            "Mu_kNm_apoyo_der": -84.53,
-            "Mu_kNm_campo": 61.59,
-            "Vu_kN_izq": 98.9,
-            "Vu_kN_der": 129.06,
-            "Mu_servicio_izq": -11.67,
-            "Mu_servicio_der": -71.98,
-            "Mu_servicio_campo": 48.44,
-            "Vu_servicio_izq": -72.6,
-            "Vu_servicio_der": 102.76
-          },
-          {
-            "id": "V2-1 T3",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 21,
-            "nodos": [
-              15,
-              16
-            ],
-            "Mu_kNm_apoyo_izq": -0.75,
-            "Mu_kNm_apoyo_der": -121.51,
-            "Mu_kNm_campo": 60.85,
-            "Vu_kN_izq": 83.79,
-            "Vu_kN_der": 144.17,
-            "Mu_servicio_izq": 3.08,
-            "Mu_servicio_der": -98.61,
-            "Mu_servicio_campo": 47.26,
-            "Vu_servicio_izq": -62.26,
-            "Vu_servicio_der": 113.1
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 4.0,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": 1,
-        "Nodo_superior": 2,
-        "Mu_kNm_inf": 85.15,
-        "Mu_kNm_sup": -15.94,
-        "P_kN": -341.16,
-        "Mu_servicio_inf": 94.11,
-        "Mu_servicio_sup": -29.22,
-        "P_servicio": -243.59,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 3.369
-      },
-      "C0-b": {
-        "x": 4.0,
-        "altura_m": 4.0,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": 3,
-        "Nodo_superior": 4,
-        "Mu_kNm_inf": 126.8,
-        "Mu_kNm_sup": -84.77,
-        "P_kN": -591.32,
-        "Mu_servicio_inf": 130.44,
-        "Mu_servicio_sup": -90.08,
-        "P_servicio": -452.19,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 2.397
-      },
-      "C0-c": {
-        "x": 8.0,
-        "altura_m": 4.0,
-        "eid": 3,
-        "nodos": [
-          5,
-          6
-        ],
-        "Nodo_inferior": 5,
-        "Nodo_superior": 6,
-        "Mu_kNm_inf": 158.36,
-        "Mu_kNm_sup": -130.77,
-        "P_kN": -614.64,
-        "Mu_servicio_inf": 154.72,
-        "Mu_servicio_sup": -125.46,
-        "P_servicio": -475.51,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 2.191
-      },
-      "C0-d": {
-        "x": 12.0,
-        "altura_m": 4.0,
-        "eid": 4,
-        "nodos": [
-          7,
-          8
-        ],
-        "Nodo_inferior": 7,
-        "Nodo_superior": 8,
-        "Mu_kNm_inf": -131.06,
-        "Mu_kNm_sup": 162.84,
-        "P_kN": -504.52,
-        "Mu_servicio_inf": 153.88,
-        "Mu_servicio_sup": -117.77,
-        "P_servicio": -406.96,
-        "deriva_h": 0.038135,
-        "distancia_campo_cero_m": 2.216
-      },
-      "C1-a": {
-        "x": 0.0,
-        "altura_m": 3.0,
-        "eid": 5,
-        "nodos": [
-          2,
-          9
-        ],
-        "Nodo_inferior": 2,
-        "Nodo_superior": 9,
-        "Mu_kNm_inf": 30.41,
-        "Mu_kNm_sup": -36.58,
-        "P_kN": -248.06,
-        "Mu_servicio_inf": -21.84,
-        "Mu_servicio_sup": 12.44,
-        "P_servicio": -182.7,
-        "deriva_h": 0.051163,
-        "distancia_campo_cero_m": 1.638
-      },
-      "C1-b": {
-        "x": 4.0,
-        "altura_m": 3.0,
-        "eid": 6,
-        "nodos": [
-          4,
-          10
-        ],
-        "Nodo_inferior": 4,
-        "Nodo_superior": 10,
-        "Mu_kNm_inf": -43.35,
-        "Mu_kNm_sup": 43.38,
-        "P_kN": -388.86,
-        "Mu_servicio_inf": 49.54,
-        "Mu_servicio_sup": -51.59,
-        "P_servicio": -296.42,
-        "deriva_h": 0.05198,
-        "distancia_campo_cero_m": 1.501
-      },
-      "C1-c": {
-        "x": 8.0,
-        "altura_m": 3.0,
-        "eid": 7,
-        "nodos": [
-          6,
-          11
-        ],
-        "Nodo_inferior": 6,
-        "Nodo_superior": 11,
-        "Mu_kNm_inf": -114.8,
-        "Mu_kNm_sup": 96.82,
-        "P_kN": -412.36,
-        "Mu_servicio_inf": 90.65,
-        "Mu_servicio_sup": -106.55,
-        "P_servicio": -319.92,
-        "deriva_h": 0.053012,
-        "distancia_campo_cero_m": 1.373
-      },
-      "C1-d": {
-        "x": 12.0,
-        "altura_m": 3.0,
-        "eid": 8,
-        "nodos": [
-          8,
-          12
-        ],
-        "Nodo_inferior": 8,
-        "Nodo_superior": 12,
-        "Mu_kNm_inf": -125.33,
-        "Mu_kNm_sup": 91.15,
-        "P_kN": -318.48,
-        "Mu_servicio_inf": 76.42,
-        "Mu_servicio_sup": -107.36,
-        "P_servicio": -253.12,
-        "deriva_h": 0.073236,
-        "distancia_campo_cero_m": 1.263
-      },
-      "C2-a": {
-        "x": 0.0,
-        "altura_m": 2.9,
-        "eid": 9,
-        "nodos": [
-          9,
-          13
-        ],
-        "Nodo_inferior": 9,
-        "Nodo_superior": 13,
-        "Mu_kNm_inf": 76.92,
-        "Mu_kNm_sup": -52.26,
-        "P_kN": -125.1,
-        "Mu_servicio_inf": -38.47,
-        "Mu_servicio_sup": 54.03,
-        "P_servicio": -94.04,
-        "deriva_h": 0.06995,
-        "distancia_campo_cero_m": 1.173
-      },
-      "C2-b": {
-        "x": 4.0,
-        "altura_m": 2.9,
-        "eid": 10,
-        "nodos": [
-          10,
-          14
-        ],
-        "Nodo_inferior": 10,
-        "Nodo_superior": 14,
-        "Mu_kNm_inf": -8.22,
-        "Mu_kNm_sup": 5.17,
-        "P_kN": -201.76,
-        "Mu_servicio_inf": 11.45,
-        "Mu_servicio_sup": -16.94,
-        "P_servicio": -153.93,
-        "deriva_h": 0.062846,
-        "distancia_campo_cero_m": 1.119
-      },
-      "C2-c": {
-        "x": 8.0,
-        "altura_m": 2.9,
-        "eid": 11,
-        "nodos": [
-          11,
-          15
-        ],
-        "Nodo_inferior": 11,
-        "Nodo_superior": 15,
-        "Mu_kNm_inf": -83.78,
-        "Mu_kNm_sup": 59.63,
-        "P_kN": -212.85,
-        "Mu_servicio_inf": 53.35,
-        "Mu_servicio_sup": -75.06,
-        "P_servicio": -165.02,
-        "deriva_h": 0.058574,
-        "distancia_campo_cero_m": 1.206
-      },
-      "C2-d": {
-        "x": 12.0,
-        "altura_m": 2.9,
-        "eid": 12,
-        "nodos": [
-          12,
-          16
-        ],
-        "Nodo_inferior": 12,
-        "Nodo_superior": 16,
-        "Mu_kNm_inf": 67.34,
-        "Mu_kNm_sup": -121.51,
-        "P_kN": -144.17,
-        "Mu_servicio_inf": 53.54,
-        "Mu_servicio_sup": -98.61,
-        "P_servicio": -113.1,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 1.034
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -25.27,
-        "Fy_kN": -341.16,
-        "Tz_kNm": 85.15
-      },
-      "B0-b": {
-        "x": 4.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -52.89,
-        "Fy_kN": -591.32,
-        "Tz_kNm": 126.8
-      },
-      "B0-c": {
-        "x": 8.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -72.28,
-        "Fy_kN": -614.64,
-        "Tz_kNm": 158.36
-      },
-      "B0-d": {
-        "x": 12.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -73.47,
-        "Fy_kN": -504.52,
-        "Tz_kNm": 162.84
-      }
-    },
-    "cargas_puntuales": []
-  },
-  "Portico 4": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 3,
-            "nodos": [
-              2,
-              4
-            ],
-            "Mu_kNm_apoyo_izq": -65.56,
-            "Mu_kNm_apoyo_der": -77.11,
-            "Mu_kNm_campo": 42.72,
-            "Vu_kN_izq": 111.09,
-            "Vu_kN_der": 116.87,
-            "Mu_servicio_izq": -45.0,
-            "Mu_servicio_der": -64.74,
-            "Mu_servicio_campo": 33.08,
-            "Vu_servicio_izq": -82.75,
-            "Vu_servicio_der": 92.61
-          },
-          {
-            "id": "V0-1 tv_izq",
-            "longitud_m": 1.75,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 4,
-            "nodos": [
-              5,
-              2
-            ],
-            "Mu_kNm": -87.27,
-            "Vu_kN_emp": 99.73,
-            "Mu_servicio": -67.13,
-            "Vu_servicio_emp": 76.72
-          },
-          {
-            "id": "V0-1 tv_der",
-            "longitud_m": 1.1,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 5,
-            "nodos": [
-              4,
-              6
-            ],
-            "Mu_kNm": -34.48,
-            "Vu_kN_emp": -62.69,
-            "Mu_servicio": 0.0,
-            "Vu_servicio_emp": 0.0
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 2.9,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": 1,
-        "Nodo_superior": 2,
-        "Mu_kNm_inf": 25.57,
-        "Mu_kNm_sup": -21.71,
-        "P_kN": -210.83,
-        "Mu_servicio_inf": 28.5,
-        "Mu_servicio_sup": -22.13,
-        "P_servicio": -159.47,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 1.568
-      },
-      "C0-b": {
-        "x": 4.0,
-        "altura_m": 2.9,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": 3,
-        "Nodo_superior": 4,
-        "Mu_kNm_inf": -42.63,
-        "Mu_kNm_sup": 33.65,
-        "P_kN": -179.56,
-        "Mu_servicio_inf": 34.72,
-        "Mu_servicio_sup": -38.22,
-        "P_servicio": -140.84,
-        "deriva_h": 0.002845,
-        "distancia_campo_cero_m": 1.279
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -16.3,
-        "Fy_kN": -210.83,
-        "Tz_kNm": 25.57
-      },
-      "B0-b": {
-        "x": 4.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": null,
-        "Fy_servicio": null,
-        "Tz_servicio": null,
-        "Fx_kN": -26.3,
-        "Fy_kN": -179.56,
-        "Tz_kNm": 33.65
-      }
-    },
-    "cargas_puntuales": []
-  },
-  "Portico 5": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 0.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": null,
-            "nodos": [],
-            "Mu_kNm_apoyo_izq": -75.84,
-            "Mu_kNm_apoyo_der": -109.95,
-            "Mu_kNm_campo": 98.38,
-            "Vu_kN_izq": 150.85,
-            "Vu_kN_der": 154.1,
-            "Mu_servicio_izq": 0.0,
-            "Mu_servicio_der": 0.0,
-            "Mu_servicio_campo": 0.0,
-            "Vu_servicio_izq": 0.0,
-            "Vu_servicio_der": 0.0
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 3.0,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": 1,
-        "Nodo_superior": 2,
-        "Mu_kNm_inf": -5.04,
-        "Mu_kNm_sup": 75.84,
-        "P_kN": -150.85,
-        "Mu_servicio_inf": -1.13,
-        "Mu_servicio_sup": 65.35,
-        "P_servicio": -133.53,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 0.187
-      },
-      "C0-b": {
-        "x": 5.0,
-        "altura_m": 3.0,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": 3,
-        "Nodo_superior": 4,
-        "Mu_kNm_inf": -109.95,
-        "Mu_kNm_sup": 64.23,
-        "P_kN": -154.1,
-        "Mu_servicio_inf": 60.32,
-        "Mu_servicio_sup": -99.46,
-        "P_servicio": -136.77,
-        "deriva_h": 0.005442,
-        "distancia_campo_cero_m": 1.106
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": 22.16,
-        "Fy_servicio": -133.53,
-        "Tz_servicio": -1.13,
-        "Fx_kN": 26.96,
-        "Fy_kN": -150.85,
-        "Tz_kNm": -5.04
-      },
-      "B0-b": {
-        "x": 5.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -53.26,
-        "Fy_servicio": -136.77,
-        "Tz_servicio": 60.32,
-        "Fx_kN": -58.06,
-        "Fy_kN": -154.1,
-        "Tz_kNm": 64.23
-      }
-    },
-    "cargas_puntuales": [
-      {
-        "piso": 0,
-        "coordenadas": {
-          "x": 1.2,
-          "y": 3.0
-        },
-        "valor_kN": 20.0,
-        "tipo": "viga"
-      }
-    ]
-  },
-  "Portico 6": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 0.0,
-            "es_voladizo": false,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": null,
-            "nodos": [],
-            "Mu_kNm_apoyo_izq": 58.17,
-            "Mu_kNm_apoyo_der": 146.02,
-            "Mu_kNm_campo": -78.64,
-            "Vu_kN_izq": -124.9,
-            "Vu_kN_der": 160.05,
-            "Mu_servicio_izq": 38.45,
-            "Mu_servicio_der": 120.62,
-            "Mu_servicio_campo": -60.53,
-            "Vu_servicio_izq": -93.17,
-            "Vu_servicio_der": 126.03
-          },
-          {
-            "id": "V0-1 tv_izq",
-            "longitud_m": 0.0,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 4,
-            "nodos": [
-              5,
-              2
-            ],
-            "Mu_kNm": -0.0,
-            "Vu_kN_emp": 15.0,
-            "Mu_servicio": 0.0,
-            "Vu_servicio": 0.0
-          },
-          {
-            "id": "V0-1 tv_der",
-            "longitud_m": 0.0,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 5,
-            "nodos": [
-              4,
-              6
-            ],
-            "Mu_kNm": 79.11,
-            "Vu_kN_emp": -100.48,
-            "Mu_servicio": 0.0,
-            "Vu_servicio": 0.0
-          },
-          {
-            "id": "V0-1 tv_der",
-            "longitud_m": 0.0,
-            "es_voladizo": true,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "eid": 6,
-            "nodos": [
-              6,
-              7
-            ],
-            "Mu_kNm": 7.12,
-            "Vu_kN_emp": -28.49,
-            "Mu_servicio": 0.0,
-            "Vu_servicio": 0.0
-          }
-        ]
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 3.5,
-        "eid": 1,
-        "nodos": [
-          1,
-          2
-        ],
-        "Nodo_inferior": 1,
-        "Nodo_superior": 2,
-        "Mu_kNm_inf": 38.5,
-        "Mu_kNm_sup": 14.67,
-        "P_kN": -196.89,
-        "Mu_servicio_inf": 42.18,
-        "Mu_servicio_sup": 1.53,
-        "P_servicio": -152.01,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": null
-      },
-      "C0-b": {
-        "x": 5.0,
-        "altura_m": 3.5,
-        "eid": 2,
-        "nodos": [
-          3,
-          4
-        ],
-        "Nodo_inferior": 3,
-        "Nodo_superior": 4,
-        "Mu_kNm_inf": 72.54,
-        "Mu_kNm_sup": -66.91,
-        "P_kN": -260.53,
-        "Mu_servicio_inf": 66.32,
-        "Mu_servicio_sup": -56.3,
-        "P_servicio": -206.79,
-        "deriva_h": 0.010694,
-        "distancia_campo_cero_m": 1.821
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -11.61,
-        "Fy_servicio": -152.01,
-        "Tz_servicio": 42.18,
-        "Fx_kN": -6.81,
-        "Fy_kN": -196.89,
-        "Tz_kNm": 38.5
-      },
-      "B0-b": {
-        "x": 5.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -35.04,
-        "Fy_servicio": -206.79,
-        "Tz_servicio": 66.32,
-        "Fx_kN": -39.84,
-        "Fy_kN": -260.53,
-        "Tz_kNm": 72.54
-      }
-    },
-    "cargas_puntuales": []
-  },
-  "Portico 7": {
-    "vigas": {
-      "V0-1": {
-        "tramos": [
-          {
-            "id": "V0-1 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.85,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
+            "x_fin": 4.85,
             "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
+              "D_total": 34.89,
+              "L_total": 8.08,
               "W_total": 6.22,
               "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.85,
+                "0.9D+1.6W": 41.35
               }
             },
-            "eid": [
-              3,
-              4
+            "cargas_puntuales": [],
+            "subtramos": [
+              {
+                "eid": 3,
+                "nodos": [
+                  2,
+                  4
+                ]
+              }
             ],
-            "nodos": [
-              2,
-              4,
-              5
-            ],
-            "Mu_kNm_apoyo_izq": -62.99,
-            "Mu_kNm_apoyo_der": -114.14,
-            "Mu_kNm_campo": 97.49,
-            "Vu_kN_izq": -135.24,
-            "Vu_kN_der": 164.71,
+            "Mu_servicio_izq": 75.09,
+            "Mu_servicio_der": 55.52,
+            "Mu_servicio_campo": -61.19,
+            "Vu_servicio_izq": -108.24,
+            "Vu_servicio_der": 100.17,
+            "Mu_kNm_apoyo_izq": -46.51873635835894,
+            "Mu_kNm_apoyo_der": -92.63106512818923,
+            "Mu_kNm_campo": 66.35613377207588,
+            "Vu_kN_izq": -101.81920097040917,
+            "Vu_kN_der": 120.83459465146301,
             "puntos_inflexion_m": [
-              0.32,
-              2.98
-            ],
-            "Mu_servicio_izq": 41.96,
-            "Mu_servicio_der": 97.06,
-            "Mu_servicio_campo": -75.7,
-            "Vu_servicio_izq": -101.58,
-            "Vu_servicio_der": 132.62
+              0.518,
+              3.918
+            ]
           },
           {
             "id": "V0-1 tv_izq",
-            "longitud_m": 1.0,
+            "longitud_m": 0.8,
             "es_voladizo": true,
-            "x_inicio": -1.0,
+            "x_inicio": -0.8,
             "x_fin": 0.0,
             "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
+              "D_total": 34.89,
+              "L_total": 8.08,
               "W_total": 6.22,
               "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.85,
+                "0.9D+1.6W": 41.35
               }
             },
             "cargas_puntuales": [
@@ -1634,25 +67,33 @@
                 "piso": 0,
                 "coordenadas": {
                   "x": -0.8,
-                  "y": 5.0
+                  "y": 3.1
                 },
-                "valor_kN": 15.0,
-                "tipo": "v"
+                "valor_kN": 25.3,
+                "tipo": "P1"
               }
             ],
-            "eid": [
-              5,
-              6
+            "subtramos": [
+              {
+                "eid": 4,
+                "nodos": [
+                  5,
+                  2
+                ]
+              }
             ],
-            "nodos": [
-              2,
-              6,
-              7
-            ],
-            "Mu_kNm": -40.5,
-            "Vu_kN_emp": 71.99,
-            "Mu_servicio": 0.0,
-            "Vu_servicio": 0.0
+            "Mu_servicio_izq": 0.0,
+            "Mu_servicio_der": 33.99,
+            "Mu_servicio_campo": 0.0,
+            "Vu_servicio_izq": 25.3,
+            "Vu_servicio_der": 59.68,
+            "Mu_kNm_apoyo_izq": 0,
+            "Mu_kNm_apoyo_der": 0,
+            "Mu_kNm_campo": 0,
+            "Vu_kN_izq": 0,
+            "Vu_kN_der": 0,
+            "Mu_kNm": -34.93056073941236,
+            "Vu_kN_emp": 62.02640054726612
           }
         ]
       }
@@ -1660,7 +101,7 @@
     "columnas": {
       "C0-a": {
         "x": 0.0,
-        "altura_m": 5.0,
+        "altura_m": 3.1,
         "eid": 1,
         "nodos": [
           1,
@@ -1668,18 +109,18 @@
         ],
         "Nodo_inferior": 1,
         "Nodo_superior": 2,
-        "Mu_kNm_inf": 15.33,
-        "Mu_kNm_sup": 22.49,
-        "P_kN": -207.23,
-        "Mu_servicio_inf": 24.06,
-        "Mu_servicio_sup": 8.04,
-        "P_servicio": -160.42,
+        "Mu_kNm_inf": 26.46,
+        "Mu_kNm_sup": 11.59,
+        "P_kN": -163.85,
+        "Mu_servicio_inf": -25.91,
+        "Mu_servicio_sup": 41.1,
+        "P_servicio": -167.91,
         "deriva_h": 0.0,
         "distancia_campo_cero_m": null
       },
       "C0-b": {
-        "x": 5.0,
-        "altura_m": 5.0,
+        "x": 4.85,
+        "altura_m": 3.1,
         "eid": 2,
         "nodos": [
           3,
@@ -1687,118 +128,155 @@
         ],
         "Nodo_inferior": 3,
         "Nodo_superior": 4,
-        "Mu_kNm_inf": -114.14,
-        "Mu_kNm_sup": 79.63,
-        "P_kN": -164.71,
-        "Mu_servicio_inf": 73.52,
-        "Mu_servicio_sup": -97.06,
-        "P_servicio": -132.62,
-        "deriva_h": 0.007787,
-        "distancia_campo_cero_m": 2.055
+        "Mu_kNm_inf": -92.63,
+        "Mu_kNm_sup": 66.8,
+        "P_kN": -120.83,
+        "Mu_servicio_inf": 11.49,
+        "Mu_servicio_sup": -55.52,
+        "P_servicio": -100.17,
+        "deriva_h": 0.006666,
+        "distancia_campo_cero_m": 1.299
       }
     },
     "bases": {
       "B0-a": {
         "x": 0.0,
         "tipo": "empotramiento",
-        "Fx_servicio": -3.2,
-        "Fy_servicio": -160.42,
-        "Tz_servicio": 24.06,
-        "Fx_kN": 1.43,
-        "Fy_kN": -207.23,
-        "Tz_kNm": 15.33
+        "Fx_servicio": 21.62,
+        "Fy_servicio": -167.91,
+        "Tz_servicio": -25.91,
+        "Fx_kN": -4.8,
+        "Fy_kN": -163.85,
+        "Tz_kNm": 26.46
       },
       "B0-b": {
-        "x": 5.0,
+        "x": 4.85,
         "tipo": "empotramiento",
-        "Fx_servicio": -34.12,
-        "Fy_servicio": -132.62,
-        "Tz_servicio": 73.52,
-        "Fx_kN": -38.75,
-        "Fy_kN": -164.71,
-        "Tz_kNm": 79.63
+        "Fx_servicio": -21.62,
+        "Fy_servicio": -100.17,
+        "Tz_servicio": 11.49,
+        "Fx_kN": -51.43,
+        "Fy_kN": -120.83,
+        "Tz_kNm": 66.8
       }
     },
     "cargas_puntuales": []
   },
-  "Portico 8": {
+  "Portico 2": {
     "vigas": {
       "V0-1": {
         "tramos": [
           {
             "id": "V0-1 T1",
-            "longitud_m": 4.0,
+            "longitud_m": 4.85,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 4.0,
+            "x_fin": 4.85,
             "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
+              "D_total": 34.89,
+              "L_total": 8.08,
+              "W_total": 6.2,
               "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.82,
+                "0.9D+1.6W": 41.31
+              }
+            },
+            "cargas_puntuales": [],
+            "subtramos": [
+              {
+                "eid": 5,
+                "nodos": [
+                  2,
+                  4
+                ]
+              }
+            ],
+            "Mu_servicio_izq": 86.5,
+            "Mu_servicio_der": 68.51,
+            "Mu_servicio_campo": -48.97,
+            "Vu_servicio_izq": -107.91,
+            "Vu_servicio_der": 100.49,
+            "Mu_kNm_apoyo_izq": -45.55091342473814,
+            "Mu_kNm_apoyo_der": -119.84198050832119,
+            "Mu_kNm_campo": 54.83914609439873,
+            "Vu_kN_izq": -96.0091517193077,
+            "Vu_kN_der": 126.64464390256443,
+            "puntos_inflexion_m": [
+              0.546,
+              3.636
+            ]
+          },
+          {
+            "id": "V0-1 tv_izq",
+            "longitud_m": 0.8,
+            "es_voladizo": true,
+            "x_inicio": -0.8,
+            "x_fin": 0.0,
+            "cargas": {
+              "D_total": 34.89,
+              "L_total": 8.08,
+              "W_total": 6.2,
+              "combinaciones": {
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.82,
+                "0.9D+1.6W": 41.31
               }
             },
             "cargas_puntuales": [
               {
                 "piso": 0,
                 "coordenadas": {
-                  "x": 1.4,
-                  "y": 3.2
+                  "x": -0.8,
+                  "y": 3.1
                 },
-                "valor_kN": 15.0,
-                "tipo": "v2"
+                "valor_kN": 25.3,
+                "tipo": "Vexter"
               }
             ],
             "subtramos": [
               {
-                "eid": 4,
-                "nodos": [
-                  2,
-                  7
-                ]
-              },
-              {
-                "eid": 5,
+                "eid": 7,
                 "nodos": [
                   7,
-                  4
+                  2
                 ]
               }
             ],
-            "Mu_servicio_izq": 34.88,
-            "Mu_servicio_der": 88.63,
-            "Mu_servicio_campo": -40.4,
-            "Vu_servicio_izq": -83.99,
-            "Vu_servicio_der": 106.37,
-            "Mu_kNm_apoyo_izq": -34.88397588310086,
-            "Mu_kNm_apoyo_der": -88.62693284874845,
-            "Mu_kNm_campo": 40.40204616575221,
-            "Vu_kN_izq": -83.994257678049,
-            "Vu_kN_der": 106.36573709581567,
-            "puntos_inflexion_m": [
-              0.474,
-              2.931
-            ]
-          },
+            "Mu_servicio_izq": -0.0,
+            "Mu_servicio_der": 33.99,
+            "Mu_servicio_campo": -0.0,
+            "Vu_servicio_izq": 25.3,
+            "Vu_servicio_der": 59.68,
+            "Mu_kNm_apoyo_izq": 0,
+            "Mu_kNm_apoyo_der": 0,
+            "Mu_kNm_campo": 0,
+            "Vu_kN_izq": 0,
+            "Vu_kN_der": 0,
+            "Mu_kNm": -34.93056073941099,
+            "Vu_kN_emp": 62.026400547265226
+          }
+        ]
+      },
+      "V1-1": {
+        "tramos": [
           {
-            "id": "V0-1 T2",
-            "longitud_m": 5.0,
+            "id": "V1-1 T1",
+            "longitud_m": 4.85,
             "es_voladizo": false,
-            "x_inicio": 4.0,
-            "x_fin": 9.0,
+            "x_inicio": 0.0,
+            "x_fin": 4.85,
             "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
+              "D_total": 34.89,
+              "L_total": 8.08,
+              "W_total": 6.2,
               "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.82,
+                "0.9D+1.6W": 41.31
               }
             },
             "cargas_puntuales": [],
@@ -1806,122 +284,75 @@
               {
                 "eid": 6,
                 "nodos": [
-                  4,
+                  5,
                   6
                 ]
               }
             ],
-            "Mu_servicio_izq": 65.9,
-            "Mu_servicio_der": 99.96,
-            "Mu_servicio_campo": -54.6,
-            "Vu_servicio_izq": -102.79,
-            "Vu_servicio_der": 116.41,
-            "Mu_kNm_apoyo_izq": -65.89718798864996,
-            "Mu_kNm_apoyo_der": -99.9566916155294,
-            "Mu_kNm_campo": 54.60216203738378,
-            "Vu_kN_izq": -102.78809927462419,
-            "Vu_kN_der": 116.41190072537583,
+            "Mu_servicio_izq": 68.23,
+            "Mu_servicio_der": 57.72,
+            "Mu_servicio_campo": -63.42,
+            "Vu_servicio_izq": -106.37,
+            "Vu_servicio_der": 102.03,
+            "Mu_kNm_apoyo_izq": -47.55421672883797,
+            "Mu_kNm_apoyo_der": -87.07657821886353,
+            "Mu_kNm_campo": 68.3723530224559,
+            "Vu_kN_izq": -103.17795713729286,
+            "Vu_kN_der": 119.47583848457931,
             "puntos_inflexion_m": [
-              0.767,
-              3.922
+              0.522,
+              3.973
             ]
           },
           {
-            "id": "V0-1 tv_izq",
-            "longitud_m": 1.2,
+            "id": "V1-1 tv_izq",
+            "longitud_m": 0.8,
             "es_voladizo": true,
-            "x_inicio": -1.2,
+            "x_inicio": -0.8,
             "x_fin": 0.0,
             "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
+              "D_total": 34.89,
+              "L_total": 8.08,
+              "W_total": 6.2,
               "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.82,
+                "0.9D+1.6W": 41.31
               }
             },
             "cargas_puntuales": [
               {
                 "piso": 0,
                 "coordenadas": {
-                  "x": -1.0,
-                  "y": 3.2
+                  "x": -0.8,
+                  "y": 3.1
                 },
-                "valor_kN": 15.0,
-                "tipo": "v1"
+                "valor_kN": 25.3,
+                "tipo": "Vexter"
               }
             ],
             "subtramos": [
-              {
-                "eid": 7,
-                "nodos": [
-                  8,
-                  9
-                ]
-              },
               {
                 "eid": 8,
                 "nodos": [
-                  9,
-                  2
+                  8,
+                  5
                 ]
               }
             ],
-            "Mu_servicio_izq": -0.0,
-            "Mu_servicio_der": 46.56,
-            "Mu_servicio_campo": -0.0,
-            "Vu_servicio_izq": 0.0,
-            "Vu_servicio_der": 67.61,
-            "Mu_kNm_apoyo_izq": 0,
-            "Mu_kNm_apoyo_der": 0,
-            "Mu_kNm_campo": 0,
-            "Vu_kN_izq": 0,
-            "Vu_kN_der": 0,
-            "Mu_kNm": -46.564802508532615,
-            "Vu_kN_emp": 67.60800209043731
-          },
-          {
-            "id": "V0-1 tv_der",
-            "longitud_m": 1.3,
-            "es_voladizo": true,
-            "x_inicio": 9.0,
-            "x_fin": 10.3,
-            "cargas": {
-              "D_total": 32.88,
-              "L_total": 10.96,
-              "W_total": 6.22,
-              "combinaciones": {
-                "1.4D": 46.03,
-                "1.2D+1.6L": 56.99,
-                "1.2D+0.5L+1.6W": 54.89,
-                "0.9D+1.6W": 39.54
-              }
-            },
-            "cargas_puntuales": [],
-            "subtramos": [
-              {
-                "eid": 9,
-                "nodos": [
-                  6,
-                  10
-                ]
-              }
-            ],
-            "Mu_servicio_izq": 37.04,
-            "Mu_servicio_der": 0.0,
+            "Mu_servicio_izq": 0.0,
+            "Mu_servicio_der": 13.75,
             "Mu_servicio_campo": 0.0,
-            "Vu_servicio_izq": -56.99,
-            "Vu_servicio_der": 0.0,
+            "Vu_servicio_izq": 0.0,
+            "Vu_servicio_der": 34.38,
             "Mu_kNm_apoyo_izq": 0,
             "Mu_kNm_apoyo_der": 0,
             "Mu_kNm_campo": 0,
             "Vu_kN_izq": 0,
             "Vu_kN_der": 0,
-            "Mu_kNm": -37.04481087036193,
-            "Vu_kN_emp": -56.99200836181615
+            "Mu_kNm": -14.690560437815039,
+            "Vu_kN_emp": 36.72640054726908
           }
         ]
       }
@@ -1929,7 +360,7 @@
     "columnas": {
       "C0-a": {
         "x": 0.0,
-        "altura_m": 3.2,
+        "altura_m": 3.1,
         "eid": 1,
         "nodos": [
           1,
@@ -1937,18 +368,18 @@
         ],
         "Nodo_inferior": 1,
         "Nodo_superior": 2,
-        "Mu_kNm_inf": 37.73,
-        "Mu_kNm_sup": -11.68,
-        "P_kN": -151.6,
-        "Mu_servicio_inf": 37.73,
-        "Mu_servicio_sup": -11.68,
-        "P_servicio": -151.6,
+        "Mu_kNm_inf": 32.68,
+        "Mu_kNm_sup": -9.02,
+        "P_kN": -297.94,
+        "Mu_servicio_inf": -27.8,
+        "Mu_servicio_sup": 19.09,
+        "P_servicio": -308.33,
         "deriva_h": 0.0,
-        "distancia_campo_cero_m": 2.443
+        "distancia_campo_cero_m": 2.429
       },
       "C0-b": {
-        "x": 4.0,
-        "altura_m": 3.2,
+        "x": 4.85,
+        "altura_m": 3.1,
         "eid": 2,
         "nodos": [
           3,
@@ -1956,65 +387,74 @@
         ],
         "Nodo_inferior": 3,
         "Nodo_superior": 4,
-        "Mu_kNm_inf": 39.97,
-        "Mu_kNm_sup": -22.73,
-        "P_kN": -209.15,
-        "Mu_servicio_inf": 39.97,
-        "Mu_servicio_sup": -22.73,
-        "P_servicio": -209.15,
-        "deriva_h": 0.0,
-        "distancia_campo_cero_m": 2.04
+        "Mu_kNm_inf": -70.99,
+        "Mu_kNm_sup": 71.83,
+        "P_kN": -246.12,
+        "Mu_servicio_inf": 8.57,
+        "Mu_servicio_sup": -38.32,
+        "P_servicio": -202.53,
+        "deriva_h": 0.012102,
+        "distancia_campo_cero_m": 1.559
       },
-      "C0-c": {
-        "x": 9.0,
-        "altura_m": 3.2,
+      "C1-a": {
+        "x": 0.0,
+        "altura_m": 2.9,
         "eid": 3,
         "nodos": [
-          5,
+          2,
+          5
+        ],
+        "Nodo_inferior": 2,
+        "Nodo_superior": 5,
+        "Mu_kNm_inf": 32.86,
+        "Mu_kNm_sup": -19.64,
+        "P_kN": -139.9,
+        "Mu_servicio_inf": -33.42,
+        "Mu_servicio_sup": 54.48,
+        "P_servicio": -140.75,
+        "deriva_h": 0.009314,
+        "distancia_campo_cero_m": 1.085
+      },
+      "C1-b": {
+        "x": 4.85,
+        "altura_m": 2.9,
+        "eid": 4,
+        "nodos": [
+          4,
           6
         ],
-        "Nodo_inferior": 5,
+        "Nodo_inferior": 4,
         "Nodo_superior": 6,
-        "Mu_kNm_inf": -62.91,
-        "Mu_kNm_sup": 53.88,
-        "P_kN": -173.4,
-        "Mu_servicio_inf": 53.88,
-        "Mu_servicio_sup": -62.91,
-        "P_servicio": -173.4,
-        "deriva_h": 0.006557,
-        "distancia_campo_cero_m": 1.476
+        "Mu_kNm_inf": 48.85,
+        "Mu_kNm_sup": -87.08,
+        "P_kN": -119.48,
+        "Mu_servicio_inf": 30.18,
+        "Mu_servicio_sup": -57.72,
+        "P_servicio": -102.03,
+        "deriva_h": 0.006223,
+        "distancia_campo_cero_m": 1.042
       }
     },
     "bases": {
       "B0-a": {
         "x": 0.0,
         "tipo": "empotramiento",
-        "Fx_servicio": -15.44,
-        "Fy_servicio": -151.6,
-        "Tz_servicio": 37.73,
-        "Fx_kN": -15.44,
-        "Fy_kN": -151.6,
-        "Tz_kNm": 37.73
+        "Fx_servicio": 15.13,
+        "Fy_servicio": -308.33,
+        "Tz_servicio": -27.8,
+        "Fx_kN": -13.45,
+        "Fy_kN": -297.94,
+        "Tz_kNm": 32.68
       },
       "B0-b": {
-        "x": 4.0,
+        "x": 4.85,
         "tipo": "empotramiento",
-        "Fx_servicio": -19.59,
-        "Fy_servicio": -209.15,
-        "Tz_servicio": 39.97,
-        "Fx_kN": -19.59,
-        "Fy_kN": -209.15,
-        "Tz_kNm": 39.97
-      },
-      "B0-c": {
-        "x": 9.0,
-        "tipo": "empotramiento",
-        "Fx_servicio": -36.5,
-        "Fy_servicio": -173.4,
-        "Tz_servicio": 53.88,
-        "Fx_kN": -36.5,
-        "Fy_kN": -173.4,
-        "Tz_kNm": 53.88
+        "Fx_servicio": -15.13,
+        "Fy_servicio": -202.53,
+        "Tz_servicio": 8.57,
+        "Fx_kN": -46.07,
+        "Fy_kN": -246.12,
+        "Tz_kNm": 71.83
       }
     },
     "cargas_puntuales": []

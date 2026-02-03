@@ -1,0 +1,436 @@
+{
+  "tramos": [
+    {
+      "viga": "V0-1",
+      "id": "V0-1.V0-1 T1",
+      "tipo": "interior",
+      "L_m": 4.85,
+      "PI_izq_m": 0.546,
+      "PI_der_m": 3.636
+    },
+    {
+      "viga": "V0-1",
+      "id": "V0-1.V0-1 tv_izq",
+      "tipo": "voladizo",
+      "L_m": 0.8
+    },
+    {
+      "viga": "V1-1",
+      "id": "V1-1.V1-1 T1",
+      "tipo": "interior",
+      "L_m": 4.85,
+      "PI_izq_m": 0.522,
+      "PI_der_m": 3.973
+    },
+    {
+      "viga": "V1-1",
+      "id": "V1-1.V1-1 tv_izq",
+      "tipo": "voladizo",
+      "L_m": 0.8
+    }
+  ],
+  "materiales": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "fc_MPa": 20,
+      "fy_MPa": 420,
+      "Ec_MPa": 21019.038988498025,
+      "b_cm": 20.0,
+      "h_cm": 39,
+      "recubrimiento_cm": 4.0,
+      "V_m3": 0.3782999999999999,
+      "peso_kg": 907.9199999999998
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "fc_MPa": 20,
+      "fy_MPa": 420,
+      "Ec_MPa": 21019.038988498025,
+      "b_cm": 20.0,
+      "h_cm": 39,
+      "recubrimiento_cm": 4.0,
+      "V_m3": 0.0624,
+      "peso_kg": 149.76
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "fc_MPa": 20,
+      "fy_MPa": 420,
+      "Ec_MPa": 21019.038988498025,
+      "b_cm": 20.0,
+      "h_cm": 39,
+      "recubrimiento_cm": 4.0,
+      "V_m3": 0.3782999999999999,
+      "peso_kg": 907.9199999999998
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "fc_MPa": 20,
+      "fy_MPa": 420,
+      "Ec_MPa": 21019.038988498025,
+      "b_cm": 20.0,
+      "h_cm": 39,
+      "recubrimiento_cm": 4.0,
+      "V_m3": 0.0624,
+      "peso_kg": 149.76
+    }
+  ],
+  "flexion": [
+    {
+      "tramo": "V0-1 T1",
+      "As_req_cm2": 4.66,
+      "As_adop_cm2": 4.71238898038469,
+      "cumple": true
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "As_req_cm2": 2.87,
+      "As_adop_cm2": 2.87,
+      "cumple": true
+    },
+    {
+      "tramo": "V1-1 T1",
+      "As_req_cm2": 5.97,
+      "As_adop_cm2": 6.031857894892403,
+      "cumple": true
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "As_req_cm2": 1.17,
+      "As_adop_cm2": 2.27,
+      "cumple": true
+    }
+  ],
+  "armaduras": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 1,
+      "cantidad": 5,
+      "diam_mm": 10,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 0.9460000000000001,
+      "peso_kg": 2.91841
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 2,
+      "cantidad": 3,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo",
+      "longitud_m": 3.33,
+      "peso_kg": 6.16383
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 3,
+      "cantidad": 3,
+      "diam_mm": 10,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 5.09,
+      "peso_kg": 9.42159
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 4,
+      "cantidad": 4,
+      "diam_mm": 20,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 2.0139999999999993,
+      "peso_kg": 19.866095999999995
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 5.09,
+      "peso_kg": 4.0211
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "pos": 1,
+      "cantidad": 6,
+      "diam_mm": 8,
+      "detalle": "Sup. voladizo",
+      "longitud_m": 1.12,
+      "peso_kg": 2.6544000000000003
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. mínima",
+      "longitud_m": 0.8,
+      "peso_kg": 0.9872000000000001
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "pos": 1,
+      "cantidad": 2,
+      "diam_mm": 16,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 1.162,
+      "peso_kg": 3.667272
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "pos": 2,
+      "cantidad": 1,
+      "diam_mm": 16,
+      "detalle": "Inf. tramo",
+      "longitud_m": 3.8349999999999995,
+      "peso_kg": 6.051629999999999
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "pos": 3,
+      "cantidad": 2,
+      "diam_mm": 16,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 5.234,
+      "peso_kg": 16.518504
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "pos": 4,
+      "cantidad": 4,
+      "diam_mm": 16,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 1.517,
+      "peso_kg": 9.575304
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 5.09,
+      "peso_kg": 4.0211
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "pos": 1,
+      "cantidad": 3,
+      "diam_mm": 10,
+      "detalle": "Sup. voladizo",
+      "longitud_m": 1.2000000000000002,
+      "peso_kg": 2.2212000000000005
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 10,
+      "detalle": "Inf. mínima",
+      "longitud_m": 0.8,
+      "peso_kg": 0.9872000000000001
+    }
+  ],
+  "estribos": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 21,
+      "longitud_m": 1.04,
+      "peso_kg": 4.84848
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "zona": "apoyo_der",
+      "diam_mm": 6,
+      "separacion_cm": 12,
+      "cantidad": 14,
+      "longitud_m": 1.04,
+      "peso_kg": 3.23232
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "zona": "empotramiento",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 3,
+      "longitud_m": 1.04,
+      "peso_kg": 0.69264
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "zona": "extremo_libre",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 3,
+      "longitud_m": 1.04,
+      "peso_kg": 0.69264
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 22,
+      "longitud_m": 1.04,
+      "peso_kg": 5.07936
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "zona": "apoyo_der",
+      "diam_mm": 6,
+      "separacion_cm": 12,
+      "cantidad": 13,
+      "longitud_m": 1.04,
+      "peso_kg": 3.00144
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "zona": "empotramiento",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 3,
+      "longitud_m": 1.04,
+      "peso_kg": 0.69264
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "zona": "extremo_libre",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 3,
+      "longitud_m": 1.04,
+      "peso_kg": 0.69264
+    }
+  ],
+  "inercias": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "Ig_cm4": 98865.0,
+      "Ief_cm4": 78565.53897894402,
+      "ratio_Ief_Ig": 0.7946749504773583,
+      "Mcr_tramo_kNm": 16.12777068434789,
+      "c_usado_cm": 10.515193688140737,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "Ig_cm4": 98865.0,
+      "Ief_cm4": 79086.2928860576,
+      "ratio_Ief_Ig": 0.799942273666693,
+      "Mcr_tramo_kNm": 16.663638672530762,
+      "c_usado_cm": 11.61474741659619,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    }
+  ],
+  "flecha": [
+    {
+      "viga": "V0-1",
+      "tramo": "V0-1 T1",
+      "tipo_tramo": "interior",
+      "L_m": 4.85,
+      "q_serv_kN_m": 42.97,
+      "delta_mm": 21.52797099184642,
+      "lim_L360_mm": 13.472222222222221,
+      "cumple_L360": false,
+      "Ie_tramo_cm4": 40384.85318155408,
+      "Ie_apoyo_izq_cm4": 109545.18444768486,
+      "Ie_apoyo_der_cm4": 123947.26510498303,
+      "criterio": "Carga virtual – rigidez variable"
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "tipo_tramo": "voladizo",
+      "L_m": 0.8,
+      "q_serv_kN_m": 42.97,
+      "delta_mm": 0.09971727973625456,
+      "lim_L180_mm": 4.444444444444445,
+      "cumple_L180": true,
+      "Ie_cm4": 104966.81903891067
+    },
+    {
+      "viga": "V1-1",
+      "tramo": "V1-1 T1",
+      "tipo_tramo": "interior",
+      "L_m": 4.85,
+      "q_serv_kN_m": 42.97,
+      "delta_mm": 19.954455629143652,
+      "lim_L360_mm": 13.472222222222221,
+      "cumple_L360": false,
+      "Ie_tramo_cm4": 45820.65641336665,
+      "Ie_apoyo_izq_cm4": 108790.76401904672,
+      "Ie_apoyo_der_cm4": 115913.0946984504,
+      "criterio": "Carga virtual – rigidez variable"
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "tipo_tramo": "voladizo",
+      "L_m": 0.8,
+      "q_serv_kN_m": 42.97,
+      "delta_mm": 0.10096388434063863,
+      "lim_L180_mm": 4.444444444444445,
+      "cumple_L180": true,
+      "Ie_cm4": 103670.79006007327
+    }
+  ],
+  "corte": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "V_izq_kN": -96.0091517193077,
+      "V_der_kN": 126.64464390256443,
+      "cumple": true
+    },
+    {
+      "tramo": "V0-1.V0-1 tv_izq",
+      "V_kN": 62.026400547265226,
+      "cumple": true
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "V_izq_kN": -103.17795713729286,
+      "V_der_kN": 119.47583848457931,
+      "cumple": true
+    },
+    {
+      "tramo": "V1-1.V1-1 tv_izq",
+      "V_kN": 36.72640054726908,
+      "cumple": true
+    }
+  ],
+  "fisuracion": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "viga": "V0-1",
+      "dc_mm": 45.0,
+      "fs_MPa": 280.0,
+      "A_barra_mm2": 78.53981633974483,
+      "w_um": 58.64462243427821,
+      "w_mm": 0.05864462243427821,
+      "w_lim_mm": 0.1,
+      "cumple": true
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "viga": "V1-1",
+      "dc_mm": 48.0,
+      "fs_MPa": 280.0,
+      "A_barra_mm2": 201.0619298297468,
+      "w_um": 81.96927443267445,
+      "w_mm": 0.08196927443267445,
+      "w_lim_mm": 0.1,
+      "cumple": true
+    }
+  ],
+  "estado": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    }
+  ]
+}

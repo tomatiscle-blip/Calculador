@@ -146,3 +146,38 @@ def preparar_datos(datos):
 
 if __name__ == "__main__":
     ingresar_datos()
+
+if seccion_tipo == "III":
+    # columna circular
+    dprima_cm = 4.0  # reglamentario
+    b = h = b_inicial  # diámetro circular
+    gamma = calcular_gamma(h, dprima_cm)
+    diagrama = cargar_diagrama_interpolado(seccion_tipo, fck, gamma, x_obj, y_obj)
+    resultado_armado = armado_estribos(Ast_min, lado_cm=b, b=b, h=h, d_usado=dprima_cm, seccion_tipo=seccion_tipo)
+else:
+    # columna rectangular (I o II)
+    # loop automático para ajustar seccion y d' hasta que funcione
+    while True:
+        gamma = calcular_gamma(h, dprima_cm)
+        x_obj = calcular_x_normalizado(Pu, Mu, b, h)
+        y_obj = calcular_y_normalizado(Pu, b, h)
+
+        try:
+            diagrama = cargar_diagrama_interpolado(seccion_tipo, fck, gamma, x_obj, y_obj)
+        except ValueError:
+            if h + 2 <= h_max:
+                h += 2
+                continue
+            else:
+                raise ValueError("No se puede ajustar el diagrama")
+
+        resultado_armado = armado_estribos(Ast_min, lado_cm=b, b=b, h=h, d_usado=dprima_cm, seccion_tipo=seccion_tipo)
+        if isinstance(resultado_armado, str) and "No hay combinación viable" in resultado_armado:
+            if dprima_cm + 0.2 <= dprima_max:
+                dprima_cm += 0.2
+            elif h + 2 <= h_max:
+                h += 2
+            else:
+                raise ValueError("No se puede armar la columna")
+        else:
+            break

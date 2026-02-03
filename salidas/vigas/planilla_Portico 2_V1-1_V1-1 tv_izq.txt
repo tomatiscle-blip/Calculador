@@ -1,0 +1,38 @@
+================================================================================
+PLANILLA DE DOBLADO – V1-1 – VOLADIZO – TRAMO V1-1 tv_izq
+================================================================================
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 3     | 10   | Sup. voladizo         | 1.20    | 2.22      
+2    | 2     | 10   | Inf. mínima           | 0.80    | 0.99      
+3    | 3     | 6    | Estribo empotramiento | 1.04    | 0.69       | c/16cm
+4    | 3     | 6    | Estribo extremo_libre | 1.04    | 0.69       | c/16cm
+--------------------------------------------------------------------------------
+TOTAL PESO                                  | 4.59       kg
+
+SECCIÓN Y VOLUMEN (Voladizo)
+   b = 20.0 cm | h = 39 cm | Recubrimiento = 4.0 cm
+   Área sección = 780 cm²
+   Longitud L = 0.80 m
+   Volumen hormigón = 0.062 m³
+   Peso aprox. = 150 kg
+
+CUANTÍA DE ARMADURA (Voladizo)
+   As requerido = 1.17 cm²
+   As mínimo    = 2.27 cm²
+   As balance   = 13.76 cm²
+   As máximo    = 10.32 cm²
+   As adoptado  = 2.27 cm²
+
+FLECHA DE SERVICIO (Voladizo)
+   δmax = 0.10 mm
+   Flecha adm L/180 (Voladizos) = 4.44 mm | q_serv = 42.97 kN/m → ✅ Cumple
+
+INERCIAS Y MOMENTO DE FISURACIÓN
+   Ig  (bruta)       = 9.886e-04 m⁴
+   Icr (fisurada)    = 2.007e-04 m⁴
+   Ie  (efectiva)    = 1.037e-03 m⁴
+   Mcr (fisuración)  = 15.16 kNm
+   Relación Ie/Ig    = 1.049
+   k usado           = 0.231 | c usado = 7.85 cm
+   Materiales: fc = 20 MPa | fy = 420 MPa | Ec = 21019 MPa

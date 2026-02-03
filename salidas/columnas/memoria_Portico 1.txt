@@ -1,0 +1,52 @@
+
+=== MEMORIA DE CÁLCULO ===
+PÓRTICO Portico 1
+
+        Columna: C0-a
+        Sección: b=20.0, h=25.0
+        Altura libre: 3.10 m
+        Recubrimiento: 3.60 cm
+        Pu = 163.85 kN, Mu = 26.46 kNm
+        f'c = 20 MPa
+        Esbeltez λ = 30.07 → CORTA
+        Ast adoptado = 5.00 cm²
+        Armadura longitudinal: 6Ø12
+        Estribos: Ø6 mm @ 14.4 cm
+        Nota diagrama: γ=0.71, X=2.117, Y=3.277, ρg=0.010
+        Tipo de diagrama de interacción: I
+
+        Despiece:
+        - Barras longitudinales: 6Ø12
+        Largo individual ≈ 3.10 m + empalme (48·db ≈ 0.58 m) → 3.68 m
+        Peso por barra ≈ 2.57 kg
+        Peso total ≈ 15.39 kg
+        - Estribos: Ø6 mm
+        Largo individual ≈ 1.10 m (incluye ganchos)
+        Cantidad ≈ 22
+        Peso total ≈ 4.22 kg
+        --------------------------------------------------
+        
+        Columna: C0-b
+        Sección: b=20.0, h=27.7
+        Altura libre: 3.10 m
+        Recubrimiento: 4.00 cm
+        Pu = 120.83 kN, Mu = 92.63 kNm
+        f'c = 20 MPa
+        Esbeltez λ = 27.14 → CORTA
+        Ast adoptado = 22.16 cm²
+        Armadura longitudinal: 8Ø20
+        Estribos: Ø8 mm @ 20.0 cm
+        Nota diagrama: γ=0.71, X=6.036, Y=2.181, ρg=0.040
+        Tipo de diagrama de interacción: I
+
+        Despiece:
+        - Barras longitudinales: 8Ø20
+        Largo individual ≈ 3.10 m + empalme (48·db ≈ 0.96 m) → 4.06 m
+        Peso por barra ≈ 7.87 kg
+        Peso total ≈ 62.96 kg
+        - Estribos: Ø8 mm
+        Largo individual ≈ 1.15 m (incluye ganchos)
+        Cantidad ≈ 16
+        Peso total ≈ 5.73 kg
+        --------------------------------------------------
+        
