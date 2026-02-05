@@ -232,12 +232,21 @@
   "estribos": [
     {
       "tramo": "V0-1.V0-1 T1",
+      "zona": "apoyo_izq",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 7,
+      "longitud_m": 1.04,
+      "peso_kg": 1.61616
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
       "zona": "central",
       "diam_mm": 6,
       "separacion_cm": 16,
-      "cantidad": 21,
+      "cantidad": 14,
       "longitud_m": 1.04,
-      "peso_kg": 4.84848
+      "peso_kg": 3.23232
     },
     {
       "tramo": "V0-1.V0-1 T1",
@@ -268,12 +277,21 @@
     },
     {
       "tramo": "V1-1.V1-1 T1",
+      "zona": "apoyo_izq",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 8,
+      "longitud_m": 1.04,
+      "peso_kg": 1.84704
+    },
+    {
+      "tramo": "V1-1.V1-1 T1",
       "zona": "central",
       "diam_mm": 6,
       "separacion_cm": 16,
-      "cantidad": 22,
+      "cantidad": 14,
       "longitud_m": 1.04,
-      "peso_kg": 5.07936
+      "peso_kg": 3.23232
     },
     {
       "tramo": "V1-1.V1-1 T1",
@@ -330,8 +348,8 @@
       "tipo_tramo": "interior",
       "L_m": 4.85,
       "q_serv_kN_m": 42.97,
-      "delta_mm": 21.52797099184642,
-      "lim_L360_mm": 13.472222222222221,
+      "delta_mm": 10.076584822199607,
+      "lim_L360_mm": 0.01347222222222222,
       "cumple_L360": false,
       "Ie_tramo_cm4": 40384.85318155408,
       "Ie_apoyo_izq_cm4": 109545.18444768486,
@@ -354,8 +372,8 @@
       "tipo_tramo": "interior",
       "L_m": 4.85,
       "q_serv_kN_m": 42.97,
-      "delta_mm": 19.954455629143652,
-      "lim_L360_mm": 13.472222222222221,
+      "delta_mm": 10.871177334067042,
+      "lim_L360_mm": 0.01347222222222222,
       "cumple_L360": false,
       "Ie_tramo_cm4": 45820.65641336665,
       "Ie_apoyo_izq_cm4": 108790.76401904672,

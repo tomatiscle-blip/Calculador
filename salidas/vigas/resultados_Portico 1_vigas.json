@@ -121,12 +121,21 @@
   "estribos": [
     {
       "tramo": "V0-1.V0-1 T1",
+      "zona": "apoyo_izq",
+      "diam_mm": 6,
+      "separacion_cm": 16,
+      "cantidad": 8,
+      "longitud_m": 1.04,
+      "peso_kg": 1.84704
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
       "zona": "central",
       "diam_mm": 6,
       "separacion_cm": 16,
-      "cantidad": 21,
+      "cantidad": 14,
       "longitud_m": 1.04,
-      "peso_kg": 4.84848
+      "peso_kg": 3.23232
     },
     {
       "tramo": "V0-1.V0-1 T1",
@@ -174,8 +183,8 @@
       "tipo_tramo": "interior",
       "L_m": 4.85,
       "q_serv_kN_m": 42.97,
-      "delta_mm": 19.829666756806525,
-      "lim_L360_mm": 13.472222222222221,
+      "delta_mm": 10.939590080339219,
+      "lim_L360_mm": 0.01347222222222222,
       "cumple_L360": false,
       "Ie_tramo_cm4": 46056.023464666294,
       "Ie_apoyo_izq_cm4": 108615.6211051218,

@@ -8,8 +8,9 @@ Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg)
 3    | 2     | 16   | Inf. tramo completo   | 5.23    | 16.52     
 4    | 4     | 16   | Sup. apoyo der        | 1.52    | 9.58      
 5    | 2     | 8    | Auxiliar superior     | 5.09    | 4.02      
-6    | 22    | 6    | Estribo central       | 1.04    | 5.08       | c/16cm (Ø6)
-7    | 13    | 6    | Estribo apoyo_der     | 1.04    | 3.00       | c/12cm (Ø6)
+6    | 8     | 6    | Estribo apoyo_izq     | 1.04    | 1.85       | c/16cm (Ø6)
+7    | 14    | 6    | Estribo central       | 1.04    | 3.23       | c/16cm (Ø6)
+8    | 13    | 6    | Estribo apoyo_der     | 1.04    | 3.00       | c/12cm (Ø6)
 --------------------------------------------------------------------------------
 TOTAL PESO                                            | 47.91 kg
 
@@ -55,15 +56,15 @@ NOTAS TÉCNICAS
    As apoyo der = 8.04 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 35 unidades (s_teor≈7809.9 mm → s_final=16 cm)
-   Cantidad total Ø8 = 32 unidades (s_teor≈13884.3 mm → s_final=16 cm)
-   Zonificación   = central=0.00-3.38 m | apoyo_der=3.38-4.85 m
+   Cantidad total Ø6 = 35 unidades (s_teor≈158.6 mm → s_final=16 cm)
+   Cantidad total Ø8 = 32 unidades (s_teor≈281.9 mm → s_final=16 cm)
+   Zonificación   = apoyo_izq=0.00-1.18 m | central=1.18-3.38 m | apoyo_der=3.38-4.85 m
 
 9 FLECHA DE SERVICIO
    Método: Carga virtual con rigidez variable (tramo + apoyos)
-   δmax = 19.95 mm
-   Flecha adm L/250 = 19.40 mm | q_serv = 42.97 kN/m → ❌ No cumple
-   Flecha adm L/360 = 13.47 mm | q_serv = 42.97 kN/m → ❌ No cumple
+   δmax = 10.87 mm
+   Flecha adm L/250 = 19.40 mm | q_serv = 42.97 kN/m → ✅ Cumple
+   Flecha adm L/360 = 13.47 mm | q_serv = 42.97 kN/m → ✅ Cumple
    Flecha adm L/480 = 10.10 mm | q_serv = 42.97 kN/m → ❌ No cumple
 
    Inercias usadas (tramo + apoyos)

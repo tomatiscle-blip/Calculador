@@ -319,3 +319,79 @@ with open(out, "w", encoding="utf-8") as f:
     json.dump(resultados, f, indent=4, ensure_ascii=False)
 
 print(f"\n✔ Resultados guardados en {out}")
+
+# ============================================================
+# GUARDAR TXT GENERAL
+# ============================================================
+
+txt_out = os.path.join(OUTPUT_DIR, f"bases_completas_{portico}.txt")
+
+with open(txt_out, "w", encoding="utf-8") as f:
+    f.write(f"Informe Bases - Pórtico {portico}\n")
+    f.write("="*50 + "\n\n")
+
+    for nb, res in resultados.items():
+        if nb == "vigas_fundacion":
+            continue
+
+        f.write(f"Base {nb}\n")
+        f.write("-"*40 + "\n")
+
+        # Geotecnia
+        geo = res["geotecnia"]
+        f.write("Geotecnia:\n")
+        f.write(f"  Lado zapata: {geo['lado_m']} m\n")
+        f.write(f"  Área: {geo['area_m2']} m²\n")
+        f.write(f"  Excentricidad: {geo['excentricidad_m']} m\n")
+        f.write(f"  q_max: {geo['q_max_kPa']} kPa\n")
+        f.write(f"  q_min: {geo['q_min_kPa']} kPa\n")
+        f.write(f"  Requiere viga: {geo['requiere_viga_fundacion']}\n")
+
+        # Espesor
+        f.write(f"Espesor zapata: {res['espesor_m']} m\n")
+
+        # Armadura zapata
+        arm = res["armadura_zapata"]
+        f.write("Armadura zapata:\n")
+        f.write(f"  Diametro: {arm['diametro']}\n")
+        f.write(f"  Paso: {arm['paso_cm']} cm\n")
+        f.write(f"  Barras por sentido: {arm['barras_por_sentido']}\n")
+        f.write(f"  Longitud total: {arm['longitud_total_m']} m\n")
+        f.write(f"  Peso total: {arm['peso_total_kg']} kg\n")
+
+        # Tronco
+        tronco = res.get("tronco")
+        if tronco:
+            f.write("Tronco (pedestal):\n")
+            f.write(f"  Lado: {tronco['lado_m']} m\n")
+            f.write(f"  Altura: {tronco['altura_m']} m\n")
+            f.write(f"  Volumen: {tronco['volumen_m3']} m³\n")
+
+        # Pelos
+        pelos = res.get("pelos_columna")
+        if pelos:
+            f.write("Pelos columna:\n")
+            f.write(f"  Cantidad barras: {pelos['cantidad']}\n")
+            f.write(f"  Diametro: {pelos['diametro_cm']} cm\n")
+            f.write(f"  Anclaje: {pelos['anclaje_m']} m\n")
+            f.write(f"  Empalme: {pelos['empalme_m']} m\n")
+            f.write(f"  Altura tronco: {pelos['altura_tronco_m']} m\n")
+            f.write(f"  Longitud total: {pelos['longitud_total_m']} m\n")
+
+        f.write("\n")
+
+    # Vigas de fundación
+    vigas = resultados.get("vigas_fundacion")
+    if vigas:
+        f.write("="*50 + "\n")
+        f.write("Vigas de fundación:\n")
+        for name, v in vigas.items():
+            f.write(f"{name}:\n")
+            f.write(f"  Longitud: {v['longitud_m']} m\n")
+            f.write(f"  Sección: {v['seccion_cm']}\n")
+            f.write(f"  Armadura longitudinal: {v['armadura_longitudinal']}\n")
+            f.write(f"  As requerida: {v['As_requerida_mm2']} mm²\n")
+            f.write(f"  Estribos: {v['estribos']['cantidad']} uds Ø{v['estribos']['diam']} cada {v['estribos']['paso_cm']} cm\n")
+            f.write(f"  Peso estribos: {v['estribos']['peso_kg']} kg\n\n")
+
+print(f"✔ Archivo TXT general generado en: {txt_out}")

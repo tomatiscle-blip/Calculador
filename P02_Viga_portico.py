@@ -690,9 +690,13 @@ class DisenadorViga:
             xcrit_izq = 0.0
             xcrit_der = 0.0
         else:
-            # Distancia crítica desde cada apoyo
-            xcrit_izq = max(0.0, min(L_m, (Vu_izq_kN - phiVc_kN) / q_kNm))
-            xcrit_der = max(0.0, min(L_m, (Vu_der_kN - phiVc_kN) / q_kNm))
+            # Usar magnitudes de los cortantes
+            Vu_izq_abs = abs(Vu_izq_kN)
+            Vu_der_abs = abs(Vu_der_kN)
+
+            xcrit_izq = max(0.0, min(L_m, (Vu_izq_abs - phiVc_kN) / q_kNm))
+            xcrit_der = max(0.0, min(L_m, (Vu_der_abs - phiVc_kN) / q_kNm))
+
 
         # Debug prints
         print("\n--- DEBUG _xcrit_continuo ---")
@@ -1387,7 +1391,7 @@ def generar_planilla(
     k_izq, c_izq = calcular_k_c(b_cm, v.d*100, As_apoyo_izq, fc_MPa)
     Ig_i, Jh_i, Jhf_i, Mcr_i, Ie_i = v.inercias_seccion(
         As_cm2=As_apoyo_izq,
-        c=c_tramo / 100.0,   # ✅ cm → m
+        c=c_izq / 100.0,   # ✅ cm → m
         M_kNm=viga_data["m_izq"]
     )
 
@@ -1395,7 +1399,7 @@ def generar_planilla(
     k_der, c_der = calcular_k_c(b_cm, v.d*100, As_apoyo_der, fc_MPa)
     Ig_d, Jh_d, Jhf_d, Mcr_d, Ie_d = v.inercias_seccion(
         As_cm2=As_apoyo_der,
-        c=c_tramo / 100.0,   # ✅ cm → m
+        c=c_der / 100.0,   # ✅ cm → m
         M_kNm=viga_data["m_der"]
     )   
 
@@ -1669,13 +1673,14 @@ def generar_planilla(
         raise ValueError("Inercias no calculadas para este tramo")
     
     # Inercias ya calculadas para ESTA viga
-    Ec = 4700 * math.sqrt(fc_MPa)  # N/mm²
-    L = L_viga * 1000              # mm
-    q = cargas["servicio"]         # kN/m (D+L)
+    Ec = 4700 * math.sqrt(fc_MPa)/ 1000.0   # kN/m²
+    L = L_viga               # m
+    q = cargas["servicio"]     # kN/m 
 
-    Ie_t = inercias["tramo"]["Ie"] * 1e12
-    Ie_i = inercias["apoyo_izq"]["Ie"] * 1e12
-    Ie_d = inercias["apoyo_der"]["Ie"] * 1e12
+    # en m⁴
+    Ie_t = inercias["tramo"]["Ie"] 
+    Ie_i = inercias["apoyo_izq"]["Ie"]
+    Ie_d = inercias["apoyo_der"]["Ie"] 
 
     # Coeficientes del método de carga virtual
     alpha_tramo = 5 / 12
@@ -1689,7 +1694,9 @@ def generar_planilla(
     # --- Flecha máxima de servicio ---
     coef_global = 5 / 384
 
-    delta = coef_global * q * L**4 / Ec * inv_Ie_eq   # mm
+    delta = (coef_global * q * L**4) / (Ec * inv_Ie_eq) * 1000   # mm
+    # Debug rápido 👀
+    print(f"Ie_t={Ie_t:.3e} m⁴ | Ie_i={Ie_i:.3e} m⁴ | Ie_d={Ie_d:.3e} m⁴ → δmax={delta:.2f} mm")
 
 
     lineas.append("")
@@ -1698,17 +1705,18 @@ def generar_planilla(
     lineas.append(f"   δmax = {delta:.2f} mm")
 
     lineas.append(
-        f"   Flecha adm L/250 = {L/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L/250 else '❌ No cumple'}"
+        f"   Flecha adm L/250 = {L*1000/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L*1000/250 else '❌ No cumple'}"
     )
     lineas.append(
-        f"   Flecha adm L/360 = {L/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L/360 else '❌ No cumple'}"
+        f"   Flecha adm L/360 = {L*1000/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L*1000/360 else '❌ No cumple'}"
     )
     lineas.append(
-        f"   Flecha adm L/480 = {L/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L/480 else '❌ No cumple'}"
+        f"   Flecha adm L/480 = {L*1000/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
+        f"{'✅ Cumple' if delta <= L*1000/480 else '❌ No cumple'}"
     )
+
     lineas.append("")
     lineas.append("   Inercias usadas (tramo + apoyos)")
     lineas.append(f"   Ie tramo       = {inercias['tramo']['Ie']:.3e} m⁴")

@@ -112,7 +112,7 @@ def imprimir_resultado(resultado):
 # ==========================
 
 if __name__ == "__main__":
-    L = 5.0
+    L = 10.0
     q = 43.84 # kN/m (carga de servicio)
     b = 0.20
     hormigon = "H21"
