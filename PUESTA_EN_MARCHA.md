@@ -102,3 +102,46 @@ Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
   "a recalcular" (`[OJO!]`), porque la comparación es por fecha de archivo. Se
   resuelve el día que cada obra/pórtico tenga su propio archivo de datos.
 
+---
+
+## 7. Git sin ser programador (para no asustarse)
+
+**Qué es**: git guarda "fotos" del proyecto. Cada foto es un *commit* y después
+viaja a GitHub. Nada más que eso.
+
+**Guardar una foto desde VS Code (lo más simple)**
+
+1. Panel **Control de código fuente** → `Ctrl + Shift + G`.
+2. Escribir el mensaje en la caja de arriba (ej. `se agrega bases portico 4`).
+   **Sin mensaje, git NO guarda**: por eso parece que "quedó cargando".
+3. `Ctrl + Enter` (o el botón ✓). Foto hecha.
+4. Para subirla a GitHub: botón **Sync Changes** (o `git push`). La primera vez
+   puede pedir el usuario y la contraseña de GitHub en una ventana aparte: hay
+   que dejarla abierta y completarla, **esa ventana es la que parece "colgada"**.
+
+**Ver qué falta guardar, sin saber git**: doble clic en `ver_cambios.bat`.
+
+**Los dos comandos para mirar cómo viene todo**
+
+```powershell
+git status -sb        # qué falta guardar y si hay fotos sin subir (ahead N)
+git log --oneline -5  # las últimas 5 fotos, con su mensaje
+```
+
+**Si te arrepentís de una foto que todavía NO subiste a GitHub**
+
+```powershell
+git reset --soft HEAD~1   # desarma la última foto y deja todo listo para rehacerla
+                          # (no borra ningún archivo)
+```
+
+**Señales y qué significan**
+
+| Lo que ves | Qué es | Qué hacer |
+|---|---|---|
+| `ahead 1` | Hay 1 foto local sin subir | Sync Changes / `git push` |
+| Caja de mensaje vacía | Falta el título de la foto | Escribirlo y `Ctrl + Enter` |
+| `index.lock` | Un programa quedó a mitad de camino | Cerrar VS Code y borrar `D:\03 Ingenieria\Calculador\.git\index.lock` |
+| Pide usuario/contraseña | Es GitHub pidiendo permiso para subir | Completar esa ventana (no es un error) |
+
+
