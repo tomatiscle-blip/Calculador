@@ -1,0 +1,155 @@
+{
+  "tramos": [
+    {
+      "viga": "V0-1",
+      "id": "V0-1.V0-1 T1",
+      "tipo": "interior",
+      "L_m": 4.2,
+      "PI_izq_m": 0.63,
+      "PI_der_m": 3.57
+    }
+  ],
+  "materiales": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "fc_MPa": 20,
+      "fy_MPa": 420,
+      "Ec_MPa": 21019.038988498025,
+      "b_cm": 20.0,
+      "h_cm": 34,
+      "recubrimiento_cm": 4.0,
+      "V_m3": 0.2856,
+      "peso_kg": 685.44
+    }
+  ],
+  "flexion": [
+    {
+      "tramo": "V0-1 T1",
+      "As_req_cm2": 1.98,
+      "As_adop_cm2": 2.0106192982974678,
+      "cumple": true
+    }
+  ],
+  "armaduras": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 1,
+      "cantidad": 4,
+      "diam_mm": 8,
+      "detalle": "Sup. apoyo izq",
+      "longitud_m": 0.95,
+      "peso_kg": 1.501
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 2,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Inf. tramo",
+      "longitud_m": 3.132,
+      "peso_kg": 2.4742800000000003
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 3,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Inf. tramo completo",
+      "longitud_m": 4.392,
+      "peso_kg": 3.4696800000000003
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 4,
+      "cantidad": 5,
+      "diam_mm": 10,
+      "detalle": "Sup. apoyo der",
+      "longitud_m": 1.0300000000000002,
+      "peso_kg": 3.1775500000000005
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "pos": 5,
+      "cantidad": 2,
+      "diam_mm": 8,
+      "detalle": "Auxiliar superior",
+      "longitud_m": 4.44,
+      "peso_kg": 3.5076000000000005
+    }
+  ],
+  "estribos": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "zona": "central",
+      "diam_mm": 6,
+      "separacion_cm": 14,
+      "cantidad": 28,
+      "longitud_m": 0.9400000000000001,
+      "peso_kg": 5.84304
+    },
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "zona": "apoyo_der",
+      "diam_mm": 6,
+      "separacion_cm": 14,
+      "cantidad": 3,
+      "longitud_m": 0.9400000000000001,
+      "peso_kg": 0.62604
+    }
+  ],
+  "inercias": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "Ig_cm4": 65506.66666666668,
+      "Ief_cm4": 53606.187114523156,
+      "ratio_Ief_Ig": 0.818331779684355,
+      "Mcr_tramo_kNm": 11.441627390983948,
+      "c_usado_cm": 6.693909985911229,
+      "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
+    }
+  ],
+  "flecha": [
+    {
+      "viga": "V0-1",
+      "tramo": "V0-1 T1",
+      "tipo_tramo": "interior",
+      "L_m": 4.2,
+      "q_serv_kN_m": 14.02,
+      "delta_mm": 1.458635083005919,
+      "lim_L360_mm": 0.011666666666666667,
+      "cumple_L360": false,
+      "Ie_tramo_cm4": 36316.99754366067,
+      "Ie_apoyo_izq_cm4": 69663.26574525471,
+      "Ie_apoyo_der_cm4": 72127.48762551659,
+      "criterio": "Carga virtual – rigidez variable"
+    }
+  ],
+  "corte": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "V_izq_kN": -21.223161286048168,
+      "V_der_kN": 40.617635905571596,
+      "cumple": true
+    }
+  ],
+  "fisuracion": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "viga": "V0-1",
+      "dc_mm": 44.0,
+      "fs_MPa": 280.0,
+      "A_barra_mm2": 50.2654824574367,
+      "w_um": 50.161237260690875,
+      "w_mm": 0.050161237260690876,
+      "w_lim_mm": 0.1,
+      "cumple": true
+    }
+  ],
+  "estado": [
+    {
+      "tramo": "V0-1.V0-1 T1",
+      "flexion": "✅ Cuantía dentro del rango permitido",
+      "nota": "Verificar armado según normativa"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# ============================================================
+# Calculador estructural - dependencias
+# ------------------------------------------------------------
+# Instalar todo de una sola vez:
+#     py -m pip install -r requirements.txt
+#
+# Version instalada y verificada en la PC de trabajo:
+#     Python 3.13.7  (C:\Users\Claudio\AppData\Local\Programs\Python\Python313)
+# ============================================================
+
+# --- Motores de cálculo estructural -------------------------------------------
+PyniteFEA==3.0.0          # motor 3D adoptado: P-Delta, placas, combos de carga (licencia MIT)
+anastruct==1.6.2          # motor 2D viejo: se mantiene hasta validar Pynite con los pórticos ya calculados
+
+# --- Cálculo numérico y datos --------------------------------------------------
+numpy==2.5.1
+pandas==2.3.2
+
+# --- Gráficos y planos ---------------------------------------------------------
+matplotlib==3.10.5
+ezdxf==1.4.2              # generación de planos DXF (P06)
+Pillow==11.3.0            # imágenes de viguetas (L00)
+
+# --- Planillas ----------------------------------------------------------------
+openpyxl                  # OJO: pedido por pandas.to_excel (P03 y V03). Faltaba en la PC.
+xlsxwriter                # motor alternativo si openpyxl no está
+
+# --- Lectura de diagramas de interacción desde PDF ----------------------------
+pdfplumber                # extrae curvas vectoriales de PDF (licencia MIT)
+
+# --- Interfaz de la app (escritorio) ------------------------------------------
+PySide6==6.10.2           # ventana de Windows / .exe (licencia LGPL, uso libre)
+
+# --- Núcleo para el modo navegador (opcional, por si se elige Streamlit) ------
+# streamlit

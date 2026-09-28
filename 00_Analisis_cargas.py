@@ -154,8 +154,6 @@ def contrapiso_cascotes(espesor_m):
 def presion_viento(V, rho=1.25):
     return 0.5 * rho * (V**2) / 1000  # kN/m2
 
-
-
 # ======================================================
 # CLASE ANALISIS DE CARGAS
 # ======================================================
@@ -247,7 +245,7 @@ class AnalisisCargas:
 # ACTIVACIÓN DE ELEMENTOS
 # ===============================
 # Nombre general del análisis
-NOMBRE_ANALISIS = "Cargas Portico 2"
+NOMBRE_ANALISIS = "Casa_Mercedes_Portico"
 # -------------------------------
 # Cubiertas completas con componentes, sobrecarga y viento opcional
 # -------------------------------
@@ -257,7 +255,7 @@ NOMBRE_ANALISIS = "Cargas Portico 2"
 CUBIERTAS = {
     1: {
         "nombre": "Cubierta liviana de chapa c/estructura y cielorraso suspendido",
-        "activo": 1,
+        "activo": 0,
         "b": 2.10, # ancho tributario para calcular Portico1.
         "componentes": [
             (SISTEMAS["Cubiertas"]["chapa_ondulada"]["nombre"], SISTEMAS["Cubiertas"]["chapa_ondulada"]["q"]),
@@ -303,7 +301,7 @@ FORJADOS = {
     2: {
         "nombre": "Losa Alivianada L0-1",
         "activo": 1, #1si, 0no
-        "b": 2.99,  # ancho tributario
+        "b": 1.50,  # ancho tributario
         "componentes": [
             (SISTEMAS["Pisos"]["porcelanato"]["nombre"], SISTEMAS["Pisos"]["porcelanato"]["q"]),
             #(SISTEMAS["Pisos"]["ceramica"]["nombre"], SISTEMAS["Pisos"]["ceramica"]["q"]),
@@ -347,7 +345,7 @@ def muro(tipo, e, h):
 # Lista de muros del proyecto
 MUROS = {
     "muro_comun_24": {
-        "activo": 1,
+        "activo": 0,
         "tipo": "ladrillo_comun",
         "e": 0.24,
         "h": 1.33
@@ -361,7 +359,7 @@ MUROS = {
     },
     # Muro comun 12 cm pared doble exterior
     "muro_comun_12": {
-        "activo": 1,
+        "activo": 0,
         "tipo": "ladrillo_comun",
         "e": 0.12,
         "h": 5.00 #2.65+2.35
@@ -378,7 +376,7 @@ MUROS = {
         "activo": 1,
         "tipo": "ladrillo_hueco",
         "e": 0.08,
-        "h": 5.00 #2.65+2.35
+        "h": 3.00 #2.65+2.35
     },
     "muro_hueco_np_18": {
         "activo": 0,
@@ -399,15 +397,15 @@ def encadenado(b, h):
         "detalle": f"γ={gamma} kN/m3 · b={b} m · h={h} m"
     }
 ENCADENADOS = {
-    "enc_20x30": {
-        "activo": 0,
+    "enc_20x40": {
+        "activo": 1,
         "b": 0.20,
-        "h": 0.30,
+        "h": 0.40,
         "cantidad": 1
     },
 
     "enc_20x20": {
-        "activo": 1,
+        "activo": 0,
         "b": 0.20,
         "h": 0.20,
         "cantidad": 1

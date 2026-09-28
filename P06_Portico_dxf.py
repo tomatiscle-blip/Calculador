@@ -9,7 +9,7 @@ import datetime
 # Configuración
 # ======================
 
-PORTICO = "Portico 1"
+PORTICO = "Portico 3"
 
 ESTRUCTURA_PATH = Path("datos/estructura.json")
 PLANILLAS_VIGAS_DIR = Path("salidas/vigas")

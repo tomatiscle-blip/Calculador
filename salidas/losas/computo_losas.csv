@@ -1,2 +1,7 @@
 ID_Losa,Luz_libre_m,Luz_calculo_m,Serie,Tipo_vigueta,N_viguetas,N_bloques,Vol_hormigon_m3,Momento_req_kgm,Momento_reducido_kNm,Area_losa_m2,Malla_tamanio,Malla_area_efectiva_m2,Malla_cantidad,Nervios_n,Barras_por_nervio,Diametro_mm,Largo_por_nervio_m,Barras_total,Longitud_total_barras_m
 L01,5.7,5.8,D,vigueta_simple,12,70,2.7491999999999996,3057.7433911199996,31.385701676963816,34.8,2.40x6,12.76,3,3,2,8,6.0,6,36.0
+L1,3.1,3.2,A1,vigueta_simple,9,28,0.8166400000000001,995.7753907200001,9.823477493380407,14.080000000000002,2.40x6,12.76,1,1,2,8,4.4,2,8.8
+L0-1,3.15,3.2,A1,vigueta_simple,9,28,0.9113600000000002,1106.9797939200002,11.535745807590468,14.240000000000002,2.40x6,12.76,1,1,2,8,4.45,2,8.9
+L0-2,4.24,4.3,B1,vigueta_simple,12,53,2.112934,1998.8336317949995,23.759929390997353,26.746,2.40x6,12.76,2,2,2,8,6.22,4,24.88
+l0-2_mercerdes,5.0,5.1,C,vigueta_simple,10,51,2.0145,2930.45964453,32.12709620476611,25.5,2.40x6,12.76,2,2,2,8,5.0,4,20.0
+L0-2(mercedes) ,4.22,4.3,B1,vigueta_simple,12,53,1.711744,1706.1213539699997,17.96999117387467,26.746,2.40x6,12.76,2,2,2,8,6.22,4,24.88

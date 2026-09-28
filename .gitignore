@@ -1,0 +1,17 @@
+# --- Entorno de Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# --- Visual Studio / VS Code ---
+.vs/
+.vscode/
+
+# --- Copias de respaldo de la app ---
+*.bak
+*.tmp
+
+# --- Red de seguridad de pruebas (copias locales de resultados, no versionar) ---
+tests/golden/
+tests/_tmp/

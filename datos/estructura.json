@@ -458,5 +458,117 @@
       }
     },
     "cargas_puntuales": []
+  },
+  "Portico 3": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 4.2,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.2,
+            "cargas": {
+              "D_total": 11.02,
+              "L_total": 3.0,
+              "W_total": 6.02,
+              "combinaciones": {
+                "1.4D": 15.42,
+                "1.2D+1.6L": 18.02,
+                "1.2D+0.5L+1.6W": 24.35,
+                "0.9D+1.6W": 19.55
+              }
+            },
+            "cargas_puntuales": [],
+            "subtramos": [
+              {
+                "eid": 3,
+                "nodos": [
+                  2,
+                  4
+                ]
+              }
+            ],
+            "Mu_servicio_izq": 14.14,
+            "Mu_servicio_der": 14.14,
+            "Mu_servicio_campo": -16.77,
+            "Vu_servicio_izq": -29.44,
+            "Vu_servicio_der": 29.44,
+            "Mu_kNm_apoyo_izq": -5.5182612004404845,
+            "Mu_kNm_apoyo_der": -35.210133650957566,
+            "Mu_kNm_campo": 20.811959906062576,
+            "Vu_kN_izq": -21.223161286048168,
+            "Vu_kN_der": 40.617635905571596,
+            "puntos_inflexion_m": [
+              3.122
+            ]
+          }
+        ]
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.3,
+        "eid": 1,
+        "nodos": [
+          1,
+          2
+        ],
+        "Nodo_inferior": 1,
+        "Nodo_superior": 2,
+        "Mu_kNm_inf": 25.89,
+        "Mu_kNm_sup": -5.52,
+        "P_kN": -21.22,
+        "Mu_servicio_inf": -5.9,
+        "Mu_servicio_sup": 14.14,
+        "P_servicio": -29.44,
+        "deriva_h": 0.0,
+        "distancia_campo_cero_m": 2.72
+      },
+      "C0-b": {
+        "x": 4.2,
+        "altura_m": 3.3,
+        "eid": 2,
+        "nodos": [
+          3,
+          4
+        ],
+        "Nodo_inferior": 3,
+        "Nodo_superior": 4,
+        "Mu_kNm_inf": 38.28,
+        "Mu_kNm_sup": -35.21,
+        "P_kN": -40.62,
+        "Mu_servicio_inf": 5.9,
+        "Mu_servicio_sup": -14.14,
+        "P_servicio": -29.44,
+        "deriva_h": 0.0,
+        "distancia_campo_cero_m": 1.719
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento",
+        "Fx_servicio": 6.07,
+        "Fy_servicio": -29.44,
+        "Tz_servicio": -5.9,
+        "Fx_kN": -9.52,
+        "Fy_kN": -21.22,
+        "Tz_kNm": 25.89
+      },
+      "B0-b": {
+        "x": 4.2,
+        "tipo": "empotramiento",
+        "Fx_servicio": -6.07,
+        "Fy_servicio": -29.44,
+        "Tz_servicio": 5.9,
+        "Fx_kN": -22.27,
+        "Fy_kN": -40.62,
+        "Tz_kNm": 38.28
+      }
+    },
+    "cargas_puntuales": []
   }
 }

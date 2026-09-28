@@ -1,0 +1,104 @@
+# Puesta en marcha — Calculador
+
+Documento de trabajo. Explica **qué se agregó**, **por qué**, **cómo se usa** y
+**qué sigue**. El cálculo viejo (P00…P06, L00, C00, V0x, 00, 10) **no se tocó**:
+sigue funcionando igual que siempre.
+
+---
+
+## 1. Decisiones tomadas
+
+| Tema | Decisión | Motivo |
+|---|---|---|
+| Motor de cálculo | **Pynite (PyNiteFEA) 3.0.0** | 3D, P-Δ, placas para losas, resortes para el terreno, combinaciones de carga nativas, licencia **MIT** (podés empaquetar un `.exe` sin obligaciones). Ya está instalado. |
+| anaStruct | Se mantiene por ahora | Hasta comparar los **mismos pórticos** en los dos motores y comprobar que dan igual. Sirve como validación cruzada para la memoria de cálculo. |
+| Interfaz | **PySide6** (ventana de Windows, libre, ya instalada) | Programa de verdad: ícono, doble clic, sin navegador, empaquetable a `.exe`. |
+| Scripts viejos | No se borra ninguno | Quedan como "envoltorios" de consola hasta que su cálculo esté migrado a `calc/`. |
+
+---
+
+## 2. Archivos nuevos y para qué sirve cada uno
+
+| Archivo | Qué hace |
+|---|---|
+| `requirements.txt` | Lista de librerías del proyecto. **Esto es lo que evita que se pierdan otra vez.** |
+| `.gitignore` | Le dice a git que ignore `.venv/`, `__pycache__/`, `.vs/` y las copias de prueba. |
+| `calc/rutas.py` | **Todas** las rutas del proyecto en un solo lugar. Resuelve las rutas a partir de la ubicación real del archivo, así funciona la app, el `.exe` o un acceso directo (antes varias rutas eran relativas y se rompían si el programa arrancaba desde otra carpeta). |
+| `calc/pipeline.py` | Las 10 etapas del cálculo, en orden, con sus entradas y salidas, más el **semáforo** de estado y la función para ejecutar una etapa. |
+| `tools/regresion.py` | Red de seguridad: congela los resultados actuales y avisa si cambian. |
+| `estado.bat` | **Doble clic** para ver el semáforo del proyecto. |
+| `tests/golden/` | Las copias congeladas de referencia (no se versionan en git). |
+
+---
+
+## 3. Si se actualiza Windows o Python otra vez
+
+Abrir PowerShell **en la carpeta del proyecto** y pegar:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+py -m pip install -r requirements.txt
+py -m pip freeze > requirements.lock.txt
+```
+
+Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
+(o simplemente con `py`, como hasta ahora). Si algo falla, el comando
+`py -m pip install -r requirements.txt` reinstala lo que falte.
+
+---
+
+## 4. Uso diario (lo que ya funciona hoy)
+
+| Para… | Hacer |
+|---|---|
+| Ver el estado de todo | Doble clic en **`estado.bat`** |
+| Ver el estado de un pórtico | `py -m calc.pipeline "Portico 1"` |
+| Guardar la foto de resultados actuales | `py tools\regresion.py congelar` |
+| Ver si algo cambió | `py tools\regresion.py comparar` |
+| Ver las diferencias | `py tools\regresion.py comparar --diff` |
+| Ver un resultado de referencia | `py tools\regresion.py ver salidas\vigas\resultados_Portico 3_vigas.json` |
+
+### Cómo se lee el semáforo
+
+| Ícono | Significa |
+|---|---|
+| `[ OK ]` | Calculado y al día. |
+| `[OJO!]` | Se calculó, pero hay datos **más nuevos**: conviene recalcular. |
+| `[  -  ]` | Falta calcular (la salida no existe todavía). |
+| `[FALTA]` | Faltan los datos de entrada de esa etapa. |
+| `[TODO ]` | Etapa planificada, todavía sin programar (ej. terreno). |
+
+---
+
+## 5. Qué sigue, en orden
+
+1. **Comparar motores (anaStruct vs Pynite)** con los Pórticos 1, 2 y 3 ya
+   calculados: mismos momentos, cortantes y flechas (±1-2 %). Si coincide, `P01`
+   pasa a Pynite y quedan habilitados el 3D, el P-Δ, las placas y los resortes.
+2. **Datos que faltan**: `datos/terreno.json` (capas, nivel freático, `q_adm`,
+   módulo de balasto) y `datos/tipos_losa.json` (vigueta / maciza / casetonada),
+   más los diagramas de interacción como dato canónico.
+3. **App PySide6**: pestañas por etapa, semáforo en color, tablas para cargar
+   datos y botones para calcular y exportar.
+4. **Migrar los scripts a `calc/`**: convertir `P00`, `P02`, `P04`, `P05`, `P06`
+   y `L00` en funciones `calcular(datos)` — así se eliminan las 63 preguntas por
+   teclado (`input()`) y las rutas relativas que hoy atan todo a una consola.
+
+---
+
+## 6. Detalles anotados (para no olvidarlos)
+
+* `P06_Portico_dxf.py` tiene el pórtico fijo dentro del script: `PORTICO = "Portico 3"`.
+* `P04_Columnas_portico.py` **reescribe entero** `salidas/columnas/planilla_columnas.csv` cada vez.
+* `V03_guardar_vigas_excel.py` usa `pandas.to_excel` sin indicar motor: necesita
+  `openpyxl` (falta instalarlo). `P03` ya usa `engine="xlsxwriter"`, por eso ese sí funciona.
+* Los nombres de archivo con espacios y paréntesis (ej. `Portico 3(mercedes) `) son
+  un problema en Windows: usar siempre `calc.rutas.nombre_seguro(...)`.
+* `00_Analisis_cargas.py` guarda su configuración dentro del propio script; a futuro
+  pasa a `datos/cargas.json` (la etapa "1. Análisis de cargas" del semáforo).
+* **Limitación conocida del semáforo**: mientras los tres pórticos vivan en un mismo
+  `datos/estructura.json`, cualquier cambio en uno de ellos marca a los otros como
+  "a recalcular" (`[OJO!]`), porque la comparación es por fecha de archivo. Se
+  resuelve el día que cada obra/pórtico tenga su propio archivo de datos.
+
