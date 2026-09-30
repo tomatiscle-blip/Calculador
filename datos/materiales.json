@@ -1,73 +1,88 @@
 {
   "Hormigon": [
     {
-      "nombre": "Hormigon armado",
+      "nombre": "Hormigón armado",
       "tipo": "volumetrico",
       "valor": 25,
       "unidad": "kN/m3",
-      "notas": "Incluye áridos, cemento y armaduras"
+      "notas": "Incluye áridos, cemento y armaduras",
+      "clave": "armado"
     },
     {
-      "nombre": "Hormigon sin armar",
+      "nombre": "Hormigón sin armar",
       "tipo": "volumetrico",
       "valor": 23.5,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "sin_armar"
     },
     {
-      "nombre": "Hormigon alivianado (EPS alta densidad)",
+      "nombre": "Hormigón alivianado (EPS alta densidad)",
       "tipo": "volumetrico",
       "valor": 10,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "alivianado_eps_alta"
     },
     {
-      "nombre": "Hormigon alivianado (EPS 250kg/m3)",
+      "nombre": "Hormigón alivianado (EPS 250 kg/m³)",
       "tipo": "volumetrico",
       "valor": 2.45,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "alivianado_eps_250"
+    },
+    {
+      "clave": "cascotes_cal",
+      "nombre": "Contrapiso de cascotes y cal",
+      "tipo": "volumetrico",
+      "valor": 17.0,
+      "unidad": "kN/m3",
+      "notas": "Valor que usa el analisis de cargas (00). REVISAR: el grupo Contrapiso guarda 0,80 kN/m2 para 5 cm y 1,28 para 8 cm, que son 16,0 kN/m3"
     }
   ],
   "Madera": [
     {
-        "nombre": "Pino",
-        "tipo": "volumetrico",
-        "valor": 6,
-        "unidad": "kN/m3"
-    },
-    {
-        "nombre": "Eucalipto",
-        "tipo": "volumetrico",
-        "valor": 8,
-        "unidad": "kN/m3"
-    },
-    {
-        "nombre": "Cedro",
-        "tipo": "volumetrico",
-        "valor": 5.5,
-        "unidad": "kN/m3"
-    },
-    {
-        "nombre": "Quebracho",
-        "tipo": "volumetrico",
-        "valor": 9,
-        "unidad": "kN/m3"
-    },
-    {
-        "nombre": "Contrachapado / OSB",
-        "tipo": "volumetrico",
-        "valor": 6.5,
-        "unidad": "kN/m3"
-    }
-],
-
-  "Mamposteria": [
-    {
-      "nombre": "Ladrillo comun revocado",
+      "nombre": "Pino",
       "tipo": "volumetrico",
-      "valor": 17,
+      "valor": 6,
+      "unidad": "kN/m3",
+      "clave": "pino"
+    },
+    {
+      "nombre": "Eucalipto",
+      "tipo": "volumetrico",
+      "valor": 8,
+      "unidad": "kN/m3",
+      "clave": "eucalipto"
+    },
+    {
+      "nombre": "Cedro",
+      "tipo": "volumetrico",
+      "valor": 5.5,
+      "unidad": "kN/m3",
+      "clave": "cedro"
+    },
+    {
+      "nombre": "Quebracho",
+      "tipo": "volumetrico",
+      "valor": 9,
       "unidad": "kN/m3"
     },
     {
-      "nombre": "Ladrillo comun",
+      "nombre": "Contrachapado / OSB",
+      "tipo": "volumetrico",
+      "valor": 6.5,
+      "unidad": "kN/m3"
+    }
+  ],
+  "Mamposteria": [
+    {
+      "nombre": "Ladrillo común revocado",
+      "tipo": "volumetrico",
+      "valor": 17,
+      "unidad": "kN/m3",
+      "clave": "ladrillo_comun"
+    },
+    {
+      "nombre": "Ladrillo común",
       "tipo": "volumetrico",
       "valor": 16,
       "unidad": "kN/m3"
@@ -76,7 +91,8 @@
       "nombre": "Ladrillo hueco revocado (no portante)",
       "tipo": "volumetrico",
       "valor": 10.5,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "ladrillo_hueco"
     },
     {
       "nombre": "Ladrillo hueco (no portante)",
@@ -88,7 +104,8 @@
       "nombre": "Ladrillo hueco revocado (portante)",
       "tipo": "volumetrico",
       "valor": 12,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "ladrillo_hueco_portante"
     },
     {
       "nombre": "Ladrillo hueco (portante)",
@@ -96,171 +113,22 @@
       "valor": 10,
       "unidad": "kN/m3"
     }
-],
-
-  "Pisos": [
-    {
-      "nombre": "Ceramica 12mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.28,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Mosaico granitico",
-      "tipo": "superficial",
-      "valor": 0.60,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Porcelanato 10mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.20,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Porcelanato 15mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.29,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Madera maciza 14mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.15,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Madera maciza 22mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.25,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Piso flotante 8mm + pegamento",
-      "tipo": "superficial",
-      "valor": 0.10,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Alfombra 10mm + base de goma espuma",
-      "tipo": "superficial",
-      "valor": 0.12,
-      "unidad": "kN/m2"
-    }
-  ],
-  "Contrapiso": [
-    {
-        "nombre": "Carpeta nivelacion 2.5cm",
-        "tipo": "superficial",
-        "valor": 0.52,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Carpeta nivelacion 3cm",
-        "tipo": "superficial",
-        "valor": 0.62,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Contrapiso alivianado EPS 5cm",
-        "tipo": "superficial",
-        "valor": 0.123,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Contrapiso alivianado EPS 10cm",
-        "tipo": "superficial",
-        "valor": 0.245,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Contrapiso de cascotes y cal 5cm",
-        "tipo": "superficial",
-        "valor": 0.80,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Contrapiso de cascotes y cal 8cm",
-        "tipo": "superficial",
-        "valor": 1.28,
-        "unidad": "kN/m2"
-    },
-    {
-        "nombre": "Contrapiso de cascotes y cal 10cm",
-        "tipo": "superficial",
-        "valor": 1.60,
-        "unidad": "kN/m2"
-    }
-],
-  "Cielorrasos": [
-    {
-      "nombre": "Cielorraso modular EPS",
-      "tipo": "superficial",
-      "valor": 0.05,
-      "unidad": "kN/m2",
-      "notas": "Incluye estructura de sostén"
-    },
-    {
-      "nombre": "Mezcla de cemento, cal y arena",
-      "tipo": "superficial",
-      "valor": 0.5,
-      "unidad": "kN/m2",
-      "notas": "Con metal desplegado"
-    },
-    {
-      "nombre": "Yeso Suspendido",
-      "tipo": "superficial",
-      "valor": 0.33,
-      "unidad": "kN/m2",
-      "notas": "Con metal estructura de sostén"
-    },
-    {
-      "nombre": "Yeso Adherido",
-      "tipo": "superficial",
-      "valor": 0.18,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Madera machimbrada",
-      "tipo": "superficial",
-      "valor": 0.25,
-      "unidad": "kN/m2"
-    }
-],
-
-  "Cubiertas": [
-    {
-      "nombre": "Chapa acanalada sinusoidal",
-      "tipo": "superficial",
-      "valor": 0.07,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Chapa trapezoidal T101",
-      "tipo": "superficial",
-      "valor": 0.07,
-      "unidad": "kN/m2"
-    },
-    {
-      "nombre": "Tejas s/entablonado",
-      "tipo": "superficial",
-      "valor": 0.9,
-      "unidad": "kN/m2"
-    }
   ],
   "Morteros_Revoques": [
     {
       "nombre": "Mortero de cal y arena",
       "tipo": "volumetrico",
       "valor": 17,
-      "unidad": "kN/m3"
+      "unidad": "kN/m3",
+      "clave": "cal_arena"
     },
     {
       "nombre": "Mortero de cemento y arena",
       "tipo": "volumetrico",
       "valor": 21,
       "unidad": "kN/m3",
-      "notas": "Carga superficial 0,63 kN/m2"
+      "notas": "Carga superficial 0,63 kN/m2",
+      "clave": "cemento_arena"
     },
     {
       "nombre": "Enlucido de cal (fino)",
@@ -286,40 +154,250 @@
       "valor": 13,
       "unidad": "kN/m3"
     }
-],
-"Sobrecargas": [
+  ],
+  "Pisos": [
     {
-        "uso": "Vivienda / habitación",
-        "valor_kNm2": 2
+      "nombre": "Ceramica 12mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.28,
+      "unidad": "kN/m2",
+      "clave": "ceramica"
     },
     {
-        "uso": "Oficina / aula",
-        "valor_kNm2": 3
+      "nombre": "Mosaico granitico",
+      "tipo": "superficial",
+      "valor": 0.6,
+      "unidad": "kN/m2",
+      "clave": "mosaico_granitico"
     },
     {
-        "uso": "Pasillo / circulación",
-        "valor_kNm2": 4
+      "nombre": "Porcelanato 10mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.2,
+      "unidad": "kN/m2",
+      "clave": "porcelanato"
     },
     {
-        "uso": "Terraza accesible",
-        "valor_kNm2": 5
+      "nombre": "Porcelanato 15mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.29,
+      "unidad": "kN/m2"
     },
     {
-        "uso": "Garaje",
-        "valor_kNm2": 5
+      "nombre": "Madera maciza 14mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.15,
+      "unidad": "kN/m2"
     },
     {
-        "uso": "Cubierta de acceso poco frecuente",
-        "valor_kNm2": 1.0
+      "nombre": "Madera maciza 22mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.25,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Piso flotante 8mm + pegamento",
+      "tipo": "superficial",
+      "valor": 0.1,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Alfombra 10mm + base de goma espuma",
+      "tipo": "superficial",
+      "valor": 0.12,
+      "unidad": "kN/m2"
     }
-],
-"Viguetas_Bovedillas": [
+  ],
+  "Contrapiso": [
+    {
+      "nombre": "Carpeta nivelacion 2.5cm",
+      "tipo": "superficial",
+      "valor": 0.52,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Carpeta nivelacion 3cm",
+      "tipo": "superficial",
+      "valor": 0.62,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Contrapiso alivianado EPS 5cm",
+      "tipo": "superficial",
+      "valor": 0.123,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Contrapiso alivianado EPS 10cm",
+      "tipo": "superficial",
+      "valor": 0.245,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Contrapiso de cascotes y cal 5cm",
+      "tipo": "superficial",
+      "valor": 0.8,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Contrapiso de cascotes y cal 8cm",
+      "tipo": "superficial",
+      "valor": 1.28,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Contrapiso de cascotes y cal 10cm",
+      "tipo": "superficial",
+      "valor": 1.6,
+      "unidad": "kN/m2"
+    }
+  ],
+  "Cielorrasos": [
+    {
+      "nombre": "Cielorraso modular EPS",
+      "tipo": "superficial",
+      "valor": 0.05,
+      "unidad": "kN/m2",
+      "notas": "Incluye estructura de sostén"
+    },
+    {
+      "nombre": "Mezcla de cemento, cal y arena",
+      "tipo": "superficial",
+      "valor": 0.5,
+      "unidad": "kN/m2",
+      "notas": "Con metal desplegado"
+    },
+    {
+      "nombre": "Yeso Suspendido",
+      "tipo": "superficial",
+      "valor": 0.33,
+      "unidad": "kN/m2",
+      "notas": "Con metal estructura de sostén",
+      "clave": "yeso_suspendido"
+    },
+    {
+      "nombre": "Yeso Adherido",
+      "tipo": "superficial",
+      "valor": 0.18,
+      "unidad": "kN/m2",
+      "clave": "yeso_adherido"
+    },
+    {
+      "nombre": "Madera machimbrada",
+      "tipo": "superficial",
+      "valor": 0.25,
+      "unidad": "kN/m2"
+    }
+  ],
+  "Cubiertas": [
+    {
+      "nombre": "Chapa acanalada sinusoidal",
+      "tipo": "superficial",
+      "valor": 0.07,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Chapa trapezoidal T101",
+      "tipo": "superficial",
+      "valor": 0.07,
+      "unidad": "kN/m2"
+    },
+    {
+      "nombre": "Tejas s/entablonado",
+      "tipo": "superficial",
+      "valor": 0.9,
+      "unidad": "kN/m2"
+    },
+    {
+      "clave": "chapa_ondulada",
+      "nombre": "Cubierta liviana (chapa ondulada + fijaciones + correas)",
+      "tipo": "superficial",
+      "valor": 0.15,
+      "unidad": "kN/m2",
+      "notas": "Valor completo (chapa + fijaciones + correas) que usa el analisis de cargas"
+    },
+    {
+      "clave": "teja",
+      "nombre": "Teja cerámica con entablonado",
+      "tipo": "superficial",
+      "valor": 0.65,
+      "unidad": "kN/m2",
+      "notas": "Valor completo que usa el analisis de cargas"
+    }
+  ],
+  "EstructuraCubierta": [
+    {
+      "clave": "correas_metalicas",
+      "nombre": "Correas metálicas livianas",
+      "tipo": "superficial",
+      "valor": 0.05,
+      "unidad": "kN/m2"
+    },
+    {
+      "clave": "correas_madera",
+      "nombre": "Correas de madera liviana",
+      "tipo": "superficial",
+      "valor": 0.08,
+      "unidad": "kN/m2"
+    }
+  ],
+  "Forjados": [
+    {
+      "clave": "Losa_alivianada",
+      "nombre": "Losa alivianada EPS P.P estimado",
+      "tipo": "superficial",
+      "valor": 1.81,
+      "unidad": "kN/m2",
+      "notas": "Peso propio estimado de la losa alivianada. REVISAR: L00_Losas_alivianadas.py usa 1,881 fijo en el codigo (D1)"
+    }
+  ],
+  "Sobrecargas": [
+    {
+      "uso": "Vivienda / habitación",
+      "valor_kNm2": 2,
+      "clave": "vivienda"
+    },
+    {
+      "uso": "Oficina / aula",
+      "valor_kNm2": 3,
+      "clave": "oficina"
+    },
+    {
+      "uso": "Pasillo / circulación",
+      "valor_kNm2": 4,
+      "clave": "pasillo"
+    },
+    {
+      "uso": "Terraza accesible",
+      "valor_kNm2": 5,
+      "clave": "terraza"
+    },
+    {
+      "uso": "Garaje",
+      "valor_kNm2": 5,
+      "clave": "garaje"
+    },
+    {
+      "uso": "Cubierta de acceso poco frecuente",
+      "valor_kNm2": 1.0,
+      "clave": "cubierta_acceso_poco_frecuente"
+    }
+  ],
+  "Viento": {
+    "norma": "CIRSOC 102",
+    "ciudad": "Santa Fe",
+    "V_ms": 51.0,
+    "rho_kg_m3": 1.25,
+    "Cd": 1.3,
+    "notas": "V = velocidad basica (m/s); rho = densidad del aire; Cd = coeficiente global tipico"
+  },
+  "Viguetas_Bovedillas": [
     {
       "tipo_vigueta": "simple",
       "bovedilla": 10,
       "imagen": "vigueta_simple_bovedilla_10.png",
-      "viguetas_por_m2": 2.00,
-      "bloques_por_m2": 2.00,
+      "viguetas_por_m2": 2.0,
+      "bloques_por_m2": 2.0,
       "hormigon_m3_m2": 0.058
     },
     {
@@ -334,8 +412,8 @@
       "tipo_vigueta": "simple",
       "bovedilla": 12,
       "imagen": "vigueta_simple_bovedilla_12.png",
-      "viguetas_por_m2": 2.00,
-      "bloques_por_m2": 2.00,
+      "viguetas_por_m2": 2.0,
+      "bloques_por_m2": 2.0,
       "hormigon_m3_m2": 0.064
     },
     {
@@ -350,8 +428,8 @@
       "tipo_vigueta": "simple",
       "bovedilla": 16,
       "imagen": "vigueta_simple_bovedilla_16.png",
-      "viguetas_por_m2": 2.00,
-      "bloques_por_m2": 2.00,
+      "viguetas_por_m2": 2.0,
+      "bloques_por_m2": 2.0,
       "hormigon_m3_m2": 0.079
     },
     {
@@ -362,9 +440,10 @@
       "bloques_por_m2": 1.59,
       "hormigon_m3_m2": 0.096
     }
+  ],
+  "_revisar": [
+    "Contrapiso de cascotes y cal: 17,0 kN/m3 (grupo Hormigon, lo que usa el analisis) contra 16,0 kN/m3 (grupo Contrapiso: 5 cm = 0,80 kN/m2). Elegir un valor.",
+    "Cubiertas: 'Chapa acanalada sinusoidal' (0,07) y 'Teja s/entablonado' (0,90) son el material suelto; las claves chapa_ondulada (0,15) y teja (0,65) son el paquete completo que usa el analisis. Decidir si quedan las dos o una.",
+    "Peso propio de la losa alivianada: 1,81 kN/m2 (grupo Forjados) contra 1,881 fijo en L00_Losas_alivianadas.py."
   ]
-
-
-
 }
-

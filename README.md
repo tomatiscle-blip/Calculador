@@ -1,0 +1,320 @@
+# Calculador — Estructuras
+
+Programa de cálculo de estructuras de hormigón para obras chicas (uno o dos pisos):
+pórticos, vigas, columnas, bases, losas y planos. Es un programa de escritorio: se abre
+con doble clic, no necesita internet ni servidor.
+
+**Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
+falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
+
+- Última actualización: **30/09/2026**
+- Último arreglo: la ventana **no abría** (faltaba un import, `QListWidgetItem`, en
+  `app/principal.py`). Ya está corregida y probada en los 4 pórticos.
+- Último commit: `5a7c6a7` — *"Proceso_interrumpido_cuota_diaria"* (la ventana PySide6).
+
+---
+
+## 1. Cómo se usa hoy
+
+| Para… | Hacer |
+|---|---|
+| Abrir el programa (ventana) | doble clic en **`calculador.bat`** |
+| Ver qué está calculado y qué falta | doble clic en **`estado.bat`** |
+| Ver qué cambié y todavía no guardé en git | doble clic en **`ver_cambios.bat`** |
+| Estado de un pórtico suelto | `py -m calc.pipeline "Portico 4"` |
+| Guardar una foto de los resultados actuales | `py tools\regresion.py congelar` |
+| Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
+
+La ventana tiene 6 pestañas: **1 · Estado y etapas** (el semáforo en colores),
+**2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias),
+**6 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.).
+
+---
+
+## 2. Las tres reglas del programa
+
+Estas tres reglas son las que le dan "unidad" al programa. Todo lo nuevo se hace
+respetándolas.
+
+1. **La pantalla no calcula.** La ventana solo muestra lo que ya está en `salidas/` y
+   lanza los programas. Si un número está en pantalla, está escrito en un archivo.
+2. **Cada dato vive en un solo lugar** (`datos/*.json`). Si un peso específico, un
+   espesor o una sobrecarga está escrito en dos archivos distintos, tarde o temprano
+   dan números distintos.
+3. **Cada cuenta vive en un solo lugar** (`calc/`), y se llama desde la ventana, desde
+   la consola o desde otro cálculo. Nada de fórmulas repetidas en dos scripts.
+
+Lo que hoy **no** cumple la regla 2 es el análisis de cargas: está escrito *adentro* de
+un script y la losa lo repite por su cuenta (ver el punto 4).
+
+## 3. Dónde quedamos
+
+### Última sesión — 30/09/2026
+- **Arreglada la ventana**: faltaba un import (`QListWidgetItem`) y se caía al abrirse.
+- **La etapa 1 ahora se puede correr desde la ventana**: antes se caía al capturar su
+  salida (imprime γ y Windows usaba cp1252). Se arregló en `calc/pipeline.py`.
+- **Una sola biblioteca de materiales** (primer ítem de la Fase 1): las tablas que
+  estaban adentro de `00_Analisis_cargas.py` se mudaron a `datos/materiales.json`, con
+  una `clave` por material. Verificado: el informe del análisis da **los mismos
+  números** (D=11,02 · L=3,00 · W=6,02 y las 4 combinaciones de CIRSOC); solo cambian
+  2 nombres de material, que ahora son iguales en los dos módulos.
+- **Quedan 3 valores repetidos para decidir** (anotados en el propio archivo, en la
+  sección `_revisar`): contrapiso de cascotes (17,0 vs 16,0), cubierta de chapa
+  (0,15 vs 0,07) y teja (0,65 vs 0,90), y peso propio de la losa (1,81 vs 1,881).
+
+### Terminado y funcionando
+- `calc/rutas.py` — todas las rutas del proyecto en un solo lugar (antes eran relativas
+  y se rompían si el programa arrancaba desde otra carpeta).
+- `calc/pipeline.py` — las 10 etapas en orden, con entradas, salidas y **semáforo**.
+- `tools/regresion.py` — la red de seguridad (congela resultados y avisa si cambian).
+- `app/` — la ventana (PySide6, 6 pestañas) + `calculador.bat`; `estado.bat`,
+  `ver_cambios.bat`; `requirements.txt` y `.gitignore`.
+
+### Sin guardar en git (quedó a medias el 28/09)
+| Archivo | Qué es |
+|---|---|
+| `app/principal.py` | el arreglo de la ventana (el `import` que faltaba) |
+| `datos/estructura.json` | ➕ **Pórtico 4** cargado (2 vigas de 6,00 m; columnas de 3 y 4 m) |
+| `salidas/losas/computo_losas.csv` | ➕ fila de la losa **L00** |
+| `salidas/analisis_cargas/…28-09-2026_2026.txt` | análisis de cargas nuevo |
+| `salidas/losas/memoria_losa_L00_…txt` | memoria de la losa L00 |
+
+### Pendiente de cálculo: el Pórtico 4
+Está cargado pero **no calculado**. El semáforo lo dice así:
+
+```
+[  -  ] 4. Cálculo del pórtico     0/4 columnas calculadas
+[  -  ] 5. Vigas de hormigón       falta resultados_Portico 4_vigas.json
+[  -  ] 7. Columnas                el pórtico Portico 4 todavía no tiene columnas
+[  -  ] 8. Bases (zapatas)         falta salidas/bases/bases_Portico 4.json
+[FALTA] 9. Plano lateral (DXF)     falta vigas + planilla + bases del P4
+```
+
+> Nota: los Pórticos 1 a 3 figuran en amarillo ("recalcular") solo porque se tocó
+> `estructura.json` al agregar el 4; sus números no cambiaron. Se arregla el día que
+> cada obra tenga su propio archivo de datos.
+
+---
+
+## 4. El problema de fondo: hoy la misma carga se calcula dos veces
+
+Es exactamente lo que se veía: **el análisis de cargas sirve para el pórtico, pero la
+losa lo vuelve a hacer por su cuenta**. Y peor: son **dos bibliotecas de materiales
+distintas**.
+
+| Qué | Análisis de cargas (`00_Analisis_cargas.py`) | Losas (`L00_Losas_alivianadas.py`) |
+|---|---|---|
+| De dónde saca los materiales | `datos/materiales.json` ✅ (desde el 30/09) | `datos/materiales.json` |
+| Peso propio de la losa alivianada | 1,81 kN/m² (`SISTEMAS["Forjados"]`) | **1,881 fijo en el código** (`D1 = 1.881`) |
+| Combinaciones | las 4 de CIRSOC, **con viento** | solo 1,4D y 1,2D+1,6L, **sin viento** |
+| Salida | un `.txt` | un `.txt` + una fila del CSV |
+| Cómo llega al pórtico | `P00` **lee ese `.txt` con expresiones regulares** y lo copia a `estructura.json` | no llega: la losa vive aparte |
+
+**Ejemplo concreto del daño** — contrapiso de cascotes y cal de 5 cm:
+
+- `00_Analisis_cargas.py`: γ = **17,0** kN/m³ → 0,85 kN/m²
+- `datos/materiales.json`: 0,80 kN/m² → γ = **16,0** kN/m³
+
+Mismo material, 6 % de diferencia según quién lo mire. No es un error de nadie: es lo
+que pasa cuando el mismo dato está en dos lugares.
+
+### Cómo se está arreglando (es la Fase 1 de la hoja de ruta)
+1. **Hecho el 30/09**: `datos/materiales.json` es **la única** biblioteca. Las tablas que
+   estaban adentro de `00` se mudaron ahí con una `clave` por material, y `00` las lee.
+   Falta elegir **un valor** donde hay dos (está anotado en la sección `_revisar`).
+2. `datos/cargas.json` (nuevo) guarda **qué compone cada cosa**: paño de losa, cubierta,
+   ancho tributario `b`, uso y si lleva viento. Eso hoy está adentro de `00` como
+   `FORJADOS` / `CUBIERTAS`.
+3. `calc/cargas.py` (nuevo) hace **la única cuenta**: superficie → carga lineal,
+   combinaciones CIRSOC y reparto a cada pórtico.
+4. **El pórtico y la losa leen el mismo resultado.** La losa deja de rearmar las
+   combinaciones y de tener el 1,881 fijo; el pórtico deja de depender de un `.txt`
+   leído con expresiones regulares (pasa a leer `datos/cargas.json`).
+
+---
+
+## 5. Decisión de fondo: ¿2D pórtico a pórtico, o 3D?
+
+**El pórtico se sigue pensando en 2D, pórtico a pórtico.** Es como se revisa a mano y
+como se calcula hoy (`P01` usa anaStruct 2D, `SystemElements`). Eso no se cambia.
+
+La propuesta, para dejarla escrita de una vez:
+
+- **Un solo motor: Pynite**, pero armado como **pórtico plano** (se bloquean los
+  movimientos fuera del plano, o sea "2D con el motor de 3D"). Así no quedan dos
+  programas de cálculo vivos dando números distintos.
+- **El 3D queda disponible, no obligatorio.** Se usa solo donde aporta algo que el 2D no
+  puede dar: losas con placas, terreno con resortes, viento en dos direcciones, o un
+  modelo de todo el edificio cuando haya que mirar torsión.
+- **anaStruct se retira** cuando los Pórticos 1, 2 y 3 den igual en los dos motores
+  (±1-2 %). Hasta entonces se mantiene como control cruzado para la memoria.
+
+Así el ingeniero sigue trabajando pórtico por pórtico (que es como razona), pero el
+programa tiene un solo motor y una sola forma de decir las cosas.
+
+## 6. Hoja de ruta
+
+Se marca a medida que avanza. Cada casilla es un trabajo de una sesión, más o menos.
+
+### Fase 0 · Cimientos — HECHO
+- [x] Rutas en un solo lugar (`calc/rutas.py`)
+- [x] Las 10 etapas con semáforo (`calc/pipeline.py`) y `estado.bat`
+- [x] Ventana propia (`app/`, PySide6) y `calculador.bat`
+- [x] Red de seguridad de resultados (`tools/regresion.py`)
+- [x] `requirements.txt` + `.gitignore` (para no volver a perder la configuración)
+- [x] Guía de git en `PUESTA_EN_MARCHA.md` (sección 7)
+
+### Fase 1 · Una sola fuente de datos — EN CURSO
+- [x] Mover `GAMMA` / `SISTEMAS` / `SOBRECARGAS` / `VIENTO` de `00_Analisis_cargas.py` a `datos/materiales.json` — 30/09: con `clave` por material; el informe quedó con los mismos números
+- [ ] Unificar los valores repetidos (ver `_revisar` en `datos/materiales.json`): cascotes 17,0 vs 16,0 · cubierta 0,15 vs 0,07 · teja 0,65 vs 0,90 · losa 1,81 vs 1,881
+- [ ] Pasar los `componentes` de `CUBIERTAS` / `FORJADOS` y los anchos tributarios `b` a `datos/cargas.json`
+- [ ] Crear `calc/cargas.py` (la única cuenta: superficie → lineal + combinaciones)
+- [ ] Que la losa use esos mismos datos (sacar el `D1 = 1.881` y sus combinaciones propias, y que vea el viento)
+- [ ] Que `P00` lea `datos/cargas.json` (adiós al `.txt` leído con expresiones regulares)
+- [ ] Que la etapa 1 del semáforo reporte desde `datos/cargas.json`
+
+### Fase 2 · Cerrar la obra que está abierta (Pórtico 4) — PENDIENTE
+- [ ] Pórtico 4: cálculo del pórtico (etapa 4)
+- [ ] Pórtico 4: vigas y planilla de vigas (etapas 5 y 6)
+- [ ] Pórtico 4: columnas (etapa 7)
+- [ ] Pórtico 4: bases (etapa 8)
+- [ ] Pórtico 4: plano lateral DXF (etapa 9) — ojo: `P06` tiene `PORTICO = "Portico 3"` fijo adentro
+- [ ] Guardar en git lo que quedó suelto
+
+### Fase 3 · Migrar los scripts a `calc/`, de a uno — PENDIENTE
+Cada migración termina con el script viejo llamando a la función nueva, así se compara
+en el momento. Se empieza por la que más molesta: losas.
+- [ ] `L00_Losas_alivianadas.py` → `calc/losas.py` (hoy pide todos los datos por teclado)
+- [ ] `P00_Ingresar_datos_estructura.py` → geometría cargada desde datos
+- [ ] `P02_Viga_portico.py` → `calc/vigas.py`
+- [ ] `P04_Columnas_portico.py` → `calc/columnas.py`
+- [ ] `P05_Bases_portico.py` → `calc/bases.py`
+- [ ] `P06_Portico_dxf.py` → `calc/planos.py` (y sacarle el pórtico fijo)
+- [ ] Que la ventana pueda ejecutar esas etapas sin abrir la consola
+- [ ] Al terminar cada migración, mover el script viejo a `legacy\` y actualizarlo en `calc/pipeline.py`
+
+### Fase 4 · Motor de cálculo — PENDIENTE
+- [ ] Comparar anaStruct vs Pynite con los Pórticos 1, 2 y 3 (momentos, cortantes, flechas)
+- [ ] Pasar `P01` a Pynite en modo **pórtico plano**
+- [ ] Retirar anaStruct y dejar anotado en la memoria por qué se cambió
+
+### Fase 5 · Datos que faltan — PENDIENTE
+- [ ] `datos/terreno.json` (capas, nivel freático, `q_adm`, módulo de balasto) → etapa 2
+- [ ] `datos/tipos_losa.json` (vigueta / maciza / casetonada) → etapa 10
+- [ ] Diagramas de interacción como dato canónico (hoy son archivos sueltos)
+
+### Fase 6 · Salidas y memoria de cálculo — PENDIENTE
+- [ ] Memoria de cálculo del proyecto, armada sola con lo que ya está en `salidas/`
+- [ ] Cómputo y listado de planos consolidado
+- [ ] Empaquetar el `.exe` (se puede: las licencias son MIT / LGPL)
+
+### Fase 7 · Ordenar la casa (detalle en la sección 10) — PENDIENTE
+- [ ] Mover los 3 `.txt` explicativos a `docs\`
+- [ ] Sacarle a cada script viejo su propio `__file__` (que use `calc.rutas`): recién ahí se pueden mover sin romperse
+- [ ] `datos\` y `salidas\` por obra (`obras\Casa Mercedes\...`): cada obra con su archivo y sus resultados, sin pisarse
+- [ ] `legacy\` con los scripts ya migrados, solo de referencia
+
+---
+
+## 7. Cómo seguimos cada sesión (para no perder el hilo)
+
+1. Abrir este README y mirar la **hoja de ruta**: elegir **un** ítem de la fase en curso.
+2. Doble clic en **`estado.bat`** para ver el semáforo antes de tocar nada.
+3. Mirar **`ver_cambios.bat`** para saber qué quedó sin guardar de la vez anterior.
+4. Terminado el ítem: probarlo, marcarlo acá con `[x]` y anotar la fecha si hace falta.
+5. Si se tocó algo de cálculo: `py tools\regresion.py comparar`. Después, guardar en git
+   con un mensaje corto (ej. `se unifica biblioteca de materiales`).
+
+**Regla de oro para no volver a los "scripts improvisados":** ningún número nuevo se
+escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
+
+---
+
+## 8. Mapa del proyecto
+
+| Ruta | Qué es |
+|---|---|
+| `calculador.bat` / `app/` | La ventana (PySide6): semáforo, tablas y abrir archivos |
+| `estado.bat` / `calc/pipeline.py` | El semáforo: las 10 etapas y sus dependencias |
+| `calc/rutas.py` | Todas las rutas y el guardado seguro de los JSON |
+| `datos/*.json` | **Los datos**: materiales, geometría, coeficientes, viguetas |
+| `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, planos |
+| `tools/` | Utilidades de trabajo (regresión, informe de cambios) |
+| `tests/golden/` | Copias congeladas de resultados de referencia (no se suben a git) |
+| `00_…`, `P00_…` a `P06_…`, `L00_…`, `C00_…`, `V0x_…` | Los scripts de cálculo de hoy; se migran de a uno a `calc/` |
+
+## 9. Documentos hermanos
+
+| Documento | Para qué |
+|---|---|
+| `README.md` | Este archivo: el tablero de trabajo (qué falta y en qué orden) |
+| `PUESTA_EN_MARCHA.md` | Decisiones tomadas, cómo reinstalar todo y guía de git explicada |
+| `00_Readme_analisis_cargas_py.txt` | Cómo se cargan las cubiertas y el viento en el análisis |
+| `C00_Readme_columnas_py.txt` | Notas del cálculo de columnas |
+| `10_Metalicosreticulaejem.txt` | Ejemplo de reticulado metálico (para más adelante) |
+
+---
+
+## 10. Cómo queremos que quede la estructura
+
+### Por qué los scripts viejos todavía están en la raíz
+
+No es por dejados: **9 de ellos averiguan dónde están los datos a partir de su propia
+ubicación** (`__file__`). Si se los mueve a `legacy\`, van a buscar
+`legacy\datos\estructura.json` y se rompen. Verificado uno por uno:
+
+| Se rompen si se mueven (usan `__file__`) | Se rompen si se corre desde otra carpeta (rutas relativas) |
+|---|---|
+| `P00`, `P01`, `P02`, `P03`, `P04`, `V01`, `V02`, `V03` | `P05`, `P06`, `L00`, `10_metalicos_correas.py` |
+
+Por eso el orden correcto es: **primero migrar la lógica a `calc\` (Fase 3) y recién
+después archivar el script viejo.** Al revés se rompe todo junto.
+
+### El árbol al que apuntamos
+
+```
+Calculador\
+├─ calculador.bat        <- doble clic: abre la ventana (queda siempre en la raíz)
+├─ estado.bat            <- doble clic: el semáforo
+├─ ver_cambios.bat       <- doble clic: qué cambió y qué falta guardar
+├─ README.md  PUESTA_EN_MARCHA.md  requirements.txt  .gitignore
+├─ app\                  <- la ventana (no calcula nada)
+│   ├─ principal.py
+│   └─ paginas\          (una pantalla por etapa, cuando haga falta)
+├─ calc\                 <- el cálculo (sin input(), sin rutas relativas)
+│   ├─ rutas.py  pipeline.py  materiales.py
+│   └─ cargas.py  portico.py  vigas.py  columnas.py  bases.py  losas.py  planos.py
+├─ datos\                <- los datos: la única fuente de verdad
+│   ├─ estructura.json  cargas.json  materiales.json
+│   ├─ terreno.json  tipos_losa.json  viguetas.json
+│   ├─ coeficientes_kd.json  perfiles_metalicos.json  moments_input.json
+│   └─ diagramas_interaccion\
+├─ salidas\              <- resultados (no se editan a mano)
+│   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  dxf\
+├─ docs\                 <- los .txt explicativos y la memoria de cálculo
+├─ legacy\               <- los scripts viejos ya migrados, solo de referencia
+├─ tools\  tests\  imagenes\
+```
+
+### La regla de cada carpeta
+
+| Carpeta | Qué va | Qué NO va |
+|---|---|---|
+| Raíz | los `.bat` y los documentos | cálculo, datos ni resultados |
+| `app\` | pantalla, colores, tablas | ninguna fórmula |
+| `calc\` | las fórmulas: una función `calcular(datos)` por etapa | `input()`, rutas relativas, reportes |
+| `datos\` | todo número que se elige (materiales, geometría, coeficientes) | resultados |
+| `salidas\` | todo lo que produce el cálculo | datos de entrada |
+| `docs\` | explicaciones para humanos | código |
+| `legacy\` | los scripts viejos ya migrados | **nada de `calc\` ni de `app\` los importa** |
+
+### Lo que se puede ordenar ya, sin riesgo
+
+- [ ] Mover los 3 `.txt` explicativos a `docs\` (ningún programa los lee)
+- [ ] Que cada script viejo use `calc.rutas` en vez de su propio `__file__` (así se puede
+      mover sin romperse; es el mismo trabajo que migrarlo)
+- [ ] Separar `salidas\` por obra → resuelve el `[OJO!]` cruzado del semáforo
+- [ ] Datos por obra (`obras\Casa Mercedes\datos\...`): cada obra con su `estructura.json`,
+      así un cambio en un pórtico no marca a los otros como "a recalcular"
+
+

@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QHeaderView,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,

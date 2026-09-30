@@ -1,0 +1,12 @@
+bien, por lo q entiendo ya tenias un poco diferenciadas las cosas y 
+armado la estructura la cual me parece correcta, 
+(mi problema es q no estes atado a la estructura vieja q era un poco de hacer 
+algo por aca resolverlo por alla y eso) la verdad era un poco tediosa pq 
+salias de un scripts para entrar en otro y asi. la idea q despues con la 
+app puedas ir directo a una losa alivianada y calculara, 
+y no es necesario hacer un portico ni nada de eso, 
+o por otro lado analisar un muro q recibe techo en planta alta un 1° piso de 
+losa  y solo calculas el cimiento? o armar un portico de una estructura 
+mas compleja q recibe un poco todo eso, por ahi la app tiene q dar esa 
+versatilidad.
+se transcribe el ultimo chat con Cline no contestado.

@@ -16,6 +16,7 @@ app avise "ojo, cambiaste la geometría: hay que recalcular vigas y columnas".
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -451,10 +452,16 @@ def ejecutar(
     if portico:
         comando.append(portico)  # los scripts migrados podrán tomarlo como argumento
 
+    # Los scripts viejos imprimen símbolos (γ, ·, →). Cuando su salida se captura,
+    # Windows usa cp1252 y el programa se cae con UnicodeEncodeError; por eso se les
+    # fuerza UTF-8. Es lo que permite ejecutar una etapa desde la ventana.
+    entorno = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+
     try:
         proceso = subprocess.run(
             comando,
             cwd=str(rutas.RAIZ),
+            env=entorno,
             input=respuestas,
             capture_output=True,
             text=True,

@@ -1,5 +1,9 @@
 # Puesta en marcha — Calculador
 
+> **Empezar por `README.md`**: ahí está el tablero de trabajo (qué está hecho, qué falta
+> y en qué orden). Este documento es el detalle de las decisiones, cómo reinstalar todo
+> y la guía de git.
+
 Documento de trabajo. Explica **qué se agregó**, **por qué**, **cómo se usa** y
 **qué sigue**. El cálculo viejo (P00…P06, L00, C00, V0x, 00, 10) **no se tocó**:
 sigue funcionando igual que siempre.

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from pathlib import Path
 """
@@ -8,34 +9,43 @@ Unidades:
 - Carga superficial: kN/m2
 - Carga lineal: kN/m
 """
+# ======================================================
+# BIBLIOTECA DE MATERIALES Y CARGAS  ->  datos/materiales.json
+# ======================================================
+# Las tablas ya NO viven adentro de este archivo: salen del JSON, que es la
+# única biblioteca del proyecto (la usa el análisis de cargas y también las
+# losas). Cada material del JSON tiene una "clave" y se sigue usando igual:
+#     GAMMA["Hormigon"]["armado"]["gamma"]     -> peso específico (kN/m3)
+#     SISTEMAS["Pisos"]["porcelanato"]["q"]    -> carga superficial (kN/m2)
+BASE = Path(__file__).resolve().parent
+
+with open(BASE / "datos" / "materiales.json", "r", encoding="utf-8") as f:
+    BIBLIOTECA = json.load(f)
+
+
+def _tabla_por_clave(grupo, nombre_valor):
+    """Convierte una lista del JSON en un diccionario por 'clave'."""
+    tabla = {}
+    for elemento in BIBLIOTECA.get(grupo, []):
+        clave = elemento.get("clave")
+        if not clave:
+            continue
+        tabla[clave] = {
+            "nombre": elemento["nombre"],
+            nombre_valor: float(elemento["valor"]),
+        }
+    return tabla
+
 
 # ======================================================
 # PESOS ESPECIFICOS (kN/m3)
 # ======================================================
 GAMMA = {
-    "Hormigon": {
-        "armado": {"nombre": "Hormigón armado", "gamma": 25.0},
-        "sin_armar": {"nombre": "Hormigón sin armar", "gamma": 23.5},
-        "alivianado_eps_alta": {"nombre": "Hormigón alivianado (EPS alta densidad)", "gamma": 10.0},
-        "alivianado_eps_250": {"nombre": "Hormigón alivianado (EPS 250 kg/m³)", "gamma": 2.45},
-        "cascotes_cal": {"nombre": "Contrapiso de cascotes y cal", "gamma": 17.0}
-    },
-    "Madera": {
-        "pino": {"nombre": "Pino", "gamma": 6.0},
-        "eucalipto": {"nombre": "Eucalipto", "gamma": 8.0},
-        "cedro": {"nombre": "Cedro", "gamma": 5.5}
-    },
-    "Mamposteria": {
-        "ladrillo_hueco_portante": {"nombre": "Ladrillo hueco portante", "gamma": 12.0},
-        "ladrillo_hueco": {"nombre": "Ladrillo hueco", "gamma": 10.5},
-        "ladrillo_comun": {"nombre": "Ladrillo cerámico común", "gamma": 17.0}
-    },
-    "Morteros": {
-        "cemento_arena": {"nombre": "Mortero cemento–arena", "gamma": 21.0},
-        "cal_arena": {"nombre": "Mortero cal–arena", "gamma": 17.0}
-    }
+    "Hormigon": _tabla_por_clave("Hormigon", "gamma"),
+    "Madera": _tabla_por_clave("Madera", "gamma"),
+    "Mamposteria": _tabla_por_clave("Mamposteria", "gamma"),
+    "Morteros": _tabla_por_clave("Morteros_Revoques", "gamma"),
 }
-
 
 
 # ======================================================
@@ -43,83 +53,29 @@ GAMMA = {
 # ======================================================
 
 SISTEMAS = {
-    "Pisos": {
-        "porcelanato": {
-            "nombre": "Porcelanato 10mm + pegamento",
-            "q": 0.20
-        },
-        "mosaico_granitico": {
-            "nombre": "Mosaico granítico",
-            "q": 0.60
-        },
-        "ceramica": {
-            "nombre": "Cerámica 12 mm + pegamento",
-            "q": 0.28
-        }
-    },
-
-    "Cubiertas": {
-        "chapa_ondulada": {
-            "nombre": "Cubierta liviana (chapa ondulada + fijaciones + correas)",
-            "q": 0.15
-        },
-        "teja": {
-            "nombre": "Teja cerámica con entablonado",
-            "q": 0.65
-        }
-    },
-        "EstructuraCubierta": {
-        "correas_metalicas": {
-            "nombre": "Correas metálicas livianas",
-            "q": 0.05
-        },
-        "correas_madera": {
-            "nombre": "Correas de madera liviana",
-            "q": 0.08
-        }
-    },
-
-    "Cielorrasos": {
-        "yeso_suspendido": {
-            "nombre": "Cielorraso de yeso suspendido",
-            "q": 0.33
-        },
-        "yeso_adherido": {
-            "nombre": "Cielorraso de yeso adherido",
-            "q": 0.18
-        }
-    },
-    "Forjados": {
-        "Losa_alivianada": {
-            "nombre": "Losa alivianada EPS P.P estimado",
-            "q": 1.81
-        }
-    }
+    "Pisos": _tabla_por_clave("Pisos", "q"),
+    "Cubiertas": _tabla_por_clave("Cubiertas", "q"),
+    "EstructuraCubierta": _tabla_por_clave("EstructuraCubierta", "q"),
+    "Cielorrasos": _tabla_por_clave("Cielorrasos", "q"),
+    "Forjados": _tabla_por_clave("Forjados", "q"),
 }
 
 
 # ======================================================
-# SOBRECARGAS (kN/m2)
+# SOBRECARGAS (kN/m2)  y  VIENTO - CIRSOC 102
 # ======================================================
 
 SOBRECARGAS = {
-    "vivienda": 2.0,
-    "oficina": 3.0,
-    "pasillo": 4.0,
-    "garaje": 5.0,
-    "terraza": 5.0,
-    "cubierta_acceso_poco_frecuente": 1.0
+    elemento["clave"]: float(elemento["valor_kNm2"])
+    for elemento in BIBLIOTECA["Sobrecargas"]
+    if elemento.get("clave")
 }
 
-# ======================================================
-# VIENTO – CIRSOC 102 (Santa Fe Capital)
-# ======================================================
-
 VIENTO = {
-    "ciudad": "Santa Fe",
-    "V": 51.0,          # m/s
-    "rho": 1.25,        # kg/m3
-    "Cd": 1.3,          # coeficiente global típico
+    "ciudad": BIBLIOTECA["Viento"]["ciudad"],
+    "V": float(BIBLIOTECA["Viento"]["V_ms"]),
+    "rho": float(BIBLIOTECA["Viento"]["rho_kg_m3"]),
+    "Cd": float(BIBLIOTECA["Viento"]["Cd"]),
 }
 
 

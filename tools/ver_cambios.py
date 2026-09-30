@@ -31,6 +31,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 DESCRIPCIONES = {
     ".gitignore": "Le dice a git qué carpetas NO guardar (.venv, __pycache__, .vs, copias de prueba).",
     "requirements.txt": "Lista de librerías del proyecto con su versión. Permite reinstalar todo después de actualizar Windows o Python.",
+    "README.md": "El tablero de trabajo: qué está hecho, qué falta y en qué orden. Se empieza por acá cada vez que se retoma el proyecto.",
     "PUESTA_EN_MARCHA.md": "Documento de puesta en marcha: decisiones (Pynite / PySide6), cómo reinstalar, cómo leer el semáforo y qué sigue.",
     "estado.bat": "Doble clic: muestra el semáforo del proyecto (qué está calculado, qué falta, qué quedó viejo).",
     "ver_cambios.bat": "Doble clic: muestra este mismo informe.",
@@ -47,6 +48,7 @@ DESCRIPCIONES = {
 
 # Los que conviene leer primero: explican todo lo demás
 DESTACADOS = (
+    "README.md",
     "PUESTA_EN_MARCHA.md",
     "calc/rutas.py",
     "calc/pipeline.py",
