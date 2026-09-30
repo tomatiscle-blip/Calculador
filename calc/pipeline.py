@@ -152,10 +152,10 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="1. Análisis de cargas",
         descripcion="Peso propio, sobrecargas, viento y combinaciones CIRSOC.",
         script="00_Analisis_cargas.py",
-        entradas=(),
+        entradas=(rutas.MATERIALES, rutas.CARGAS),
         salidas=(rutas.SAL_ANALISIS_CARGAS,),
         marca=_marca_cargas,
-        nota="Hoy la configuración está dentro del script; pasará a datos/cargas.json.",
+        nota="Los elementos (losa, muro, techo) se cargan en datos/cargas.json; los materiales y el viento, en datos/materiales.json.",
     ),
     Etapa(
         clave="terreno",

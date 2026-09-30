@@ -1,0 +1,145 @@
+{
+  "obra": "Casa_Mercedes_Portico",
+  "notas": "Los elementos que reciben carga. Cada uno se puede calcular solo (una losa, un muro) o entrar al portico como conjunto. Los materiales salen de materiales.json por 'clave'.",
+  "viento": {
+    "activo": 1,
+    "ancho_tributario_m": 2.85,
+    "notas": "Viento horizontal sobre el portico. La velocidad (V), la densidad del aire y el coeficiente Cd salen de materiales.json"
+  },
+  "elementos": {
+    "Losa Alivianada L0-1": {
+      "tipo": "losa",
+      "tipologia": "alivianada",
+      "activo": 1,
+      "ancho_tributario_m": 1.50,
+      "componentes": [
+        { "grupo": "Pisos", "clave": "porcelanato" },
+        { "grupo": "Morteros_Revoques", "clave": "cemento_arena", "espesor_m": 0.03, "nombre": "Carpeta nivelación {espesor_cm:.1f} cm" },
+        { "grupo": "Hormigon", "clave": "cascotes_cal", "espesor_m": 0.08, "nombre": "Contrapiso cascotes/cal {espesor_cm:.0f} cm" },
+        { "grupo": "Forjados", "clave": "Losa_alivianada" },
+        { "grupo": "Cielorrasos", "clave": "yeso_suspendido" }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0
+    },
+    "Losa Alivianada completa": {
+      "tipo": "losa",
+      "tipologia": "alivianada",
+      "activo": 0,
+      "ancho_tributario_m": 1.10,
+      "componentes": [
+        { "grupo": "Pisos", "clave": "porcelanato" },
+        { "grupo": "Morteros_Revoques", "clave": "cemento_arena", "espesor_m": 0.03, "nombre": "Carpeta nivelación {espesor_cm:.1f} cm" },
+        { "grupo": "Hormigon", "clave": "cascotes_cal", "espesor_m": 0.08, "nombre": "Contrapiso cascotes/cal {espesor_cm:.0f} cm" },
+        { "grupo": "Forjados", "clave": "Losa_alivianada" },
+        { "grupo": "Cielorrasos", "clave": "yeso_suspendido" }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0
+    },
+    "Losa Maciza completa": {
+      "tipo": "losa",
+      "tipologia": "maciza",
+      "activo": 0,
+      "ancho_tributario_m": 2.90,
+      "componentes": [
+        { "grupo": "Pisos", "clave": "ceramica" },
+        { "grupo": "Morteros_Revoques", "clave": "cemento_arena", "espesor_m": 0.025, "nombre": "Carpeta nivelación {espesor_cm:.1f} cm" },
+        { "grupo": "Hormigon", "clave": "alivianado_eps_250", "espesor_m": 0.08 },
+        { "grupo": "Hormigon", "clave": "armado", "espesor_m": 0.12 },
+        { "grupo": "Cielorrasos", "clave": "yeso_suspendido" }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0
+    },
+    "Cubierta liviana de chapa c/estructura y cielorraso suspendido": {
+      "tipo": "cubierta",
+      "activo": 0,
+      "ancho_tributario_m": 2.10,
+      "componentes": [
+        { "grupo": "Cubiertas", "clave": "chapa_ondulada" },
+        { "grupo": "EstructuraCubierta", "clave": "correas_metalicas" },
+        { "grupo": "Cielorrasos", "clave": "yeso_suspendido" }
+      ],
+      "sobrecarga": "cubierta_acceso_poco_frecuente",
+      "viento_activo": 0,
+      "pendiente_grados": 6,
+      "altura_vertical_m": null
+    },
+    "Cubierta de teja cerámica con cielorraso incorporado": {
+      "tipo": "cubierta",
+      "activo": 0,
+      "ancho_tributario_m": 3.0,
+      "componentes": [
+        { "grupo": "Cubiertas", "clave": "teja", "nombre": "Teja cerámica tipo Marsella con entablonado" },
+        { "grupo": "Madera", "clave": "pino", "espesor_m": 0.02, "nombre": "Cabios de madera (espesor equivalente 0.02 m)" }
+      ],
+      "sobrecarga": "cubierta_acceso_poco_frecuente",
+      "viento_activo": 0,
+      "pendiente_grados": 6,
+      "altura_vertical_m": null
+    },
+    "Muro hueco 8 cm (doble pared)": {
+      "tipo": "muro",
+      "activo": 1,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco",
+      "espesor_m": 0.08,
+      "altura_m": 3.0
+    },
+    "Muro hueco 18 cm": {
+      "tipo": "muro",
+      "activo": 0,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco",
+      "espesor_m": 0.18,
+      "altura_m": 2.8
+    },
+    "Muro común 24 cm": {
+      "tipo": "muro",
+      "activo": 0,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.24,
+      "altura_m": 1.33
+    },
+    "Muro común 18 cm": {
+      "tipo": "muro",
+      "activo": 0,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.18,
+      "altura_m": 1.33
+    },
+    "Muro común 12 cm (pared doble)": {
+      "tipo": "muro",
+      "activo": 0,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.12,
+      "altura_m": 5.0
+    },
+    "Muro hueco portante 20 cm": {
+      "tipo": "muro",
+      "activo": 0,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco_portante",
+      "espesor_m": 0.20,
+      "altura_m": 2.6
+    },
+    "Encadenado 20x40": {
+      "tipo": "encadenado",
+      "activo": 1,
+      "base_m": 0.20,
+      "altura_m": 0.40,
+      "cantidad": 1
+    },
+    "Encadenado 20x20": {
+      "tipo": "encadenado",
+      "activo": 0,
+      "base_m": 0.20,
+      "altura_m": 0.20,
+      "cantidad": 1
+    }
+  }
+}

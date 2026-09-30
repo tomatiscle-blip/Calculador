@@ -20,6 +20,8 @@ Así el mismo código sirve para:
 Módulos:
     rutas       -> dónde está cada archivo (§ única fuente de verdad de rutas)
     pipeline    -> orden de las etapas, dependencias entre ellas y estado (semáforo)
+    materiales  -> la biblioteca del proyecto (datos/materiales.json)
+    cargas      -> de los elementos que reciben carga a las cargas D/L/W y las combinaciones
 """
 
-__all__ = ["rutas", "pipeline"]
+__all__ = ["rutas", "pipeline", "materiales", "cargas"]

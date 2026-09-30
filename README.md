@@ -61,6 +61,13 @@ un script y la losa lo repite por su cuenta (ver el punto 4).
 - **Quedan 3 valores repetidos para decidir** (anotados en el propio archivo, en la
   sección `_revisar`): contrapiso de cascotes (17,0 vs 16,0), cubierta de chapa
   (0,15 vs 0,07) y teja (0,65 vs 0,90), y peso propio de la losa (1,81 vs 1,881).
+- **La cuenta de cargas salió del script**: ahora vive en `calc/cargas.py` y los
+  elementos (losa, muro, techo, encadenado) en `datos/cargas.json`. `00_…` quedó como
+  envoltorio y el informe guardado es **idéntico byte a byte** al anterior (mismo hash).
+- **Versatilidad (lo que pediste)**: ya se calcula **un elemento solo**, sin armar un
+  pórtico: `py -m calc.cargas "Losa Alivianada L0-1"`. `py -m calc.cargas --lista`
+  muestra todos los elementos y cuáles están activos.
+- **`ARQUITECTURA.md`**: las 4 capas, los 7 pasos del trabajo y dónde vive cada dato.
 
 ### Terminado y funcionando
 - `calc/rutas.py` — todas las rutas del proyecto en un solo lugar (antes eran relativas
@@ -166,12 +173,13 @@ Se marca a medida que avanza. Cada casilla es un trabajo de una sesión, más o 
 
 ### Fase 1 · Una sola fuente de datos — EN CURSO
 - [x] Mover `GAMMA` / `SISTEMAS` / `SOBRECARGAS` / `VIENTO` de `00_Analisis_cargas.py` a `datos/materiales.json` — 30/09: con `clave` por material; el informe quedó con los mismos números
+- [x] Crear `calc/materiales.py` (la biblioteca, para que la lea todo el programa) — 30/09
+- [x] Pasar los elementos (`MUROS` / `FORJADOS` / `CUBIERTAS` / `ENCADENADOS`) y sus anchos tributarios a `datos/cargas.json` — 30/09
+- [x] Crear `calc/cargas.py` (la única cuenta: superficie → lineal + combinaciones) y dejar `00_…` como envoltorio — 30/09: informe idéntico byte a byte
+- [x] Que se pueda calcular **un elemento solo** (una losa, un muro) sin armar un pórtico — 30/09: `py -m calc.cargas "<elemento>"`
 - [ ] Unificar los valores repetidos (ver `_revisar` en `datos/materiales.json`): cascotes 17,0 vs 16,0 · cubierta 0,15 vs 0,07 · teja 0,65 vs 0,90 · losa 1,81 vs 1,881
-- [ ] Pasar los `componentes` de `CUBIERTAS` / `FORJADOS` y los anchos tributarios `b` a `datos/cargas.json`
-- [ ] Crear `calc/cargas.py` (la única cuenta: superficie → lineal + combinaciones)
-- [ ] Que la losa use esos mismos datos (sacar el `D1 = 1.881` y sus combinaciones propias, y que vea el viento)
+- [ ] Que la losa (`L00`) use `calc/cargas.py` (sacar el `D1 = 1.881` y sus combinaciones propias, y que vea el viento)
 - [ ] Que `P00` lea `datos/cargas.json` (adiós al `.txt` leído con expresiones regulares)
-- [ ] Que la etapa 1 del semáforo reporte desde `datos/cargas.json`
 
 ### Fase 2 · Cerrar la obra que está abierta (Pórtico 4) — PENDIENTE
 - [ ] Pórtico 4: cálculo del pórtico (etapa 4)
@@ -237,6 +245,7 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 | `calculador.bat` / `app/` | La ventana (PySide6): semáforo, tablas y abrir archivos |
 | `estado.bat` / `calc/pipeline.py` | El semáforo: las 10 etapas y sus dependencias |
 | `calc/rutas.py` | Todas las rutas y el guardado seguro de los JSON |
+| `calc/materiales.py` / `calc/cargas.py` | La biblioteca de materiales y la única cuenta de cargas (funciona con todo el conjunto o con un elemento solo) |
 | `datos/*.json` | **Los datos**: materiales, geometría, coeficientes, viguetas |
 | `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, planos |
 | `tools/` | Utilidades de trabajo (regresión, informe de cambios) |
@@ -248,6 +257,7 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 | Documento | Para qué |
 |---|---|
 | `README.md` | Este archivo: el tablero de trabajo (qué falta y en qué orden) |
+| `ARQUITECTURA.md` | Cómo está pensado el programa: las 4 capas, los 7 pasos y dónde vive cada dato |
 | `PUESTA_EN_MARCHA.md` | Decisiones tomadas, cómo reinstalar todo y guía de git explicada |
 | `00_Readme_analisis_cargas_py.txt` | Cómo se cargan las cubiertas y el viento en el análisis |
 | `C00_Readme_columnas_py.txt` | Notas del cálculo de columnas |

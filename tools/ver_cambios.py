@@ -32,6 +32,7 @@ DESCRIPCIONES = {
     ".gitignore": "Le dice a git qué carpetas NO guardar (.venv, __pycache__, .vs, copias de prueba).",
     "requirements.txt": "Lista de librerías del proyecto con su versión. Permite reinstalar todo después de actualizar Windows o Python.",
     "README.md": "El tablero de trabajo: qué está hecho, qué falta y en qué orden. Se empieza por acá cada vez que se retoma el proyecto.",
+    "ARQUITECTURA.md": "Cómo está pensado el programa: las 4 capas, los 7 pasos del trabajo, dónde vive cada dato y las reglas para que no vuelva el desorden.",
     "PUESTA_EN_MARCHA.md": "Documento de puesta en marcha: decisiones (Pynite / PySide6), cómo reinstalar, cómo leer el semáforo y qué sigue.",
     "estado.bat": "Doble clic: muestra el semáforo del proyecto (qué está calculado, qué falta, qué quedó viejo).",
     "ver_cambios.bat": "Doble clic: muestra este mismo informe.",
@@ -39,6 +40,9 @@ DESCRIPCIONES = {
     "calc/__init__.py": "Presentación del paquete calc: deja escrita la regla de oro (el cálculo no conoce la pantalla).",
     "calc/rutas.py": "TODAS las rutas del proyecto en un solo lugar. Arregla las rutas relativas que se rompían al abrir el programa desde otra carpeta. Guarda JSON en forma segura (si se corta la luz no se corrompe estructura.json).",
     "calc/pipeline.py": "Las 10 etapas del cálculo en orden, con sus entradas y salidas, el semáforo de estado y la función que ejecuta una etapa.",
+    "calc/materiales.py": "La biblioteca del proyecto (datos/materiales.json): el único lugar de donde salen los pesos específicos, las cargas, las sobrecargas y el viento.",
+    "calc/cargas.py": "La única cuenta de cargas: de los elementos (losa, muro, techo, encadenado) a las cargas D/L/W y las combinaciones de CIRSOC. Puede calcular TODO el conjunto o UN elemento solo (una losa, un muro).",
+    "datos/cargas.json": "Los elementos que reciben carga y el viento general (antes vivían adentro de 00_Analisis_cargas.py).",
     "tools/": "Carpeta nueva: utilidades de trabajo (no son cálculo).",
     "tools/regresion.py": "Red de seguridad: congela los resultados actuales y avisa si cambian. Se usa para validar el cambio de motor a Pynite.",
     "tools/ver_cambios.py": "Este informe.",
@@ -49,9 +53,11 @@ DESCRIPCIONES = {
 # Los que conviene leer primero: explican todo lo demás
 DESTACADOS = (
     "README.md",
+    "ARQUITECTURA.md",
     "PUESTA_EN_MARCHA.md",
     "calc/rutas.py",
     "calc/pipeline.py",
+    "calc/cargas.py",
     "tools/regresion.py",
 )
 
