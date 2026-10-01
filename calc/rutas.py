@@ -38,6 +38,7 @@ SAL_COLUMNAS: Path = SALIDAS / "columnas"
 SAL_BASES: Path = SALIDAS / "bases"
 SAL_DXF: Path = SALIDAS / "dxf"
 SAL_LOSAS: Path = SALIDAS / "losas"
+SAL_REACCIONES: Path = SALIDAS / "reacciones"
 
 CARPETAS_SALIDA = (
     SALIDAS,
@@ -47,6 +48,7 @@ CARPETAS_SALIDA = (
     SAL_BASES,
     SAL_DXF,
     SAL_LOSAS,
+    SAL_REACCIONES,
 )
 
 # ---------------------------------------------------------------------------
@@ -63,6 +65,7 @@ MOMENTS_INPUT: Path = DATOS / "moments_input.json"
 TERRENO: Path = DATOS / "terreno.json"
 CARGAS: Path = DATOS / "cargas.json"
 TIPOS_LOSA: Path = DATOS / "tipos_losa.json"
+LOSAS: Path = DATOS / "losas.json"
 
 # ---------------------------------------------------------------------------
 # Archivos de salida con nombre fijo

@@ -43,6 +43,7 @@ OBJETIVOS = (
     "salidas/columnas",
     "salidas/bases",
     "salidas/losas",
+    "salidas/reacciones",
     "salidas/dxf",
 )
 

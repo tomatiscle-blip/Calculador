@@ -120,6 +120,20 @@ class AnalisisCargas:
 # ---------------------------------------------------------------------------
 # Combinaciones de CIRSOC (una sola cuenta para todo el programa)
 # ---------------------------------------------------------------------------
+def combinaciones_de_componentes(d_total: float, l_total: float, w_total: float) -> dict[str, float]:
+    """
+    Las 4 combinaciones de CIRSOC a partir de D, L y W ya sumados.
+    Es la ÚNICA cuenta de combinaciones del programa: la usan el pórtico, la losa
+    y las reacciones, así no pueden dar distinto.
+    """
+    return {
+        "1.4D": 1.4 * d_total,
+        "1.2D+1.6L": 1.2 * d_total + 1.6 * l_total,
+        "1.2D+0.5L+1.6W": 1.2 * d_total + 0.5 * l_total + 1.6 * w_total,
+        "0.9D+1.6W": 0.9 * d_total + 1.6 * w_total,
+    }
+
+
 def combinaciones(items: list[dict]) -> dict[str, float]:
     """
     Combinaciones de carga, en kN/m (o kN/m2, según lo que reciba).
@@ -129,12 +143,7 @@ def combinaciones(items: list[dict]) -> dict[str, float]:
     l_total = sum(i["valor"] for i in items if i["tipo"] == "L")
     w_total = sum(i["valor"] for i in items if i["tipo"] == "W")
 
-    return {
-        "1.4D": 1.4 * d_total,
-        "1.2D+1.6L": 1.2 * d_total + 1.6 * l_total,
-        "1.2D+0.5L+1.6W": 1.2 * d_total + 0.5 * l_total + 1.6 * w_total,
-        "0.9D+1.6W": 0.9 * d_total + 1.6 * w_total,
-    }
+    return combinaciones_de_componentes(d_total, l_total, w_total)
 
 
 # ---------------------------------------------------------------------------

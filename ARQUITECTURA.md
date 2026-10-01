@@ -85,10 +85,10 @@ es el mismo renglón del mismo archivo: lo que hace que el mismo contrapiso no p
 |---|---|---|
 | 1. Obra | Falta | El nombre y el viento están en `datos/cargas.json` |
 | 2. Materiales | **Hecho (30/09)** | `datos/materiales.json` es la única biblioteca y `calc/materiales.py` la reparte |
-| 3. Elementos que reciben carga | **Hecho (30/09)** | `datos/cargas.json` + `calc/cargas.py` (calcula el conjunto **o un elemento solo**) |
+| 3. Elementos que reciben carga | **Hecho (30/09)** | `datos/cargas.json` + `calc/cargas.py` (calcula el conjunto **o un elemento solo**); 01/10: la **losa entrega sus reacciones** (`calc/losas.py`) |
 | 4. Pórticos | A medias | La geometría está en `datos/estructura.json`, pero la carga **no** dice a qué pórtico va |
 | 5. Solicitaciones | Falta | Hoy los M, V y N quedan mezclados dentro de `estructura.json` (`P01`) |
-| 6. Dimensionamiento | A migrar | `P02` vigas, `P04` columnas, `P05` bases, `L00` losas; falta el acero |
+| 6. Dimensionamiento | En marcha | **01/10: la losa alivianada vive en `calc/losas.py`**; faltan `P02` vigas, `P04` columnas, `P05` bases y el acero |
 | 7. Salidas | A migrar | `P03` Excel, `P06` DXF; las memorias están dentro de cada script |
 
 Lo que sigue, en orden: **reparto de cargas al pórtico (paso 4)** → **solicitaciones en
@@ -107,3 +107,72 @@ archivo propio (paso 5)** → **dimensionadores uno por uno (paso 6)** → **sal
    `py tools\regresion.py comparar`. Si un número cambia, se explica por qué.
 5. **El script viejo queda como envoltorio** hasta que su reemplazo dé los mismos
    números; recién ahí se archiva en `legacy\` (ver la sección 10 del README).
+
+---
+
+## 7. Alcance y archivos: cómo no se pierde nada (01/10)
+
+Dos reglas nuevas, que son las que sostienen la versatilidad (desglosar el cálculo sin
+que la info quede suelta ni se pise).
+
+### 7.1. Todo cálculo tiene un alcance
+
+| Alcance | Qué es | Dónde vive |
+|---|---|---|
+| **Obra** (con nombre) | Un proyecto: sus elementos, sus pórticos, sus salidas | `obras\<Obra>\` |
+| **`_sueltos`** | Un elemento individual, para consultar rápido | `obras\_sueltos\` |
+
+El `id` (`L0-1`) es único **dentro** de su alcance: la identidad completa es
+**`alcance/id`**. Por eso el `L0-1` de una obra **nunca** choca con el `L0-1` suelto.
+La app **pregunta al inicio** qué vas a calcular (elemento suelto u obra) y muestra
+siempre el alcance actual.
+
+### 7.2. Un resultado, un archivo. Los agregados son vistas
+
+- Cada elemento escribe **su** archivo: `salidas/<alcance>/<etapa>/<id>.json`. **Nunca**
+  un JSON único donde todos escriben.
+- Los **agregados se generan** leyendo los individuales y se pueden rehacer: el
+  `_conjunto` de reacciones, los `.csv`, las planillas. **Nunca son la fuente.**
+
+Implementado (01/10, losas): `salidas/losas/<id>.json` es la **fuente** (una por losa) y
+`salidas/reacciones/_conjunto.json` es la **vista** (se arma leyendo esos archivos). La
+memoria de la L00 quedó idéntica.
+
+**Por qué** (el caso que lo motivó): `datos/estructura.json` **junta todos los pórticos**
+con una clave por nombre (`"Portico 1"`, `"Portico 2"`…). Eso es "un archivo, muchos
+escritores": **si repetís el nombre, se pisa** el pórtico anterior. Lo crea `P00` con
+`nro_portico = len(estructura) + 1` (puede colisionar si borraste uno del medio). Existe
+`calc/rutas.py::proximo_nombre_portico()` para evitarlo, **pero no se usa y el riesgo de
+fondo sigue**. Con **un archivo por pórtico** eso desaparece. (`P00`, `P01` y
+`rutas.guardar_estructura` son hoy los únicos que escriben ese archivo.)
+
+### 7.3. Lo que es común va junto
+
+La **biblioteca** (`materiales.json`, `viguetas.json`, `perfiles_metalicos.json`,
+`coeficientes_kd.json`, `diagramas_interaccion\`) es **global**: es igual para todas las
+obras. Por eso se queda arriba, compartida. Solo son **por obra** los datos del proyecto
+(`estructura`, `cargas`, `losas`, `terreno`) y las **salidas**.
+
+### 7.4. Estructura objetivo
+
+```
+Calculador\
+├─ datos\                  biblioteca GLOBAL (común a todo)
+│   ├─ materiales.json  viguetas.json  perfiles_metalicos.json
+│   └─ coeficientes_kd.json  diagramas_interaccion\
+├─ obras\
+│   ├─ Casa Mercedes\
+│   │   ├─ obra.json       nombre, ubicación (de ahí el viento), reglamento
+│   │   ├─ datos\          estructura.json  cargas.json  losas.json  terreno.json
+│   │   └─ salidas\        analisis_cargas\  vigas\  columnas\  bases\  losas\  reacciones\  dxf\
+│   └─ _sueltos\
+│       ├─ datos\          losas.json
+│       └─ salidas\        losas\  reacciones\
+```
+
+### 7.5. Migración sin romper
+
+`calc/rutas.py` pasa a ser "consciente del alcance" (`obra_actual()`, `datos()`,
+`salidas()`), con el **alcance por defecto apuntando a lo de hoy** (`datos\` y `salidas\`
+de la raíz). Así nada se rompe y se migra de a poco a `obras\`.
+

@@ -1,0 +1,50 @@
+{
+  "obra": "Casa_Mercedes_Portico",
+  "combinaciones": [
+    "1.4D",
+    "1.2D+1.6L",
+    "1.2D+0.5L+1.6W",
+    "0.9D+1.6W"
+  ],
+  "elementos": {
+    "L00": {
+      "tipo": "losa_alivianada",
+      "direccion": "unidireccional",
+      "luz_calculo_m": 5.1,
+      "ancho_m": 6.0,
+      "reacciones": [
+        {
+          "apoyo": "izq",
+          "apoya_en": null,
+          "cargas": {
+            "D": 9.71805,
+            "L": 5.1,
+            "W": 0.0
+          },
+          "combinaciones": {
+            "1.4D": 13.605269999999999,
+            "1.2D+1.6L": 19.82166,
+            "1.2D+0.5L+1.6W": 14.211659999999998,
+            "0.9D+1.6W": 8.746245
+          }
+        },
+        {
+          "apoyo": "der",
+          "apoya_en": null,
+          "cargas": {
+            "D": 9.71805,
+            "L": 5.1,
+            "W": 0.0
+          },
+          "combinaciones": {
+            "1.4D": 13.605269999999999,
+            "1.2D+1.6L": 19.82166,
+            "1.2D+0.5L+1.6W": 14.211659999999998,
+            "0.9D+1.6W": 8.746245
+          }
+        }
+      ]
+    }
+  },
+  "por_viga": {}
+}

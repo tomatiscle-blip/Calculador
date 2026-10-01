@@ -7,9 +7,11 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **30/09/2026**
-- Último arreglo: la ventana **no abría** (faltaba un import, `QListWidgetItem`, en
-  `app/principal.py`). Ya está corregida y probada en los 4 pórticos.
+- Última actualización: **01/10/2026**
+- Último trabajo: **la losa alivianada salió del script**. La cuenta clásica de
+  `L00_…` ahora vive en `calc/losas.py` como `calcular(datos)`, y `L00_…` quedó como
+  envoltorio de consola. Se puede calcular **una losa sola**, sin teclado ni pórtico,
+  desde `datos/losas.json`; la memoria de la L00 salió **idéntica** a la guardada.
 - Último commit: `5a7c6a7` — *"Proceso_interrumpido_cuota_diaria"* (la ventana PySide6).
 
 ---
@@ -22,6 +24,8 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Ver qué está calculado y qué falta | doble clic en **`estado.bat`** |
 | Ver qué cambié y todavía no guardé en git | doble clic en **`ver_cambios.bat`** |
 | Estado de un pórtico suelto | `py -m calc.pipeline "Portico 4"` |
+| Calcular una **losa** sola | `py -m calc.losas "L00"` (ver `py -m calc.losas --lista`) |
+| Reacciones de todas las losas | `py -m calc.losas --conjunto` |
 | Guardar una foto de los resultados actuales | `py tools\regresion.py congelar` |
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
 
@@ -48,6 +52,34 @@ Lo que hoy **no** cumple la regla 2 es el análisis de cargas: está escrito *ad
 un script y la losa lo repite por su cuenta (ver el punto 4).
 
 ## 3. Dónde quedamos
+
+### Última sesión — 01/10/2026
+- **La losa alivianada salió del script**: la cuenta clásica (cargas → momento →
+  tabla de viguetas → cómputo) ahora vive en **`calc/losas.py`** como `calcular(datos)`,
+  y `L00_…` quedó como **envoltorio** que pide por teclado y llama a esa función (igual
+  que `00_…` con `calc/cargas.py`). El informe de la **L00 salió idéntico** a la memoria
+  guardada (`memoria_losa_L00_20260928_202740`).
+- **Se calcula UNA losa sola**, sin pórtico ni teclado: los datos de cada losa viven en
+  **`datos/losas.json`** y se corre `py -m calc.losas "L00"` (o `--lista` para ver cuáles
+  hay, `--guardar` para dejarla en `salidas/losas`). Es el primer elemento que queda
+  **suelto y llamable** desde la ventana.
+- Lo que sigue de la losa (Fase 1, abajo): sacarle el `1,881` fijo y las combinaciones
+  propias, y que use la cuenta única de `calc/cargas.py`.
+- **Reacciones de la losa (Esquema A)**: la losa entrega las **2 reacciones** (una por
+  apoyo) en **D / L / W sin combinar** — porque es **unidireccional**. La **combinación se
+  aplica UNA sola vez**: la cuenta vive en `calc/cargas.py` (`combinaciones_de_componentes`)
+  y la usan el pórtico, la losa y las reacciones, así no pueden dar distinto. *(Esquema A:
+  el pórtico combina; la losa combina solo para diseñarse.)*
+- **Conjunto de losas**: `py -m calc.losas --conjunto` calcula todas las losas y guarda
+  **un archivo por losa** (`salidas/losas/<id>.json`, la **fuente**) + la **vista**
+  `salidas/reacciones/_conjunto.json` (armada leyendo esos archivos, se puede rehacer).
+  Si una losa declara `apoya_en` (`portico`/`viga`), la vista además **suma por viga** —
+  ese es el reparto al pórtico. La L00 da `D=9,72 · L=5,10 kN/m` y su archivo propio.
+- **Diseño acordado (alcance y archivos)**: todo cálculo vive en un **alcance** — una
+  **obra** o **`_sueltos`** (elemento individual) — y vale **un resultado, un archivo**
+  (los agregados, como el `_conjunto`, son **vistas** que se regeneran). Quedó escrito en
+  `ARQUITECTURA.md` (sección 7). Motivo: `estructura.json` junta todos los pórticos y
+  **pisa si repetís el nombre** (`P00`: `len()+1`).
 
 ### Última sesión — 30/09/2026
 - **Arreglada la ventana**: faltaba un import (`QListWidgetItem`) y se caía al abrirse.
@@ -178,7 +210,7 @@ Se marca a medida que avanza. Cada casilla es un trabajo de una sesión, más o 
 - [x] Crear `calc/cargas.py` (la única cuenta: superficie → lineal + combinaciones) y dejar `00_…` como envoltorio — 30/09: informe idéntico byte a byte
 - [x] Que se pueda calcular **un elemento solo** (una losa, un muro) sin armar un pórtico — 30/09: `py -m calc.cargas "<elemento>"`
 - [ ] Unificar los valores repetidos (ver `_revisar` en `datos/materiales.json`): cascotes 17,0 vs 16,0 · cubierta 0,15 vs 0,07 · teja 0,65 vs 0,90 · losa 1,81 vs 1,881
-- [ ] Que la losa (`L00`) use `calc/cargas.py` (sacar el `D1 = 1.881` y sus combinaciones propias, y que vea el viento)
+- [ ] Que la losa use la cuenta única (`calc/cargas.py`): sacar el `1,881` fijo y las combinaciones propias (1.2D+1.6L / 1.4D) y que vea el viento — **desde el 01/10 el lugar es `calc/losas.py`** (el `1,881` es `PESO_PROPIO_DEFECTO`)
 - [ ] Que `P00` lea `datos/cargas.json` (adiós al `.txt` leído con expresiones regulares)
 
 ### Fase 2 · Cerrar la obra que está abierta (Pórtico 4) — PENDIENTE
@@ -192,7 +224,7 @@ Se marca a medida que avanza. Cada casilla es un trabajo de una sesión, más o 
 ### Fase 3 · Migrar los scripts a `calc/`, de a uno — PENDIENTE
 Cada migración termina con el script viejo llamando a la función nueva, así se compara
 en el momento. Se empieza por la que más molesta: losas.
-- [ ] `L00_Losas_alivianadas.py` → `calc/losas.py` (hoy pide todos los datos por teclado)
+- [x] `L00_Losas_alivianadas.py` → `calc/losas.py` — 01/10: `calcular(datos)` + `datos/losas.json` (clásico → tabla de viguetas); `L00` quedó de envoltorio y la memoria salió idéntica
 - [ ] `P00_Ingresar_datos_estructura.py` → geometría cargada desde datos
 - [ ] `P02_Viga_portico.py` → `calc/vigas.py`
 - [ ] `P04_Columnas_portico.py` → `calc/columnas.py`
@@ -246,8 +278,9 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 | `estado.bat` / `calc/pipeline.py` | El semáforo: las 10 etapas y sus dependencias |
 | `calc/rutas.py` | Todas las rutas y el guardado seguro de los JSON |
 | `calc/materiales.py` / `calc/cargas.py` | La biblioteca de materiales y la única cuenta de cargas (funciona con todo el conjunto o con un elemento solo) |
-| `datos/*.json` | **Los datos**: materiales, geometría, coeficientes, viguetas |
-| `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, planos |
+| `calc/losas.py` | La única cuenta de losa alivianada (clásico → tabla de viguetas); calcula una losa sola desde `datos/losas.json` |
+| `datos/*.json` | **Los datos**: materiales, geometría, cargas, losas, coeficientes, viguetas |
+| `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, **reacciones**, planos |
 | `tools/` | Utilidades de trabajo (regresión, informe de cambios) |
 | `tests/golden/` | Copias congeladas de resultados de referencia (no se suben a git) |
 | `00_…`, `P00_…` a `P06_…`, `L00_…`, `C00_…`, `V0x_…` | Los scripts de cálculo de hoy; se migran de a uno a `calc/` |
@@ -300,7 +333,7 @@ Calculador\
 │   ├─ coeficientes_kd.json  perfiles_metalicos.json  moments_input.json
 │   └─ diagramas_interaccion\
 ├─ salidas\              <- resultados (no se editan a mano)
-│   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  dxf\
+│   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  reacciones\  dxf\
 ├─ docs\                 <- los .txt explicativos y la memoria de cálculo
 ├─ legacy\               <- los scripts viejos ya migrados, solo de referencia
 ├─ tools\  tests\  imagenes\
