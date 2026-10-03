@@ -190,7 +190,7 @@ ETAPAS: tuple[Etapa, ...] = (
         depende_de=("geometria",),
         interactiva=True,
         marca=_marca_portico,
-        nota="A migrar de anaStruct 2D a Pynite 3D, con comparación previa.",
+        nota="A migrar de anaStruct 2D a Pynite 3D. Comparación previa HECHA (P1 y P3 coinciden <0,1 %; ver tools/comparar_motores.py).",
     ),
     Etapa(
         clave="vigas",

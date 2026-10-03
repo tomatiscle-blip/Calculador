@@ -15,7 +15,7 @@ sigue funcionando igual que siempre.
 | Tema | Decisión | Motivo |
 |---|---|---|
 | Motor de cálculo | **Pynite (PyNiteFEA) 3.0.0** | 3D, P-Δ, placas para losas, resortes para el terreno, combinaciones de carga nativas, licencia **MIT** (podés empaquetar un `.exe` sin obligaciones). Ya está instalado. |
-| anaStruct | Se mantiene por ahora | Hasta comparar los **mismos pórticos** en los dos motores y comprobar que dan igual. Sirve como validación cruzada para la memoria de cálculo. |
+| anaStruct | Se retira (queda solo como control cruzado) | La comparación ya se hizo (02/10, `tools/comparar_motores.py`): en pórticos planos dan igual (<0,1 %). Se mantiene hasta terminar de migrar `P01` a Pynite. |
 | Interfaz | **PySide6** (ventana de Windows, libre, ya instalada) | Programa de verdad: ícono, doble clic, sin navegador, empaquetable a `.exe`. |
 | Scripts viejos | No se borra ninguno | Quedan como "envoltorios" de consola hasta que su cálculo esté migrado a `calc/`. |
 
@@ -30,6 +30,7 @@ sigue funcionando igual que siempre.
 | `calc/rutas.py` | **Todas** las rutas del proyecto en un solo lugar. Resuelve las rutas a partir de la ubicación real del archivo, así funciona la app, el `.exe` o un acceso directo (antes varias rutas eran relativas y se rompían si el programa arrancaba desde otra carpeta). |
 | `calc/pipeline.py` | Las 10 etapas del cálculo, en orden, con sus entradas y salidas, más el **semáforo** de estado y la función para ejecutar una etapa. |
 | `tools/regresion.py` | Red de seguridad: congela los resultados actuales y avisa si cambian. |
+| `tools/comparar_motores.py` | Compara el mismo pórtico en **anaStruct y Pynite** (reacciones, momentos, cortantes, axiales) y chequea el equilibrio. Valida el cambio de motor. |
 | `estado.bat` | **Doble clic** para ver el semáforo del proyecto. |
 | `tests/golden/` | Las copias congeladas de referencia (no se versionan en git). |
 
@@ -77,9 +78,11 @@ Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
 
 ## 5. Qué sigue, en orden
 
-1. **Comparar motores (anaStruct vs Pynite)** con los Pórticos 1, 2 y 3 ya
-   calculados: mismos momentos, cortantes y flechas (±1-2 %). Si coincide, `P01`
-   pasa a Pynite y quedan habilitados el 3D, el P-Δ, las placas y los resortes.
+1. ~~**Comparar motores (anaStruct vs Pynite)**:~~ **HECHO (02/10)** con
+   `tools/comparar_motores.py`. Pórticos 1 y 3 coinciden **<0,1 %** → Pynite validado.
+   Falta únicamente el Pórtico 2 (sus datos están incompletos: falta `nivel` en
+   `C1-a`/`C1-b`). Con eso, `P01` pasa a Pynite y quedan habilitados el 3D, el P-Δ,
+   las placas y los resortes.
 2. **Datos que faltan**: `datos/terreno.json` (capas, nivel freático, `q_adm`,
    módulo de balasto) y `datos/tipos_losa.json` (vigueta / maciza / casetonada),
    más los diagramas de interacción como dato canónico.

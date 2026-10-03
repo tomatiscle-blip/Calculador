@@ -7,12 +7,13 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **01/10/2026**
-- Último trabajo: **la losa alivianada salió del script**. La cuenta clásica de
-  `L00_…` ahora vive en `calc/losas.py` como `calcular(datos)`, y `L00_…` quedó como
-  envoltorio de consola. Se puede calcular **una losa sola**, sin teclado ni pórtico,
-  desde `datos/losas.json`; la memoria de la L00 salió **idéntica** a la guardada.
-- Último commit: `5a7c6a7` — *"Proceso_interrumpido_cuota_diaria"* (la ventana PySide6).
+- Última actualización: **02/10/2026**
+- Último trabajo: **se comparó Pynite contra anaStruct** con `tools/comparar_motores.py`.
+  Los **Pórticos 1 y 3** dan igual en los dos motores (<0,1 % en reacciones, momentos,
+  cortantes y axiales): **Pynite queda validado**. El **Pórtico 2** todavía no se puede
+  comparar: le faltan datos (a `C1-a`/`C1-b` les falta `nivel` → geometría degenerada) y
+  su resultado guardado ni cierra el equilibrio. Ver la Fase 4.
+- Último commit: `53ad16a` — *"se agrego losas alivianadas nueva faltaria comparar anastruct vs Pynite"*.
 
 ---
 
@@ -28,6 +29,7 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Reacciones de todas las losas | `py -m calc.losas --conjunto` |
 | Guardar una foto de los resultados actuales | `py tools\regresion.py congelar` |
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
+| Comparar los dos motores (anaStruct vs Pynite) | `py tools\comparar_motores.py` |
 
 La ventana tiene 6 pestañas: **1 · Estado y etapas** (el semáforo en colores),
 **2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias),
@@ -52,6 +54,24 @@ Lo que hoy **no** cumple la regla 2 es el análisis de cargas: está escrito *ad
 un script y la losa lo repite por su cuenta (ver el punto 4).
 
 ## 3. Dónde quedamos
+
+### Última sesión — 02/10/2026
+- **Comparación de motores hecha y con resultado**: `py tools\comparar_motores.py`
+  arma el pórtico en **Pynite** (como pórtico plano, bloqueando lo de fuera del plano)
+  y lo compara contra los resultados **anaStruct ya guardados** en `datos/estructura.json`
+  (reacciones, momentos en extremos de vigas y columnas, cortantes y axiales), con una
+  tolerancia de ±2 %. También chequea el **equilibrio** (carga aplicada vs. suma de
+  reacciones), para detectar referencias viejas.
+  - **Pórticos 1 y 3**: coinciden en todo, **<0,1 %**. Pynite **reproduce** a anaStruct.
+    Queda **validado** el cambio de motor (lo que pedía la Fase 4).
+  - **Pórtico 2**: no se puede comparar todavía. Sus columnas **`C1-a`/`C1-b` no tienen
+    el campo `nivel`**, así que el pórtico de 2 pisos queda degenerado (columnas
+    superpuestas) y **una carga puntual de 25,3 kN se pierde**. Su resultado guardado
+    **ni cierra el equilibrio**: Σ reacciones = 510,86 kN ≠ 536,16 kN aplicados.
+    Hay que **completar los datos del Pórtico 2** antes de validarlo (va con la Fase 2).
+- **Cómo se lee el informe**: cada fila tiene el valor `anaStruct` (guardado), el `Pynite`
+  (calculado) y la diferencia; se comparan **módulos** porque las convenciones de signo
+  difieren (anaStruct da la reacción `Fy` "hacia abajo" y el corte al revés que Pynite).
 
 ### Última sesión — 01/10/2026
 - **La losa alivianada salió del script**: la cuenta clásica (cargas → momento →
@@ -174,6 +194,16 @@ que pasa cuando el mismo dato está en dos lugares.
 
 ## 5. Decisión de fondo: ¿2D pórtico a pórtico, o 3D?
 
+> **DECIDIDO (02/10/2026):** se adopta **Pynite como motor único**. La comparación con
+> anaStruct ya se hizo (`tools/comparar_motores.py`) y para pórticos planos dan lo mismo
+> (Pórticos 1 y 3, <0,1 %). Pynite se usa **en modo pórtico plano**, pero queda el 3D,
+> las placas y los resortes disponibles para cuando la estructura se complique.
+> anaStruct queda solo como control cruzado hasta terminar la migración de `P01`.
+>
+> Nota: los pórticos que hoy están cargados en `datos/estructura.json` son **datos de
+> prueba**, no obras concretas. Por eso al Pórtico 2 le pueden faltar campos (p. ej.
+> `nivel`): cuando se carguen obras reales, los datos van a estar completos y consistentes.
+
 **El pórtico se sigue pensando en 2D, pórtico a pórtico.** Es como se revisa a mano y
 como se calcula hoy (`P01` usa anaStruct 2D, `SystemElements`). Eso no se cambia.
 
@@ -233,8 +263,9 @@ en el momento. Se empieza por la que más molesta: losas.
 - [ ] Que la ventana pueda ejecutar esas etapas sin abrir la consola
 - [ ] Al terminar cada migración, mover el script viejo a `legacy\` y actualizarlo en `calc/pipeline.py`
 
-### Fase 4 · Motor de cálculo — PENDIENTE
-- [ ] Comparar anaStruct vs Pynite con los Pórticos 1, 2 y 3 (momentos, cortantes, flechas)
+### Fase 4 · Motor de cálculo — EN CURSO
+- [x] Comparar anaStruct vs Pynite con los Pórticos 1 y 3 (reacciones, momentos, cortantes, axiales) — 02/10: `tools/comparar_motores.py`; coinciden **<0,1 %** → **Pynite validado**
+- [ ] (opcional) Comparar el Pórtico 2 cuando sus datos estén completos — hoy es **dato de prueba** y le falta `nivel` en `C1-a`/`C1-b`; se revisa al cargar una obra real
 - [ ] Pasar `P01` a Pynite en modo **pórtico plano**
 - [ ] Retirar anaStruct y dejar anotado en la memoria por qué se cambió
 
@@ -281,7 +312,8 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 | `calc/losas.py` | La única cuenta de losa alivianada (clásico → tabla de viguetas); calcula una losa sola desde `datos/losas.json` |
 | `datos/*.json` | **Los datos**: materiales, geometría, cargas, losas, coeficientes, viguetas |
 | `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, **reacciones**, planos |
-| `tools/` | Utilidades de trabajo (regresión, informe de cambios) |
+| `tools/` | Utilidades de trabajo (regresión, informe de cambios, comparación de motores) |
+| `tools/regresion.py` · `tools/comparar_motores.py` | Red de seguridad de resultados y validación cruzada anaStruct ↔ Pynite |
 | `tests/golden/` | Copias congeladas de resultados de referencia (no se suben a git) |
 | `00_…`, `P00_…` a `P06_…`, `L00_…`, `C00_…`, `V0x_…` | Los scripts de cálculo de hoy; se migran de a uno a `calc/` |
 

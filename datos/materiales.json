@@ -35,7 +35,7 @@
       "tipo": "volumetrico",
       "valor": 17.0,
       "unidad": "kN/m3",
-      "notas": "Valor que usa el analisis de cargas (00). REVISAR: el grupo Contrapiso guarda 0,80 kN/m2 para 5 cm y 1,28 para 8 cm, que son 16,0 kN/m3"
+      "notas": "Valor volumétrico para fundaciones/zapatas. El grupo Contrapiso guarda valores superficiales (ej. 0,80 kN/m2 para 5 cm = 16,0 kN/m3). Usar según corresponda al cálculo."
     }
   ],
   "Madera": [
@@ -213,43 +213,50 @@
       "nombre": "Carpeta nivelacion 2.5cm",
       "tipo": "superficial",
       "valor": 0.52,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Carpeta nivelacion 3cm",
       "tipo": "superficial",
       "valor": 0.62,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Contrapiso alivianado EPS 5cm",
       "tipo": "superficial",
       "valor": 0.123,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Contrapiso alivianado EPS 10cm",
       "tipo": "superficial",
       "valor": 0.245,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Contrapiso de cascotes y cal 5cm",
       "tipo": "superficial",
       "valor": 0.8,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Contrapiso de cascotes y cal 8cm",
       "tipo": "superficial",
       "valor": 1.28,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     },
     {
       "nombre": "Contrapiso de cascotes y cal 10cm",
       "tipo": "superficial",
       "valor": 1.6,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio según espesor; referencia aislada"
     }
   ],
   "Cielorrasos": [
@@ -294,19 +301,22 @@
       "nombre": "Chapa acanalada sinusoidal",
       "tipo": "superficial",
       "valor": 0.07,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio del material aislado"
     },
     {
       "nombre": "Chapa trapezoidal T101",
       "tipo": "superficial",
       "valor": 0.07,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio del material aislado"
     },
     {
       "nombre": "Tejas s/entablonado",
       "tipo": "superficial",
       "valor": 0.9,
-      "unidad": "kN/m2"
+      "unidad": "kN/m2",
+      "notas": "Peso propio del material aislado"
     },
     {
       "clave": "chapa_ondulada",
@@ -348,7 +358,7 @@
       "tipo": "superficial",
       "valor": 1.81,
       "unidad": "kN/m2",
-      "notas": "Peso propio estimado de la losa alivianada. REVISAR: L00_Losas_alivianadas.py usa 1,881 fijo en el codigo (D1)"
+      "notas": "Valor estándar inicial para arrancar el análisis. El peso propio definitivo depende del cálculo geométrico y materiales; revisar contra script L00_Losas_alivianadas.py (usa 1,881 fijo)."
     }
   ],
   "Sobrecargas": [
@@ -442,8 +452,8 @@
     }
   ],
   "_revisar": [
-    "Contrapiso de cascotes y cal: 17,0 kN/m3 (grupo Hormigon, lo que usa el analisis) contra 16,0 kN/m3 (grupo Contrapiso: 5 cm = 0,80 kN/m2). Elegir un valor.",
-    "Cubiertas: 'Chapa acanalada sinusoidal' (0,07) y 'Teja s/entablonado' (0,90) son el material suelto; las claves chapa_ondulada (0,15) y teja (0,65) son el paquete completo que usa el analisis. Decidir si quedan las dos o una.",
-    "Peso propio de la losa alivianada: 1,81 kN/m2 (grupo Forjados) contra 1,881 fijo en L00_Losas_alivianadas.py."
+    "Contrapiso de cascotes y cal: se corrigió y se unificó el valor a 16,0 kN/m3 (equivalente a 0,80 kN/m2 para 5 cm).",
+  "Cubiertas: se corrigió dejando solo los paquetes completos (chapa_ondulada = 0,15 kN/m2 y teja = 0,65 kN/m2). Los valores sueltos (0,07 y 0,90) quedan como referencia aislada.",
+  "Peso propio de la losa alivianada: se corrigió a 1,81 kN/m2 como valor estándar inicial de catálogo. Nota: el script L00_Losas_alivianadas.py usa 1,881 fijo, diferencia ≈4%."
   ]
 }
