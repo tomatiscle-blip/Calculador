@@ -7,13 +7,17 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **02/10/2026**
-- Último trabajo: **se comparó Pynite contra anaStruct** con `tools/comparar_motores.py`.
-  Los **Pórticos 1 y 3** dan igual en los dos motores (<0,1 % en reacciones, momentos,
-  cortantes y axiales): **Pynite queda validado**. El **Pórtico 2** todavía no se puede
-  comparar: le faltan datos (a `C1-a`/`C1-b` les falta `nivel` → geometría degenerada) y
-  su resultado guardado ni cierra el equilibrio. Ver la Fase 4.
-- Último commit: `53ad16a` — *"se agrego losas alivianadas nueva faltaria comparar anastruct vs Pynite"*.
+- Última actualización: **03/10/2026**
+- Último trabajo: **el MOTOR de cálculo quedó armado en `calc/portico.py`** (03/10).
+  Resuelve el pórtico 2D con **Pynite** (casos base D, L, W y P + las 5 combinaciones, con
+  viento) y devuelve **M, V, N, reacciones y desplazamientos por barra y por combinación**,
+  más una **envolvente** para el dimensionado. Es el reemplazo de `P01` (anaStruct).
+  - Se usó con `py -m calc.portico "Portico 1" --guardar` → `salidas/solicitaciones/Portico 1.json`.
+  - **Validado contra anaStruct fresco por combinación**: coinciden las 5 combinaciones
+    (reacciones, M, V y N; el momento de campo difiere ≤ 0,05 kN·m por la malla de 50).
+    Antes ya se había validado Pynite contra anaStruct en <0,1 % (`tools/comparar_motores.py`).
+  - Siguiente paso: que los **dimensionadores** (vigas, columnas, bases) lean ese JSON.
+- Último commit: `cee9b34` — *"se implementa de apoco pynite"*.
 
 ---
 
@@ -31,7 +35,9 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
 | Comparar los dos motores (anaStruct vs Pynite) | `py tools\comparar_motores.py` |
 
-La ventana tiene 6 pestañas: **1 · Estado y etapas** (el semáforo en colores),
+La ventana tiene 7 pestañas: **Inicio** (las dos piezas resueltas: **cargas** y el
+**motor de solicitaciones del pórtico**, con su estado, un botón para resolver y la
+**envolvente** del pórtico elegido), **1 · Estado y etapas** (el semáforo en colores),
 **2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias),
 **6 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.).
 
@@ -54,6 +60,26 @@ Lo que hoy **no** cumple la regla 2 es el análisis de cargas: está escrito *ad
 un script y la losa lo repite por su cuenta (ver el punto 4).
 
 ## 3. Dónde quedamos
+
+### Última sesión — 03/10/2026
+- **El MOTOR quedó armado: `calc/portico.py`.** Resuelve el pórtico 2D con Pynite con los
+  casos base **D, L, W y P** y las **5 combinaciones** (servicio + las 4 de CIRSOC, con
+  viento), y devuelve **M, V, N, reacciones y desplazamientos** por barra y por combinación,
+  más una **envolvente** (máximos en módulo) que es la que van a consumir los dimensionadores.
+  - Se usa: `py -m calc.portico "Portico 1"` (informe) y `... --guardar` para escribir
+    `salidas/solicitaciones/Portico 1.json`. `py -m calc.portico` lista qué hay.
+  - Las 4 combinaciones de CIRSOC siguen viviendo en **un solo lugar**
+    (`cargas.FACTORES_COMBINACIONES`): el motor las reusa, no las reescribe.
+  - **Límite conocido (heredado de P01):** las **cargas puntuales** se aplican **enteras** en
+    todas las combinaciones (no se escalan por fD/fL). Es a propósito, para reproducir P01.
+- **Validado contra anaStruct fresco por combinación** (control `_tmp_validar_motor.py`):
+  reacciones, M, V y N coinciden en las 5 combinaciones; la única diferencia (~0,04 kN·m) es
+  el momento de campo, por la malla de 50 del control.
+- **Pantalla de inicio en la app (`app/principal.py`)**: la ventana ahora abre en la pestaña
+  **«Inicio»**, que muestra las dos piezas resueltas —**cargas** (etapa 1) y el **motor de
+  solicitaciones**— con su estado, un botón para **resolver el pórtico** (lanza
+  `py -m calc.portico "<pórtico>" --guardar`) y la **envolvente** del pórtico elegido.
+  La pantalla no calcula: lanza el motor y lee `salidas/solicitaciones/<pórtico>.json`.
 
 ### Última sesión — 02/10/2026
 - **Comparación de motores hecha y con resultado**: `py tools\comparar_motores.py`

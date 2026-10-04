@@ -39,6 +39,7 @@ SAL_BASES: Path = SALIDAS / "bases"
 SAL_DXF: Path = SALIDAS / "dxf"
 SAL_LOSAS: Path = SALIDAS / "losas"
 SAL_REACCIONES: Path = SALIDAS / "reacciones"
+SAL_SOLICITACIONES: Path = SALIDAS / "solicitaciones"
 
 CARPETAS_SALIDA = (
     SALIDAS,
@@ -49,6 +50,7 @@ CARPETAS_SALIDA = (
     SAL_DXF,
     SAL_LOSAS,
     SAL_REACCIONES,
+    SAL_SOLICITACIONES,
 )
 
 # ---------------------------------------------------------------------------

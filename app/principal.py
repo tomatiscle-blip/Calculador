@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,6 +33,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -283,6 +285,37 @@ def datos_bases(portico: str):
 
 
 # ---------------------------------------------------------------------------
+# Solicitaciones del motor (salidas/solicitaciones/, lo que produce calc.portico)
+# ---------------------------------------------------------------------------
+ENC_ENVOLVENTE = ("Barra", "Tipo", "|M| máx (kN·m)", "|V| máx (kN)", "|N| máx (kN)")
+
+
+def datos_solicitaciones(portico: str):
+    """
+    Lee salidas/solicitaciones/<portico>.json (la salida del MOTOR) y devuelve
+    (archivo, datos, filas) con la envolvente lista para una tabla.
+    """
+    archivo = buscar_archivo(rutas.SAL_SOLICITACIONES, "{portico}.json", portico)
+    if archivo is None:
+        return None, None, []
+    datos = rutas.leer_json(archivo) or {}
+    env = datos.get("envolvente", {})
+    filas = []
+    for cid, d in env.get("columnas", {}).items():
+        if not d:
+            continue
+        m = max(abs(d.get("M_inf", 0.0)), abs(d.get("M_sup", 0.0)))
+        filas.append(([cid, "columna", numero(m), "", numero(d.get("N"))], False))
+    for grupo, tipo in (("vigas", "viga"), ("voladizos", "voladizo")):
+        for clave, d in env.get(grupo, {}).items():
+            if not d:
+                continue
+            v = max(abs(d.get("V_izq", 0.0)), abs(d.get("V_der", 0.0)))
+            filas.append(([clave, tipo, numero(d.get("M_campo")), numero(v), ""], False))
+    return archivo, datos, filas
+
+
+# ---------------------------------------------------------------------------
 # Losas y resumen general
 # ---------------------------------------------------------------------------
 def memorias_losas() -> list[Path]:
@@ -342,6 +375,19 @@ class VentanaPrincipal(QMainWindow):
         self.arbol = QTreeWidget()
         self.arbol.setHeaderLabels(("Archivo", "Tamaño"))
 
+        # --- pestaña Inicio ---
+        self.etiqueta_inicio = QLabel()
+        self.etiqueta_inicio.setWordWrap(True)
+        self.lbl_cargas = QLabel()
+        self.lbl_cargas.setWordWrap(True)
+        self.lbl_motor = QLabel()
+        self.lbl_motor.setWordWrap(True)
+        self.boton_ver_cargas = QPushButton("Abrir el último análisis")
+        self.boton_resolver_motor = QPushButton("Resolver solicitaciones del pórtico")
+        self.boton_ver_motor = QPushButton("Abrir el JSON del motor")
+        self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
+        self.ultimo_analisis: Path | None = None
+
         self._armar_interfaz()
         self._conectar()
         self.refrescar()
@@ -381,6 +427,7 @@ class VentanaPrincipal(QMainWindow):
         principal.addLayout(barra)
 
         pestanias = QTabWidget()
+        pestanias.addTab(self._pagina_inicio(), "Inicio")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
         pagina, self.etiqueta_vigas = self._pagina("", self.tabla_vigas)
@@ -441,6 +488,9 @@ class VentanaPrincipal(QMainWindow):
 
     def _conectar(self) -> None:
         self.boton_actualizar.clicked.connect(self.refrescar)
+        self.boton_ver_cargas.clicked.connect(self._abrir_ultimo_analisis)
+        self.boton_resolver_motor.clicked.connect(self._resolver_motor)
+        self.boton_ver_motor.clicked.connect(self._abrir_json_motor)
         self.combo_portico.currentTextChanged.connect(lambda _: self.refrescar())
         self.tabla_etapas.itemSelectionChanged.connect(self._al_elegir_etapa)
         self.boton_ejecutar.clicked.connect(self._ejecutar_etapa)
@@ -492,6 +542,7 @@ class VentanaPrincipal(QMainWindow):
                 "No hay pórticos cargados en datos/estructura.json (empezá por la etapa 3, geometría)."
             )
 
+        self._cargar_inicio(portico)
         self._cargar_etapas(portico)
         self._cargar_vigas(portico)
         self._cargar_columnas(portico)
@@ -499,6 +550,129 @@ class VentanaPrincipal(QMainWindow):
         self._cargar_losas()
         self._cargar_arbol()
         self.statusBar().showMessage(f"{len(porticos)} pórtico(s) en el proyecto  ·  {rutas.RAIZ}")
+
+    # ------------------------------------------------------------------
+    # Pestaña Inicio
+    # ------------------------------------------------------------------
+    def _pagina_inicio(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+
+        self.etiqueta_inicio.setStyleSheet("font-size: 11pt;")
+        caja.addWidget(self.etiqueta_inicio)
+
+        grupo_cargas = QGroupBox("1 · Análisis de cargas   (calc/cargas.py)")
+        caja_cargas = QVBoxLayout(grupo_cargas)
+        caja_cargas.addWidget(self.lbl_cargas)
+        fila_cargas = QHBoxLayout()
+        fila_cargas.addWidget(self.boton_ver_cargas)
+        fila_cargas.addStretch(1)
+        caja_cargas.addLayout(fila_cargas)
+        caja.addWidget(grupo_cargas)
+
+        grupo_motor = QGroupBox("Motor de cálculo · Solicitaciones del pórtico   (calc/portico.py)")
+        caja_motor = QVBoxLayout(grupo_motor)
+        caja_motor.addWidget(self.lbl_motor)
+        fila_motor = QHBoxLayout()
+        fila_motor.addWidget(self.boton_resolver_motor)
+        fila_motor.addWidget(self.boton_ver_motor)
+        fila_motor.addStretch(1)
+        caja_motor.addLayout(fila_motor)
+        caja.addWidget(grupo_motor)
+
+        caja.addWidget(QLabel("Envolvente del pórtico elegido (máximos en módulo, según el motor):"))
+        caja.addWidget(self.tabla_inicio, 1)
+        return pagina
+
+    def _cargar_inicio(self, portico: str) -> None:
+        resumen = resumen_etapas(portico) if portico else "No hay pórticos cargados en datos/estructura.json."
+        self.etiqueta_inicio.setText(
+            f"<b>Calculador — Estructuras</b><br>"
+            f"Carpeta del proyecto: {self._rel(rutas.RAIZ)}<br>{resumen}"
+        )
+
+        analisis = sorted(
+            rutas.listar(rutas.SAL_ANALISIS_CARGAS, "*.txt"),
+            key=lambda p: p.stat().st_mtime, reverse=True,
+        )
+        self.ultimo_analisis = analisis[0] if analisis else None
+        if analisis:
+            self.lbl_cargas.setText(
+                f"[ OK ]  {len(analisis)} análisis en salidas/analisis_cargas\n"
+                f"Último: {self._rel(analisis[0])}"
+            )
+        else:
+            self.lbl_cargas.setText("[ - ]  Todavía no hay análisis de cargas guardados.")
+        self.boton_ver_cargas.setEnabled(self.ultimo_analisis is not None)
+
+        archivo, datos, filas = datos_solicitaciones(portico)
+        if archivo is not None and datos:
+            self.lbl_motor.setText(
+                f"[ OK ]  {self._rel(archivo)}  ·  generado {datos.get('generado', '')}\n"
+                f"{len(datos.get('combinaciones', []))} combinaciones resueltas"
+            )
+            self.boton_ver_motor.setEnabled(True)
+        else:
+            self.lbl_motor.setText(
+                f"[ - ]  {portico or 'El pórtico'} todavía no tiene solicitaciones. "
+                "Usá «Resolver solicitaciones del pórtico»."
+            )
+            self.boton_ver_motor.setEnabled(False)
+        self._llenar(self.tabla_inicio, filas)
+
+    def _abrir_ultimo_analisis(self) -> None:
+        if self.ultimo_analisis is None:
+            return
+        error = abrir_con_windows(self.ultimo_analisis)
+        if error:
+            self._aviso("No se pudo abrir", error)
+
+    def _abrir_json_motor(self) -> None:
+        archivo = buscar_archivo(rutas.SAL_SOLICITACIONES, "{portico}.json", self._portico())
+        if archivo is None:
+            self._aviso("Sin solicitaciones", "Todavía no hay JSON del motor para este pórtico.")
+            return
+        error = abrir_con_windows(archivo)
+        if error:
+            self._aviso("No se pudo abrir", error)
+
+    def _resolver_motor(self) -> None:
+        portico = self._portico()
+        if not portico:
+            self._aviso("Sin pórtico", "Elegí un pórtico en la barra de arriba.")
+            return
+        texto = (
+            "Se va a resolver el pórtico con el MOTOR (Pynite), por combinaciones:\n\n"
+            f'    py -m calc.portico "{portico}" --guardar\n\n'
+            f"Escribe salidas/solicitaciones/{rutas.nombre_seguro(portico)}.json"
+        )
+        if QMessageBox.question(
+            self, "Resolver solicitaciones", texto,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) != QMessageBox.StandardButton.Yes:
+            return
+
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        self.statusBar().showMessage(f"Resolviendo {portico} con el motor…")
+        try:
+            proceso = subprocess.run(
+                [sys.executable, "-m", "calc.portico", portico, "--guardar"],
+                cwd=str(rutas.RAIZ),
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
+            )
+            resultado = {
+                "ok": proceso.returncode == 0, "codigo": proceso.returncode,
+                "salida": proceso.stdout, "error": proceso.stderr,
+            }
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            resultado = {"ok": False, "codigo": None, "salida": "", "error": str(exc)}
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        self._mostrar_resultado("Solicitaciones del pórtico (motor)", resultado)
+        self.refrescar()
 
     # ------------------------------------------------------------------
     # Pestaña 1: estado y etapas

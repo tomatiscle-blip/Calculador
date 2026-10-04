@@ -10,3 +10,13 @@ losa  y solo calculas el cimiento? o armar un portico de una estructura
 mas compleja q recibe un poco todo eso, por ahi la app tiene q dar esa 
 versatilidad.
 se transcribe el ultimo chat con Cline no contestado.
+
+3/10/26. 22.01hs= si, yo lo pense mas como hacer un portico cargando datos 
+por teclado pq no sabia si hay alguna forma mejor? y en base a ese portico 
+desglosarlo en partes componentes, losa (que aveces puede ir proimero pq define la carga) 
+vigas, columans y ultimo base. pero si te pones a pensar una obrta puede tener muchso porticos 
+y la estructura esta en la mente del proyectisra, creo q con cada cosa al arrancar 
+si resolves una viga simplemente apoyada se podria usar analisas de carga para definir su 
+carga y la viga si es de hormigon no? pero la solicictaciones estan para poritcos nomas 
+y asi creo q con eso se puede ir avanzando?
+se transcribe el ultimo chat con Cline no contestado.

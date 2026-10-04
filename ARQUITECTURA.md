@@ -87,12 +87,13 @@ es el mismo renglón del mismo archivo: lo que hace que el mismo contrapiso no p
 | 2. Materiales | **Hecho (30/09)** | `datos/materiales.json` es la única biblioteca y `calc/materiales.py` la reparte |
 | 3. Elementos que reciben carga | **Hecho (30/09)** | `datos/cargas.json` + `calc/cargas.py` (calcula el conjunto **o un elemento solo**); 01/10: la **losa entrega sus reacciones** (`calc/losas.py`) |
 | 4. Pórticos | A medias | La geometría está en `datos/estructura.json`, pero la carga **no** dice a qué pórtico va |
-| 5. Solicitaciones | Falta | Hoy los M, V y N quedan mezclados dentro de `estructura.json` (`P01`) |
+| 5. Solicitaciones | **Hecho (03/10)** | El motor vive en `calc/portico.py` (Pynite) y escribe `salidas/solicitaciones/<pórtico>.json`; ya no quedan mezcladas dentro de `estructura.json` (`P01`) |
 | 6. Dimensionamiento | En marcha | **01/10: la losa alivianada vive en `calc/losas.py`**; faltan `P02` vigas, `P04` columnas, `P05` bases y el acero |
 | 7. Salidas | A migrar | `P03` Excel, `P06` DXF; las memorias están dentro de cada script |
 
-Lo que sigue, en orden: **reparto de cargas al pórtico (paso 4)** → **solicitaciones en
-archivo propio (paso 5)** → **dimensionadores uno por uno (paso 6)** → **salidas (7)**.
+Lo que sigue, en orden: **reparto de cargas al pórtico (paso 4)** → **dimensionadores uno
+por uno (paso 6, leyendo `salidas/solicitaciones/`)** → **salidas (7)**. (El paso 5 —las
+solicitaciones en archivo propio— quedó **hecho** con `calc/portico.py`.)
 
 ---
 

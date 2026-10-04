@@ -120,6 +120,17 @@ class AnalisisCargas:
 # ---------------------------------------------------------------------------
 # Combinaciones de CIRSOC (una sola cuenta para todo el programa)
 # ---------------------------------------------------------------------------
+# Factores por combinación: (fD, fL, fW). El motor (calc/portico.py) reusa esta
+# MISMA tabla para armar las combinaciones de carga del pórtico: así el análisis
+# de cargas y las solicitaciones no pueden dar distinto.
+FACTORES_COMBINACIONES: dict[str, tuple[float, float, float]] = {
+    "1.4D": (1.4, 0.0, 0.0),
+    "1.2D+1.6L": (1.2, 1.6, 0.0),
+    "1.2D+0.5L+1.6W": (1.2, 0.5, 1.6),
+    "0.9D+1.6W": (0.9, 0.0, 1.6),
+}
+
+
 def combinaciones_de_componentes(d_total: float, l_total: float, w_total: float) -> dict[str, float]:
     """
     Las 4 combinaciones de CIRSOC a partir de D, L y W ya sumados.
@@ -127,10 +138,8 @@ def combinaciones_de_componentes(d_total: float, l_total: float, w_total: float)
     y las reacciones, así no pueden dar distinto.
     """
     return {
-        "1.4D": 1.4 * d_total,
-        "1.2D+1.6L": 1.2 * d_total + 1.6 * l_total,
-        "1.2D+0.5L+1.6W": 1.2 * d_total + 0.5 * l_total + 1.6 * w_total,
-        "0.9D+1.6W": 0.9 * d_total + 1.6 * w_total,
+        nombre: fD * d_total + fL * l_total + fW * w_total
+        for nombre, (fD, fL, fW) in FACTORES_COMBINACIONES.items()
     }
 
 
