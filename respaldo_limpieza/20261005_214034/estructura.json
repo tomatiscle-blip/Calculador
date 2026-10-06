@@ -1,0 +1,371 @@
+{
+  "Portico 1": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false
+          },
+          {
+            "id": "V0-1 T2",
+            "longitud_m": 3.0,
+            "es_voladizo": false
+          }
+        ]
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 0.0
+      },
+      "C0-b": {
+        "x": 4.0,
+        "altura_m": 3.0,
+        "nivel": 0.0
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento"
+      },
+      "B0-b": {
+        "x": 4.0,
+        "tipo": "empotramiento"
+      }
+    },
+    "cargas_puntuales": []
+  },
+  "Portico 2": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-1 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 4.0,
+            "x_fin": 9.0,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-1 T3",
+            "longitud_m": 6.0,
+            "es_voladizo": false,
+            "x_inicio": 9.0,
+            "x_fin": 15.0,
+            "cargas": {
+              "D_total": 34.89,
+              "L_total": 8.08,
+              "W_total": 6.2,
+              "combinaciones": {
+                "1.4D": 48.84,
+                "1.2D+1.6L": 54.79,
+                "1.2D+0.5L+1.6W": 55.82,
+                "0.9D+1.6W": 41.31
+              }
+            },
+            "cargas_puntuales": []
+          }
+        ]
+      },
+      "V1-1": {
+        "tramos": [
+          {
+            "id": "V1-1 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V1-1 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 4.0,
+            "x_fin": 9.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V1-1 T3",
+            "longitud_m": 6.0,
+            "es_voladizo": false,
+            "x_inicio": 9.0,
+            "x_fin": 15.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          }
+        ]
+      },
+      "V2-1": {
+        "tramos": [
+          {
+            "id": "V2-1 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V2-1 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 4.0,
+            "x_fin": 9.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V2-1 T3",
+            "longitud_m": 6.0,
+            "es_voladizo": false,
+            "x_inicio": 9.0,
+            "x_fin": 15.0,
+            "cargas": {
+              "D_total": 0.42,
+              "L_total": 0.8,
+              "W_total": 0.12,
+              "combinaciones": {
+                "1.4D": 0.59,
+                "1.2D+1.6L": 1.79,
+                "1.2D+0.5L+1.6W": 1.1,
+                "0.9D+1.6W": 0.57
+              }
+            },
+            "cargas_puntuales": []
+          }
+        ]
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.6,
+        "nivel": 0.0
+      },
+      "C0-b": {
+        "x": 4.0,
+        "altura_m": 3.6,
+        "nivel": 0.0
+      },
+      "C0-c": {
+        "x": 9.0,
+        "altura_m": 3.6,
+        "nivel": 0.0
+      },
+      "C0-d": {
+        "x": 15.0,
+        "altura_m": 3.6,
+        "nivel": 0.0
+      },
+      "C1-a": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 3.6
+      },
+      "C1-b": {
+        "x": 4.0,
+        "altura_m": 3.0,
+        "nivel": 3.6
+      },
+      "C1-c": {
+        "x": 9.0,
+        "altura_m": 3.0,
+        "nivel": 3.6
+      },
+      "C1-d": {
+        "x": 15.0,
+        "altura_m": 3.0,
+        "nivel": 3.6
+      },
+      "C2-a": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 6.6
+      },
+      "C2-b": {
+        "x": 4.0,
+        "altura_m": 3.0,
+        "nivel": 6.6
+      },
+      "C2-c": {
+        "x": 9.0,
+        "altura_m": 3.0,
+        "nivel": 6.6
+      },
+      "C2-d": {
+        "x": 15.0,
+        "altura_m": 3.0,
+        "nivel": 6.6
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento"
+      },
+      "B0-b": {
+        "x": 4.0,
+        "tipo": "empotramiento"
+      },
+      "B0-c": {
+        "x": 9.0,
+        "tipo": "empotramiento"
+      },
+      "B0-d": {
+        "x": 15.0,
+        "tipo": "empotramiento"
+      }
+    },
+    "cargas_puntuales": []
+  },
+  "Portico 3": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 5.0,
+            "cargas": {
+              "D_total": 32.88,
+              "L_total": 10.96,
+              "W_total": 6.22,
+              "combinaciones": {
+                "1.4D": 46.03,
+                "1.2D+1.6L": 56.99,
+                "1.2D+0.5L+1.6W": 54.89,
+                "0.9D+1.6W": 39.54
+              }
+            },
+            "cargas_puntuales": [
+              {
+                "piso": 0,
+                "coordenadas": {
+                  "x": 2.5,
+                  "y": 3.5
+                },
+                "valor_kN": 25.0,
+                "tipo": "Tabique"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.5,
+        "nivel": 0.0
+      },
+      "C0-b": {
+        "x": 5.0,
+        "altura_m": 3.5,
+        "nivel": 0.0
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento"
+      },
+      "B0-b": {
+        "x": 5.0,
+        "tipo": "empotramiento"
+      }
+    },
+    "cargas_puntuales": []
+  }
+}

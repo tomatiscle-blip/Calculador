@@ -49,34 +49,85 @@ class Etapa:
 # Marcas: chequeos por CONTENIDO (más confiables que la fecha del archivo)
 # ---------------------------------------------------------------------------
 def _marca_cargas(_portico: str = "") -> tuple[bool, str]:
+    datos = rutas.leer_json(rutas.CARGAS, {}) or {}
+    elementos = datos.get("elementos", {})
+    activos = sum(bool(e.get("activo", True)) for e in elementos.values())
+    aplicaciones = sum(bool(a.get("activa", True)) for a in datos.get("aplicaciones", []))
     txts = rutas.listar(rutas.SAL_ANALISIS_CARGAS, "*.txt")
+    if not elementos or not activos:
+        return False, "Definí al menos una carga activa en la pestaña Cargas"
+    detalle = f"{activos} carga(s) activa(s), {aplicaciones} aplicación(es)"
     if txts:
-        return True, f"{len(txts)} análisis en salidas/analisis_cargas"
-    return False, "sin análisis de cargas guardados"
+        ultimo = max(txts, key=lambda archivo: archivo.stat().st_mtime)
+        detalle += f" \u00b7 informe: {ultimo.name}"
+    else:
+        detalle += " \u00b7 falta generar el informe TXT"
+    return True, detalle
 
 
 def _marca_geometria(portico: str = "") -> tuple[bool, str]:
-    est = rutas.cargar_estructura()
-    if not est:
+    estructura = rutas.cargar_estructura()
+    if not estructura:
         return False, "datos/estructura.json no existe o está vacío"
-    nombre = portico or sorted(est)[0]
-    p = est.get(nombre)
-    if not p:
+    nombre = portico or sorted(estructura)[0]
+    datos = estructura.get(nombre)
+    if not datos:
         return False, f"el pórtico '{nombre}' no está en estructura.json"
-    n_col = len(p.get("columnas", {}))
-    n_tra = sum(len(v.get("tramos", [])) for v in p.get("vigas", {}).values())
-    return True, f"{len(est)} pórtico(s); {nombre}: {n_col} columnas, {n_tra} tramos"
+    columnas = datos.get("columnas", {})
+    n_columnas = len(columnas)
+    n_tramos = sum(len(v.get("tramos", [])) for v in datos.get("vigas", {}).values())
+    problemas = []
+    for viga_id, viga in datos.get("vigas", {}).items():
+        cabeza = str(viga_id).split("-")[0]
+        piso = cabeza[1:] if cabeza[:1].upper() == "V" else ""
+        if not piso.isdigit():
+            continue
+        columnas_piso = sorted(
+            (c for cid, c in columnas.items() if str(cid).startswith(f"C{piso}-")),
+            key=lambda c: float(c.get("x", 0.0)),
+        )
+        tramos = viga.get("tramos", [])
+        for indice, tramo in enumerate(tramos):
+            if tramo.get("es_voladizo"):
+                continue
+            tramo_id = tramo.get("id", f"{viga_id} tramo {indice + 1}")
+            if indice + 1 >= len(columnas_piso):
+                problemas.append(
+                    f"{tramo_id}: faltan columnas; hay {len(columnas_piso)} para formar "
+                    f"{len(tramos)} tramo(s)"
+                )
+                continue
+            luz_real = float(columnas_piso[indice + 1].get("x", 0.0)) - float(
+                columnas_piso[indice].get("x", 0.0)
+            )
+            luz_declarada = float(tramo.get("longitud_m", 0.0))
+            if abs(luz_real - luz_declarada) > 0.01:
+                problemas.append(
+                    f"{tramo_id}: declara {luz_declarada:g} m, pero las columnas separan "
+                    f"{luz_real:g} m"
+                )
+    resumen = f"{len(estructura)} pórtico(s); {nombre}: {n_columnas} columnas, {n_tramos} tramos"
+    if problemas:
+        return False, resumen + " · geometría incompleta: " + "; ".join(problemas)
+    return True, resumen + " · tramos compatibles con las columnas"
 
 
 def _marca_portico(portico: str = "") -> tuple[bool, str]:
-    est = rutas.cargar_estructura()
-    if not est or not portico or portico not in est:
-        return False, "sin geometría para analizar"
-    cols = est[portico].get("columnas", {})
-    con_momentos = [c for c in cols.values() if "Mu_kNm_inf" in c]
-    if cols and len(con_momentos) == len(cols):
-        return True, f"{len(cols)} columnas con momentos calculados"
-    return False, f"{len(con_momentos)}/{len(cols)} columnas calculadas"
+    if not portico:
+        return False, "sin pórtico seleccionado"
+    archivo = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(portico)}.json"
+    datos = rutas.leer_json(archivo)
+    if not datos:
+        return False, f"falta resolver el motor para {portico}"
+    if datos.get("avisos"):
+        avisos = "; ".join(str(aviso) for aviso in datos["avisos"])
+        return False, f"el motor terminó con avisos: {avisos}"
+    envolvente = datos.get("envolvente", {})
+    n_barras = sum(len(envolvente.get(clave, {})) for clave in ("columnas", "vigas", "voladizos"))
+    combinaciones = datos.get("combinaciones", [])
+    if not n_barras or not combinaciones:
+        return False, "el archivo del motor no contiene resultados completos"
+    return True, f"{n_barras} barras resueltas; {len(combinaciones)} combinaciones"
 
 
 def _marca_vigas(portico: str = "") -> tuple[bool, str]:
@@ -173,24 +224,23 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="3. Geometría del pórtico",
         descripcion="Columnas, tramos, voladizos y cargas puntuales.",
         script="P00_Ingresar_datos_estructura.py",
-        entradas=(rutas.SAL_ANALISIS_CARGAS,),
+        entradas=(rutas.ESTRUCTURA,),
         salidas=(rutas.ESTRUCTURA,),
-        depende_de=("cargas",),
         interactiva=True,
         marca=_marca_geometria,
-        nota="Todavía se carga por teclado; después pasa a tabla en pantalla.",
+        nota="Completá columnas y tramos compatibles antes de resolver el pórtico.",
     ),
     Etapa(
         clave="portico",
-        nombre="4. Cálculo del pórtico",
-        descripcion="Solicitaciones en vigas, columnas y bases (motor Pynite).",
-        script="P01_dimensionado_portico_hormigon.py",
-        entradas=(rutas.ESTRUCTURA,),
-        salidas=(rutas.ESTRUCTURA,),
+        nombre="4. Solicitaciones del pórtico",
+        descripcion="Resuelve las cargas aplicadas y genera solicitaciones por combinación.",
+        script="calc.portico",
+        entradas=(rutas.ESTRUCTURA, rutas.CARGAS, rutas.MATERIALES),
+        salidas=(rutas.SAL_SOLICITACIONES / "{portico}.json",),
         depende_de=("geometria",),
-        interactiva=True,
+        interactiva=False,
         marca=_marca_portico,
-        nota="A migrar de anaStruct 2D a Pynite 3D. Comparación previa HECHA (P1 y P3 coinciden <0,1 %; ver tools/comparar_motores.py).",
+        nota="Motor Pynite 2D; cargas tomadas de las aplicaciones activas del proyecto.",
     ),
     Etapa(
         clave="vigas",
@@ -375,7 +425,8 @@ def estado_etapa(clave: str, portico: str = "") -> dict:
         except Exception as exc:  # una marca NUNCA debe tumbar la app
             listo, detalle = False, f"no se pudo verificar ({exc})"
         if not listo:
-            return {**dato, "estado": "pendiente", "detalle": detalle}
+            estado = "sin_datos" if clave in ("geometria", "cargas") else "pendiente"
+            return {**dato, "estado": estado, "detalle": detalle}
 
     f_entrada = rutas.fecha_mas_reciente(entradas)
     f_salida = rutas.fecha_mas_reciente(salidas)

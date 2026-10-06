@@ -7,8 +7,20 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **03/10/2026**
-- Último trabajo: **el MOTOR de cálculo quedó armado en `calc/portico.py`** (03/10).
+- Última actualización: **05/10/2026**
+- Último trabajo: conexión inicial de **P02 con el motor y la app** (05/10). El motor de
+  `calc/portico.py` entrega los esfuerzos por combinación; `calc/diseno_vigas.py` adapta
+  esos resultados al dimensionador conservado en `P02_Viga_portico.py`. Desde la pestaña
+  **2 · Vigas** se ingresan `b` y `fc`, se generan el JSON y la planilla TXT. El script
+  sigue funcionando por consola y detecta el formato actual de geometría.
+  - **Importante:** P02 todavía no se migró como cálculo a `calc/vigas.py`; se conserva
+    su lógica de diseño. La flecha usa carga uniforme equivalente cuando hay cargas
+    parciales y no incluye cargas puntuales en esa estimación.
+  - `calculador.bat` abre la app. El pórtico se elige arriba; primero se resuelven sus
+    solicitaciones desde Inicio y después se usa **Dimensionar vigas**.
+  - **Lo siguiente para retomar:** crear y editar la geometría de uno o varios pórticos
+    desde la app. Hoy esa carga todavía se hace por consola con `datos/crear_estructura.py`.
+- Trabajo anterior: **el MOTOR de cálculo quedó armado en `calc/portico.py`** (03/10).
   Resuelve el pórtico 2D con **Pynite** (casos base D, L, W y P + las 5 combinaciones, con
   viento) y devuelve **M, V, N, reacciones y desplazamientos por barra y por combinación**,
   más una **envolvente** para el dimensionado. Es el reemplazo de `P01` (anaStruct).
@@ -16,7 +28,7 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   - **Validado contra anaStruct fresco por combinación**: coinciden las 5 combinaciones
     (reacciones, M, V y N; el momento de campo difiere ≤ 0,05 kN·m por la malla de 50).
     Antes ya se había validado Pynite contra anaStruct en <0,1 % (`tools/comparar_motores.py`).
-  - Siguiente paso: que los **dimensionadores** (vigas, columnas, bases) lean ese JSON.
+   - Las vigas ya leen esos esfuerzos mediante el adaptador P02; faltan columnas y bases.
 - Último commit: `cee9b34` — *"se implementa de apoco pynite"*.
 
 ---
@@ -48,8 +60,9 @@ La ventana tiene 7 pestañas: **Inicio** (las dos piezas resueltas: **cargas** y
 Estas tres reglas son las que le dan "unidad" al programa. Todo lo nuevo se hace
 respetándolas.
 
-1. **La pantalla no calcula.** La ventana solo muestra lo que ya está en `salidas/` y
-   lanza los programas. Si un número está en pantalla, está escrito en un archivo.
+1. **La pantalla coordina el flujo y muestra resultados.** Las cuentas viven en `calc/` o,
+   durante la migración, en scripts legacy como P02. La app lanza el motor, pasa datos al
+   dimensionador y lee sus archivos de salida.
 2. **Cada dato vive en un solo lugar** (`datos/*.json`). Si un peso específico, un
    espesor o una sobrecarga está escrito en dos archivos distintos, tarde o temprano
    dan números distintos.
@@ -60,6 +73,28 @@ Lo que hoy **no** cumple la regla 2 es el análisis de cargas: está escrito *ad
 un script y la losa lo repite por su cuenta (ver el punto 4).
 
 ## 3. Dónde quedamos
+
+### Última sesión — 05/10/2026
+- **P02 conectado a la app y al motor actual.** `P02_Viga_portico.py` ahora se puede
+  importar sin iniciar preguntas de consola; ejecutado directamente, conserva el modo
+  interactivo y deriva al adaptador cuando `estructura.json` tiene el formato actual.
+  `calc/diseno_vigas.py` arma la entrada legacy desde geometría, cargas aplicadas y
+  `salidas/solicitaciones/<pórtico>.json`, y conserva las combinaciones de esfuerzos del
+  motor. La prueba manual del Pórtico 1 generó la planilla TXT y
+  `resultados_Portico 1_vigas.json`.
+- **Flujo en la app:** arriba se selecciona el pórtico; Inicio resuelve solicitaciones;
+  la pestaña **2 · Vigas** pide ancho `b` y hormigón `fc` para cada viga y llama a P02.
+  Esos dos datos quedan guardados en `datos/estructura.json`; la altura se predimensiona
+  con el criterio existente de P02, y fy/recubrimiento mantienen sus valores por defecto.
+- **Límite de la flecha:** P02 calcula esa comprobación con carga uniforme equivalente.
+  La app informa si el tramo tiene cargas parciales; las cargas puntuales tampoco entran
+  en esa estimación. Los esfuerzos de diseño se toman de las combinaciones del motor.
+- **Contraste de campos corregido** en el diálogo de diseño de vigas para que el texto sea
+  legible con el tema de Windows.
+- **Pendiente principal:** no hay todavía un formulario de geometría en la app. El selector
+  superior solo elige pórticos que ya existen; `datos/crear_estructura.py` los crea por
+  consola. Retomar por un editor inicial de obra/pórticos y una visualización clara de la
+  geometría creada, preservando los JSON existentes.
 
 ### Última sesión — 03/10/2026
 - **El MOTOR quedó armado: `calc/portico.py`.** Resuelve el pórtico 2D con Pynite con los
@@ -282,7 +317,10 @@ Cada migración termina con el script viejo llamando a la función nueva, así s
 en el momento. Se empieza por la que más molesta: losas.
 - [x] `L00_Losas_alivianadas.py` → `calc/losas.py` — 01/10: `calcular(datos)` + `datos/losas.json` (clásico → tabla de viguetas); `L00` quedó de envoltorio y la memoria salió idéntica
 - [ ] `P00_Ingresar_datos_estructura.py` → geometría cargada desde datos
-- [ ] `P02_Viga_portico.py` → `calc/vigas.py`
+- [ ] `P02_Viga_portico.py` → `calc/vigas.py` — conectado a la app por `calc/diseno_vigas.py`,
+      pero la lógica de diseño sigue en el script legacy.
+- [ ] Crear/editar geometría de pórticos desde la app; actualmente `datos/crear_estructura.py`
+      sigue siendo por consola y el selector superior solo elige pórticos existentes.
 - [ ] `P04_Columnas_portico.py` → `calc/columnas.py`
 - [ ] `P05_Bases_portico.py` → `calc/bases.py`
 - [ ] `P06_Portico_dxf.py` → `calc/planos.py` (y sacarle el pórtico fijo)

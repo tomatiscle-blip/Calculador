@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QApplication,
     QComboBox,
     QDialog,
+    QFormLayout,
     QDialogButtonBox,
     QGroupBox,
     QHBoxLayout,
@@ -39,6 +40,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -53,7 +55,10 @@ from PySide6.QtWidgets import (  # noqa: E402
     QWidget,
 )
 
-from calc import pipeline, rutas  # noqa: E402
+from calc import cargas, pipeline, rutas  # noqa: E402
+from app.cargas_proyecto import PaginaCargas  # noqa: E402
+from app.diseno_vigas import dimensionar_desde_app  # noqa: E402
+from app.visualizacion import VistaPortico  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Colores del semáforo: (fondo, texto)
@@ -325,19 +330,21 @@ def memorias_losas() -> list[Path]:
 
 
 def resumen_etapas(portico: str) -> str:
-    """Una línea con el conteo de etapas por estado."""
+    """Resumen ordenado del semaforo, priorizando lo que requiere accion."""
     conteo: dict[str, int] = {}
     for dato in pipeline.semaforo(portico):
-        conteo[dato["estado"]] = conteo.get(dato["estado"], 0) + 1
+        estado = dato["estado"]
+        conteo[estado] = conteo.get(estado, 0) + 1
     nombres = {
-        "ok": "al día",
-        "desactualizada": "para recalcular",
-        "pendiente": "sin calcular",
-        "sin_datos": "sin datos",
+        "sin_datos": "incompletas",
+        "desactualizada": "por recalcular",
+        "pendiente": "pendientes",
+        "ok": "al dia",
         "a_desarrollar": "a desarrollar",
     }
-    partes = [f"{cantidad} {nombres.get(estado, estado)}" for estado, cantidad in conteo.items()]
-    return "Etapas: " + ", ".join(partes)
+    orden = ("sin_datos", "desactualizada", "pendiente", "ok", "a_desarrollar")
+    partes = [f"{conteo[e]} {nombres[e]}" for e in orden if conteo.get(e)]
+    return "Estado: " + (" \u00b7 ".join(partes) if partes else "sin etapas")
 
 
 # ---------------------------------------------------------------------------
@@ -367,6 +374,8 @@ class VentanaPrincipal(QMainWindow):
 
         # --- pestañas de resultados ---
         self.tabla_vigas = self._tabla(ENC_VIGAS)
+        self.boton_dimensionar_vigas = QPushButton("Dimensionar vigas")
+        self.advertencias_vigas: list[str] = []
         self.tabla_columnas = self._tabla(ENC_COLUMNAS)
         self.tabla_bases = self._tabla(ENC_BASES)
         self.lista_losas = QListWidget()
@@ -378,16 +387,29 @@ class VentanaPrincipal(QMainWindow):
         # --- pestaña Inicio ---
         self.etiqueta_inicio = QLabel()
         self.etiqueta_inicio.setWordWrap(True)
+        self.nombre_proyecto = QLineEdit()
+        self.id_proyecto_inicio = QLabel()
+        self.id_proyecto_inicio.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.notas_proyecto = QPlainTextEdit()
+        self.notas_proyecto.setPlaceholderText("Criterios, contexto y notas de la obra")
+        self.notas_proyecto.setMaximumHeight(58)
+        self.boton_guardar_proyecto = QPushButton("Guardar ficha")
+        self.vista_portico = VistaPortico()
+        self.leyenda_cargas_visual = QLabel()
+        self.leyenda_cargas_visual.setWordWrap(True)
+        self.leyenda_cargas_visual.setTextFormat(Qt.TextFormat.RichText)
         self.lbl_cargas = QLabel()
         self.lbl_cargas.setWordWrap(True)
         self.lbl_motor = QLabel()
         self.lbl_motor.setWordWrap(True)
         self.boton_ver_cargas = QPushButton("Abrir el último análisis")
+        self.boton_ir_cargas = QPushButton("Ver cargas del proyecto")
         self.boton_resolver_motor = QPushButton("Resolver solicitaciones del pórtico")
         self.boton_ver_motor = QPushButton("Abrir el JSON del motor")
         self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
         self.ultimo_analisis: Path | None = None
 
+        self.pagina_cargas = PaginaCargas(self.refrescar)
         self._armar_interfaz()
         self._conectar()
         self.refrescar()
@@ -428,9 +450,19 @@ class VentanaPrincipal(QMainWindow):
 
         pestanias = QTabWidget()
         pestanias.addTab(self._pagina_inicio(), "Inicio")
+        pestanias.addTab(self.pagina_cargas, "Cargas")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
-        pagina, self.etiqueta_vigas = self._pagina("", self.tabla_vigas)
+        pagina = QWidget()
+        caja_vigas = QVBoxLayout(pagina)
+        self.etiqueta_vigas = QLabel()
+        self.etiqueta_vigas.setWordWrap(True)
+        caja_vigas.addWidget(self.etiqueta_vigas)
+        fila_dimensionado = QHBoxLayout()
+        fila_dimensionado.addWidget(self.boton_dimensionar_vigas)
+        fila_dimensionado.addStretch(1)
+        caja_vigas.addLayout(fila_dimensionado)
+        caja_vigas.addWidget(self.tabla_vigas, 1)
         self.etiqueta_vigas_fuente = self.etiqueta_vigas
         pestanias.addTab(pagina, "2 · Vigas")
 
@@ -488,8 +520,11 @@ class VentanaPrincipal(QMainWindow):
 
     def _conectar(self) -> None:
         self.boton_actualizar.clicked.connect(self.refrescar)
+        self.boton_guardar_proyecto.clicked.connect(self._guardar_ficha_proyecto)
         self.boton_ver_cargas.clicked.connect(self._abrir_ultimo_analisis)
+        self.boton_ir_cargas.clicked.connect(self._ir_a_cargas)
         self.boton_resolver_motor.clicked.connect(self._resolver_motor)
+        self.boton_dimensionar_vigas.clicked.connect(self._dimensionar_vigas)
         self.boton_ver_motor.clicked.connect(self._abrir_json_motor)
         self.combo_portico.currentTextChanged.connect(lambda _: self.refrescar())
         self.tabla_etapas.itemSelectionChanged.connect(self._al_elegir_etapa)
@@ -558,19 +593,29 @@ class VentanaPrincipal(QMainWindow):
         pagina = QWidget()
         caja = QVBoxLayout(pagina)
 
+        grupo_proyecto = QGroupBox("Proyecto")
+        form_proyecto = QFormLayout(grupo_proyecto)
+        fila_identidad = QHBoxLayout()
+        fila_identidad.addWidget(self.nombre_proyecto, 2)
+        fila_identidad.addWidget(QLabel("ID:"))
+        fila_identidad.addWidget(self.id_proyecto_inicio, 1)
+        fila_identidad.addWidget(self.boton_guardar_proyecto)
+        form_proyecto.addRow("Nombre:", fila_identidad)
+        form_proyecto.addRow("Notas:", self.notas_proyecto)
+        caja.addWidget(grupo_proyecto)
+
         self.etiqueta_inicio.setStyleSheet("font-size: 11pt;")
         caja.addWidget(self.etiqueta_inicio)
 
-        grupo_cargas = QGroupBox("1 · Análisis de cargas   (calc/cargas.py)")
+        grupo_cargas = QGroupBox("Cargas del proyecto")
         caja_cargas = QVBoxLayout(grupo_cargas)
         caja_cargas.addWidget(self.lbl_cargas)
         fila_cargas = QHBoxLayout()
+        fila_cargas.addWidget(self.boton_ir_cargas)
         fila_cargas.addWidget(self.boton_ver_cargas)
         fila_cargas.addStretch(1)
         caja_cargas.addLayout(fila_cargas)
-        caja.addWidget(grupo_cargas)
-
-        grupo_motor = QGroupBox("Motor de cálculo · Solicitaciones del pórtico   (calc/portico.py)")
+        grupo_motor = QGroupBox("Solicitaciones del pórtico")
         caja_motor = QVBoxLayout(grupo_motor)
         caja_motor.addWidget(self.lbl_motor)
         fila_motor = QHBoxLayout()
@@ -578,47 +623,123 @@ class VentanaPrincipal(QMainWindow):
         fila_motor.addWidget(self.boton_ver_motor)
         fila_motor.addStretch(1)
         caja_motor.addLayout(fila_motor)
-        caja.addWidget(grupo_motor)
+        estados = QVBoxLayout()
+        estados.addWidget(grupo_cargas)
+        estados.addWidget(grupo_motor)
+        estados.addStretch(1)
+
+        grupo_vista = QGroupBox("Esquema del pórtico y cargas asignadas")
+        caja_vista = QVBoxLayout(grupo_vista)
+        caja_vista.addWidget(self.vista_portico)
+        caja_vista.addWidget(self.leyenda_cargas_visual)
+        zona = QHBoxLayout()
+        zona.addWidget(grupo_vista, 2)
+        zona.addLayout(estados, 1)
+        caja.addLayout(zona, 2)
 
         caja.addWidget(QLabel("Envolvente del pórtico elegido (máximos en módulo, según el motor):"))
         caja.addWidget(self.tabla_inicio, 1)
         return pagina
 
     def _cargar_inicio(self, portico: str) -> None:
-        resumen = resumen_etapas(portico) if portico else "No hay pórticos cargados en datos/estructura.json."
+        import html
+
+        proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
+        self.nombre_proyecto.setText(str(proyecto.get("obra", "Obra")))
+        self.id_proyecto_inicio.setText(PaginaCargas._id_proyecto(proyecto))
+        self.notas_proyecto.setPlainText(str(proyecto.get("notas", "")))
+        self.vista_portico.actualizar(portico)
+        self.leyenda_cargas_visual.setText(self.vista_portico.leyenda)
+        estructura = rutas.cargar_estructura().get(portico, {}) if portico else {}
+        elementos = proyecto.get("elementos", {})
+        cargas_activas = sum(bool(e.get("activo", True)) for e in elementos.values())
+        aplicaciones_activas = sum(
+            bool(a.get("activa", True)) for a in proyecto.get("aplicaciones", [])
+        )
+        geometria = pipeline.estado_etapa("geometria", portico)
+        estado_cargas = pipeline.estado_etapa("cargas", portico)
+        estado_motor = pipeline.estado_etapa("portico", portico)
+        if portico:
+            n_columnas = len(estructura.get("columnas", {}))
+            n_tramos = sum(len(v.get("tramos", [])) for v in estructura.get("vigas", {}).values())
+            seleccionado = (
+                f"Pórtico seleccionado: <b>{html.escape(portico)}</b> "
+                f"({n_columnas} columnas, {n_tramos} tramos)"
+            )
+            proximo = self._siguiente_paso(geometria, estado_cargas, estado_motor)
+        else:
+            seleccionado = "No hay pórticos cargados en datos/estructura.json."
+            proximo = "Cargá la geometría de un pórtico para aplicar cargas y resolverlo."
         self.etiqueta_inicio.setText(
-            f"<b>Calculador — Estructuras</b><br>"
-            f"Carpeta del proyecto: {self._rel(rutas.RAIZ)}<br>{resumen}"
+            f"{seleccionado}<br><b>Próximo paso:</b> {html.escape(proximo)}<br>"
+            f"{html.escape(resumen_etapas(portico)) if portico else 'Estado: falta geometría'}"
         )
 
-        analisis = sorted(
+        iconos = pipeline.ICONOS
+        nombres_estado = self.NOMBRE_ESTADO
+        informes = sorted(
             rutas.listar(rutas.SAL_ANALISIS_CARGAS, "*.txt"),
-            key=lambda p: p.stat().st_mtime, reverse=True,
+            key=lambda archivo: archivo.stat().st_mtime,
+            reverse=True,
         )
-        self.ultimo_analisis = analisis[0] if analisis else None
-        if analisis:
-            self.lbl_cargas.setText(
-                f"[ OK ]  {len(analisis)} análisis en salidas/analisis_cargas\n"
-                f"Último: {self._rel(analisis[0])}"
-            )
-        else:
-            self.lbl_cargas.setText("[ - ]  Todavía no hay análisis de cargas guardados.")
+        self.ultimo_analisis = informes[0] if informes else None
+        estado_txt = (
+            f"{iconos.get(estado_cargas['estado'], '')} "
+            f"{nombres_estado.get(estado_cargas['estado'], estado_cargas['estado'])}"
+        )
+        detalle_txt = estado_cargas["detalle"]
+        if informes:
+            detalle_txt += f"\nÚltimo TXT: {self._rel(informes[0])}"
+        self.lbl_cargas.setText(
+            f"{estado_txt} \u00b7 {detalle_txt}\n"
+            f"Configuración: {cargas_activas} carga(s) activa(s), "
+            f"{aplicaciones_activas} aplicación(es) a tramos."
+        )
         self.boton_ver_cargas.setEnabled(self.ultimo_analisis is not None)
 
         archivo, datos, filas = datos_solicitaciones(portico)
+        estado_motor_txt = (
+            f"{iconos.get(estado_motor['estado'], '')} "
+            f"{nombres_estado.get(estado_motor['estado'], estado_motor['estado'])} \u00b7 "
+            f"{estado_motor['detalle']}"
+        )
         if archivo is not None and datos:
+            generado = datos.get("generado", "sin fecha")
             self.lbl_motor.setText(
-                f"[ OK ]  {self._rel(archivo)}  ·  generado {datos.get('generado', '')}\n"
-                f"{len(datos.get('combinaciones', []))} combinaciones resueltas"
+                f"{estado_motor_txt}\nResultado: {self._rel(archivo)} \u00b7 generado {generado} \u00b7 "
+                f"{len(datos.get('combinaciones', []))} combinaciones."
             )
             self.boton_ver_motor.setEnabled(True)
         else:
             self.lbl_motor.setText(
-                f"[ - ]  {portico or 'El pórtico'} todavía no tiene solicitaciones. "
-                "Usá «Resolver solicitaciones del pórtico»."
+                f"{estado_motor_txt}\nTodavía no hay resultado guardado para este pórtico."
             )
             self.boton_ver_motor.setEnabled(False)
-        self._llenar(self.tabla_inicio, filas)
+        self.boton_resolver_motor.setEnabled(bool(portico) and bool(estructura))
+        mostrar_envolvente = estado_motor["estado"] in ("ok", "pendiente")
+        self._llenar(self.tabla_inicio, filas if mostrar_envolvente else [])
+
+    def _guardar_ficha_proyecto(self) -> None:
+        datos = cargas.datos_cargas()
+        datos["obra"] = self.nombre_proyecto.text().strip() or "Obra"
+        datos["notas"] = self.notas_proyecto.toPlainText().strip()
+        datos["id_proyecto"] = PaginaCargas._id_proyecto(datos)
+        rutas.guardar_json(rutas.CARGAS, datos)
+        self.pagina_cargas.recargar()
+        self.statusBar().showMessage("Ficha del proyecto guardada en datos/cargas.json.", 5000)
+        self.refrescar()
+
+    @staticmethod
+    def _siguiente_paso(geometria: dict, cargas_estado: dict, motor: dict) -> str:
+        if geometria["estado"] != "ok":
+            return "Completá la geometría: " + geometria["detalle"]
+        if cargas_estado["estado"] == "sin_datos":
+            return "Definí al menos una carga activa en la pestaña Cargas."
+        if cargas_estado["estado"] in ("pendiente", "desactualizada"):
+            return "Genera o actualiza el informe TXT desde la pestaña Cargas."
+        if motor["estado"] != "ok":
+            return "Resuelve las solicitaciones; el resultado falta o quedó desactualizado."
+        return "Revisa las solicitaciones y continúa con el dimensionado de vigas, columnas y bases."
 
     def _abrir_ultimo_analisis(self) -> None:
         if self.ultimo_analisis is None:
@@ -626,6 +747,11 @@ class VentanaPrincipal(QMainWindow):
         error = abrir_con_windows(self.ultimo_analisis)
         if error:
             self._aviso("No se pudo abrir", error)
+
+    def _ir_a_cargas(self) -> None:
+        pestanias = self.centralWidget().findChild(QTabWidget)
+        if pestanias is not None:
+            pestanias.setCurrentWidget(self.pagina_cargas)
 
     def _abrir_json_motor(self) -> None:
         archivo = buscar_archivo(rutas.SAL_SOLICITACIONES, "{portico}.json", self._portico())
@@ -641,10 +767,19 @@ class VentanaPrincipal(QMainWindow):
         if not portico:
             self._aviso("Sin pórtico", "Elegí un pórtico en la barra de arriba.")
             return
+        geometria = pipeline.estado_etapa("geometria", portico)
+        aviso_geometria = ""
+        if geometria["estado"] != "ok":
+            aviso_geometria = (
+                "\n\nATENCIÓN: la geometría está incompleta. El motor puede resolver los "
+                "tramos que sí logra formar, pero omitirá los que no tengan columnas. "
+                f"{geometria['detalle']}\nEl resultado será parcial."
+            )
         texto = (
             "Se va a resolver el pórtico con el MOTOR (Pynite), por combinaciones:\n\n"
             f'    py -m calc.portico "{portico}" --guardar\n\n'
             f"Escribe salidas/solicitaciones/{rutas.nombre_seguro(portico)}.json"
+            f"{aviso_geometria}"
         )
         if QMessageBox.question(
             self, "Resolver solicitaciones", texto,
@@ -772,6 +907,20 @@ class VentanaPrincipal(QMainWindow):
             else "  ·  todas las verificaciones cumplen"
         )
         self.etiqueta_vigas.setText(f"Fuente: {self._rel(archivo)}  ·  {len(filas)} tramo(s){aviso}")
+        if self.advertencias_vigas:
+            self.etiqueta_vigas.setText(
+                self.etiqueta_vigas.text() + "\nP02: " + " · ".join(self.advertencias_vigas)
+            )
+
+    def _dimensionar_vigas(self) -> None:
+        portico = self._portico()
+        if not portico:
+            QMessageBox.information(self, "Vigas", "Elegí un pórtico primero.")
+            return
+        resultado = dimensionar_desde_app(self, portico)
+        if resultado:
+            _salida, self.advertencias_vigas = resultado
+            self.refrescar()
 
     def _cargar_columnas(self, portico: str) -> None:
         archivo, filas = datos_columnas(portico)

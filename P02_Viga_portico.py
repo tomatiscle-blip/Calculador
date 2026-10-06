@@ -1794,7 +1794,7 @@ def generar_planilla(
 
     return "\n".join(lineas)
 
-def procesar_vigas(datos_vigas, coef_kd, carpeta_salida):
+def procesar_vigas(datos_vigas, coef_kd, carpeta_salida, portico=""):
     resultados = {}
 
     for viga_id, viga in datos_vigas.items():
@@ -1908,10 +1908,10 @@ def procesar_vigas(datos_vigas, coef_kd, carpeta_salida):
                 cargas=cargas
             )
 
-            with open(carpeta_salida / f"planilla_{seleccion}_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
+            with open(carpeta_salida / f"planilla_{portico}_{viga_id}_{tramo['id']}.txt", "w", encoding="utf-8") as f:
                 f.write(texto)
 
-            print(f"✅ Guardado: {carpeta_salida / f'planilla_{seleccion}_{viga_id}_{tramo['id']}.txt'}")
+            print(f"✅ Guardado: {carpeta_salida / f'planilla_{portico}_{viga_id}_{tramo['id']}.txt'}")
 
             resultados[viga_id].append({
                 "tramo_id": tramo["id"],
@@ -1934,41 +1934,80 @@ def guardar_resultados_json(ruta):
     with open(ruta, "w", encoding="utf-8") as f:
         json.dump(RESULTADOS, f, indent=2, ensure_ascii=False)
 
-# =========================================================
-# PROGRAMA PRINCIPAL
-# =========================================================
-BASE = Path(__file__).parent
-
-with open(BASE / "datos" / "estructura.json", encoding="utf-8") as f:
-    estructura = json.load(f)
-
-print("Pórticos disponibles:")
-porticos = list(estructura.keys())
-for i, nombre_portico in enumerate(porticos, start=1):
-    print(f"{i}. {nombre_portico}")
-
-# 🔹 preguntar al usuario cuál procesar
-seleccion_idx = int(input("👉 Ingresá el número del pórtico que querés procesar: "))
-
-if seleccion_idx < 1 or seleccion_idx > len(porticos):
-    raise ValueError("Número de pórtico inválido")
-
-seleccion = porticos[seleccion_idx - 1]
+def _resultados_vacios():
+    return {clave: [] for clave in (
+        "tramos", "materiales", "flexion", "armaduras", "estribos", "inercias",
+        "flecha", "corte", "fisuracion", "estado",
+    )}
 
 
-# 🔹 tomar las vigas del pórtico elegido
-datos_vigas = estructura[seleccion]["vigas"]
+def main(portico=None):
+    """Punto de entrada conservando el uso legacy por consola."""
+    global RESULTADOS
+    BASE = Path(__file__).parent
+    with open(BASE / "datos" / "estructura.json", encoding="utf-8") as f:
+        estructura = json.load(f)
 
-with open(BASE / "datos" / "coeficientes_kd.json", encoding="utf-8") as f:
-    coef_kd = json.load(f)
+    porticos = list(estructura)
+    if not porticos:
+        raise ValueError("No hay pórticos en datos/estructura.json")
+    if portico is None:
+        print("Pórticos disponibles:")
+        for i, nombre_portico in enumerate(porticos, start=1):
+            print(f"{i}. {nombre_portico}")
+        seleccion_idx = int(input("👉 Ingresá el número del pórtico que querés procesar: "))
+        if seleccion_idx < 1 or seleccion_idx > len(porticos):
+            raise ValueError("Número de pórtico inválido")
+        portico = porticos[seleccion_idx - 1]
+    if portico not in estructura:
+        raise ValueError(f"No existe el pórtico '{portico}' en datos/estructura.json")
 
-salidas = BASE / "salidas"
-vigas_dir = salidas / "vigas"
-vigas_dir.mkdir(parents=True, exist_ok=True)
+    datos_portico = estructura[portico]
+    vigas = datos_portico.get("vigas", {})
+    tramos = [tramo for viga in vigas.values() for tramo in viga.get("tramos", [])]
+    # La estructura nueva guarda geometría; cargas y esfuerzos vienen del motor.
+    # Si faltan las cargas legacy, usar el mismo adaptador que emplea la app.
+    if tramos and any("cargas" not in tramo for tramo in tramos):
+        from calc.diseno_vigas import dimensionar
 
-# 🔹 procesar las vigas del pórtico seleccionado
-resultados = procesar_vigas(datos_vigas, coef_kd, vigas_dir)
-guardar_resultados_json(vigas_dir / f"resultados_{seleccion}_vigas.json")
+        secciones = {}
+        for viga_id, viga in vigas.items():
+            b = viga.get("b_cm")
+            if b is None:
+                b = float(input(f"Ingrese ancho b (cm) para la viga {viga_id}: ").replace(",", "."))
+            fc = viga.get("fc_MPa")
+            while fc not in (20, 25, 30):
+                try:
+                    fc = int(input(f"Ingrese fc (20, 25 o 30 MPa) para la viga {viga_id}: "))
+                except ValueError:
+                    fc = None
+                if fc not in (20, 25, 30):
+                    print("⚠️ Valor inválido, debe ser 20, 25 o 30.")
+            secciones[viga_id] = {"b_cm": b, "fc_MPa": fc}
 
-print(f"✅ Resultados guardados en: {vigas_dir / f'resultados_{seleccion}_vigas.json'}")
+        salida, avisos = dimensionar(portico, secciones)
+        print(f"✅ Resultados guardados en: {salida}")
+        for aviso in avisos:
+            print(f"⚠️ {aviso}")
+        return salida
+
+    with open(BASE / "datos" / "coeficientes_kd.json", encoding="utf-8") as f:
+        coef_kd = json.load(f)
+    vigas_dir = BASE / "salidas" / "vigas"
+    vigas_dir.mkdir(parents=True, exist_ok=True)
+    RESULTADOS = _resultados_vacios()
+    procesar_vigas(estructura[portico]["vigas"], coef_kd, vigas_dir, portico)
+    salida = vigas_dir / f"resultados_{portico}_vigas.json"
+    guardar_resultados_json(salida)
+    print(f"✅ Resultados guardados en: {salida}")
+    return salida
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Dimensiona vigas del pórtico elegido.")
+    parser.add_argument("--portico", help="Nombre del pórtico; si se omite, pregunta por consola.")
+    args = parser.parse_args()
+    main(args.portico)
 

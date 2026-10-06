@@ -1,0 +1,38 @@
+ANÁLISIS DE CARGAS APLICADAS: Casa_Mercedes_Portico
+PROYECTO: casa_mercedes_portico
+------------------------------------------------------------------------
+Las combinaciones se calculan por tramo e intervalo, con D, L y W una sola vez.
+Las cargas puntuales existentes de P00 se conservan y el viento horizontal general se informa aparte.
+
+DETALLE DE APLICACIONES:
+Aplicacion 0-1 · Carga 0-14 Carga_losa_CGPT → Portico 1 / V0-1 T1 · x=0.00–4.00 m · luz completa=4.00 m · b tributario=2.00 m
+  D: 8.36 kN/m · Carga 0-14 · Carga_losa_CGPT – cargas permanentes
+    Losa alivianada EPS P.P estimado    1.81 kN/m2
+    Yeso Adherido                       0.18 kN/m2
+    Contrapiso de cascotes y cal 0.08 m 1.36 kN/m2
+    Mortero de cemento y arena 0.03 m   0.63 kN/m2
+    Porcelanato 10mm + pegamento        0.20 kN/m2
+    q total = 4.18 kN/m2 · b = 2.00 m
+  L: 4.00 kN/m · Carga 0-14 · Carga_losa_CGPT – sobrecarga
+    q = 2.00 kN/m2 · b = 2.00 m
+Aplicacion 0-3 · Carga 0-6 Muro hueco 8 cm (doble pared) → Portico 1 / V0-1 T1 · x=0.80–4.00 m
+  D: 2.52 kN/m · Muro de Ladrillo hueco revocado (no portante) (e=8 cm · h=3.00 m)
+    γ=10.5 kN/m3 · e=0.08 m · h=3.0 m
+
+DISTRIBUCIÓN Y COMBINACIONES POR TRAMO:
+
+Portico 1 · V0-1 T1 (L=4.00 m) · cargas D/L de P00 reemplazadas
+  x=0.00–0.80 m: D=8.36, L=4.00, W=0.00 kN/m
+    1.4D: 11.70 kN/m
+    1.2D+1.6L: 16.43 kN/m
+    1.2D+0.5L+1.6W: 12.03 kN/m
+    0.9D+1.6W: 7.52 kN/m
+  x=0.80–4.00 m: D=10.88, L=4.00, W=0.00 kN/m
+    1.4D: 15.23 kN/m
+    1.2D+1.6L: 19.46 kN/m
+    1.2D+0.5L+1.6W: 15.06 kN/m
+    0.9D+1.6W: 9.79 kN/m
+
+VIENTO HORIZONTAL GENERAL (se aplica al pórtico):
+  6.02 kN/m · Viento diseño Santa Fe (V=51 m/s) – general
+    b = 2.85 m · Cd = 1.3

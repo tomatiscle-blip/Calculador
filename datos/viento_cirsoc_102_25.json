@@ -1,0 +1,13 @@
+{
+  "norma": "CIRSOC 102-25",
+  "tabla": "Figura 1.5-1D",
+  "unidad": "m/s",
+  "categorias_riesgo": ["I", "II", "III y IV"],
+  "ciudades": {
+    "Santa Fe": {"provincia": "Santa Fe", "velocidades": {"I": 58.3, "II": 62.5, "III y IV": 67.0}},
+    "Rosario": {"provincia": "Santa Fe", "velocidades": {"I": 57.1, "II": 61.2, "III y IV": 65.7}},
+    "Paraná": {"provincia": "Entre Ríos", "velocidades": {"I": 59.4, "II": 63.7, "III y IV": 68.3}},
+    "Córdoba": {"provincia": "Córdoba", "velocidades": {"I": 51.4, "II": 55.1, "III y IV": 59.1}}
+  },
+  "nota": "Velocidades básicas por ciudad y categoría de riesgo. Para otras ubicaciones, consultar los mapas de isovelas del reglamento."
+}

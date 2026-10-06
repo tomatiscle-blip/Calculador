@@ -66,6 +66,7 @@ def carga_lineal_viento(V: float, ancho_tributario: float, Cd: float = 1.3, rho:
 class AnalisisCargas:
     def __init__(self, nombre: str):
         self.nombre = nombre
+        self.id_proyecto: str | None = None
         self.items: list[dict] = []
 
     def agregar(self, descripcion, tipo, valor, unidad, composicion=None):
@@ -84,6 +85,8 @@ class AnalisisCargas:
         W: dict[str, float] = {}
 
         lineas.append(f"ANALISIS DE CARGAS: {self.nombre}")
+        if self.id_proyecto:
+            lineas.append(f"PROYECTO: {self.id_proyecto}")
         lineas.append("-" * 60)
 
         for i in self.items:
@@ -344,8 +347,11 @@ def cargas_del_conjunto(biblioteca: dict | None = None) -> AnalisisCargas:
     bib = biblioteca if biblioteca is not None else materiales.cargar()
     datos = datos_cargas()
     analisis = AnalisisCargas(datos.get("obra", "Obra"))
+    analisis.id_proyecto = datos.get("id_proyecto")
     for nombre, elemento in elementos(solo_activos=True, datos=datos).items():
-        _agregar_items(analisis, items_de_elemento(nombre, elemento, bib))
+        identificador = elemento.get("id")
+        etiqueta = f"{identificador} · {nombre}" if identificador else nombre
+        _agregar_items(analisis, items_de_elemento(etiqueta, elemento, bib))
     _agregar_items(analisis, items_viento_general(datos, bib))
     return analisis
 
@@ -359,8 +365,13 @@ def carga_de_elemento(nombre: str, biblioteca: dict | None = None) -> AnalisisCa
     disponibles = elementos(solo_activos=False)
     if nombre not in disponibles:
         raise KeyError(f"No existe el elemento '{nombre}'. Ver: py -m calc.cargas --lista")
-    analisis = AnalisisCargas(nombre)
-    _agregar_items(analisis, items_de_elemento(nombre, disponibles[nombre], bib))
+    datos = datos_cargas()
+    elemento = disponibles[nombre]
+    analisis = AnalisisCargas(datos.get("obra", nombre))
+    analisis.id_proyecto = datos.get("id_proyecto")
+    identificador = elemento.get("id")
+    etiqueta = f"{identificador} · {nombre}" if identificador else nombre
+    _agregar_items(analisis, items_de_elemento(etiqueta, elemento, bib))
     return analisis
 
 
@@ -373,6 +384,131 @@ def informe_completo(analisis: AnalisisCargas) -> str:
     for nombre, valor in combinaciones(analisis.items).items():
         texto += f"{nombre}: {valor:.2f} kN/m\n"
     return texto
+
+
+def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = None) -> str:
+    """Informe de cargas realmente aplicadas, agrupadas por tramo e intervalo."""
+    datos = datos if datos is not None else datos_cargas()
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    fuentes = {
+        elemento.get("id"): (nombre, elemento)
+        for nombre, elemento in datos.get("elementos", {}).items()
+        if elemento.get("id")
+    }
+    estructura = rutas.cargar_estructura()
+    por_tramo: dict[tuple[str, str], list[dict]] = {}
+    detalle: list[tuple[dict, str, dict, list[dict]]] = []
+
+    for aplicacion in datos.get("aplicaciones", []):
+        if not aplicacion.get("activa", True):
+            continue
+        fuente_info = fuentes.get(aplicacion.get("carga_id"))
+        if not fuente_info:
+            continue
+        nombre, fuente = fuente_info
+        if not fuente.get("activo", True):
+            continue
+        portico = aplicacion.get("portico", "")
+        tramo_id = aplicacion.get("tramo_id", "")
+        tramo = next((t for v in estructura.get(portico, {}).get("vigas", {}).values()
+                      for t in v.get("tramos", []) if t.get("id") == tramo_id), None)
+        if not tramo:
+            continue
+        longitud = float(tramo.get("longitud_m", 0.0))
+        x0 = float(aplicacion.get("x_inicio_m", 0.0))
+        x1 = float(aplicacion.get("x_fin_m", longitud))
+        if longitud <= 0 or x0 < 0 or x1 <= x0 or x1 > longitud + 1e-8:
+            continue
+
+        elemento = dict(fuente)
+        ancho = None
+        if elemento.get("tipo") in ("losa", "cubierta"):
+            modo = aplicacion.get("ancho_modo", "manual")
+            luz = float(elemento.get("luz_transversal_m", 0.0))
+            ancho = (luz / 2 if modo == "media_luz" else luz
+                     if modo == "luz_completa" else aplicacion.get("ancho_tributario_m"))
+            if ancho is None or float(ancho) <= 0:
+                continue
+            elemento["ancho_tributario_m"] = float(ancho)
+
+        items = items_de_elemento(f"{fuente.get('id')} · {nombre}", elemento, bib)
+        registro = {
+            "aplicacion": aplicacion, "nombre": nombre, "fuente": fuente,
+            "tramo": tramo, "longitud": longitud, "x0": x0, "x1": x1,
+            "ancho": ancho, "items": items,
+        }
+        detalle.append((aplicacion, nombre, elemento, items))
+        por_tramo.setdefault((portico, tramo_id), []).append(registro)
+
+    lineas = [
+        f"ANÁLISIS DE CARGAS APLICADAS: {datos.get('obra', 'Obra')}",
+        f"PROYECTO: {datos.get('id_proyecto', 'sin ID')}",
+        "-" * 72,
+        "Las combinaciones se calculan por tramo e intervalo, con D, L y W una sola vez.",
+        "Las cargas puntuales existentes de P00 se conservan y el viento horizontal general se informa aparte.",
+        "",
+        "DETALLE DE APLICACIONES:",
+    ]
+    if not detalle:
+        lineas.append("No hay aplicaciones activas asociadas a tramos.")
+    for app, nombre, elemento, items in detalle:
+        ancho_txt = ""
+        if elemento.get("tipo") in ("losa", "cubierta"):
+            ancho_txt = (
+                f" · luz completa={float(elemento.get('luz_transversal_m', 0.0)):.2f} m"
+                f" · b tributario={float(elemento['ancho_tributario_m']):.2f} m"
+            )
+        lineas.append(
+            f"{app.get('id', 'Aplicación')} · {app.get('carga_id')} {nombre} → "
+            f"{app.get('portico')} / {app.get('tramo_id')} · "
+            f"x={float(app.get('x_inicio_m', 0)):.2f}–{float(app.get('x_fin_m', 0)):.2f} m{ancho_txt}"
+        )
+        for item in items:
+            lineas.append(f"  {item['tipo']}: {item['valor']:.2f} {item['unidad']} · {item['descripcion']}")
+            composicion = item.get("composicion")
+            if isinstance(composicion, list):
+                lineas.extend(f"    {parte}" for parte in composicion)
+            elif composicion:
+                lineas.append(f"    {composicion}")
+
+    lineas.extend(["", "DISTRIBUCIÓN Y COMBINACIONES POR TRAMO:"])
+    for (portico, tramo_id), registros in sorted(por_tramo.items()):
+        longitud = registros[0]["longitud"]
+        tramo = registros[0]["tramo"]
+        reemplaza = any(r["aplicacion"].get("modo_cargas_previas", "reemplazar") == "reemplazar" for r in registros)
+        puntos = {0.0, longitud}
+        for r in registros:
+            puntos.update((r["x0"], r["x1"]))
+        cargas_previas = tramo.get("cargas", {})
+        if not reemplaza:
+            d_previa = float(cargas_previas.get("D_total", 0.0))
+            l_previa = float(cargas_previas.get("L_total", 0.0))
+        else:
+            d_previa = l_previa = 0.0
+        lineas.append(f"\n{portico} · {tramo_id} (L={longitud:.2f} m) · cargas D/L de P00 {'reemplazadas' if reemplaza else 'sumadas'}")
+        ordenados = sorted(puntos)
+        for a, b in zip(ordenados, ordenados[1:]):
+            medio = (a + b) / 2
+            totales = {"D": d_previa, "L": l_previa, "W": 0.0}
+            for r in registros:
+                if r["x0"] - 1e-9 <= medio <= r["x1"] + 1e-9:
+                    for item in r["items"]:
+                        totales[item["tipo"]] = totales.get(item["tipo"], 0.0) + float(item["valor"])
+            combos = combinaciones_de_componentes(totales["D"], totales["L"], totales["W"])
+            lineas.append(
+                f"  x={a:.2f}–{b:.2f} m: D={totales['D']:.2f}, L={totales['L']:.2f}, "
+                f"W={totales['W']:.2f} kN/m"
+            )
+            lineas.extend(f"    {nombre_combo}: {valor:.2f} kN/m" for nombre_combo, valor in combos.items())
+
+    viento = items_viento_general(datos, bib)
+    if viento:
+        lineas.extend(["", "VIENTO HORIZONTAL GENERAL (se aplica al pórtico):"])
+        for item in viento:
+            lineas.append(f"  {item['valor']:.2f} {item['unidad']} · {item['descripcion']}")
+            if item.get("composicion"):
+                lineas.append(f"    {item['composicion']}")
+    return "\n".join(lineas) + "\n"
 
 
 def guardar_informe(analisis: AnalisisCargas, texto: str | None = None) -> Path:

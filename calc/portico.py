@@ -29,13 +29,14 @@ Uso:
 
 from __future__ import annotations
 
+from copy import deepcopy
 import sys
 from datetime import datetime
 from pathlib import Path
 
 from Pynite import FEModel3D
 
-from . import cargas, rutas
+from . import cargas, materiales, rutas
 
 # ---------------------------------------------------------------------------
 # Rigidez (los MISMOS valores con que se validó Pynite contra anaStruct)
@@ -84,10 +85,102 @@ def _piso_de_viga(viga_id: str) -> int | None:
     return None
 
 
+def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[str]]:
+    """Calcula las aplicaciones activas de `datos/cargas.json` para un pórtico."""
+    if not nombre_portico:
+        return {}, []
+    datos = cargas.datos_cargas()
+    estructura = rutas.cargar_estructura().get(nombre_portico, {})
+    tramos: dict[str, dict] = {}
+    for viga in estructura.get("vigas", {}).values():
+        for tramo in viga.get("tramos", []):
+            if tramo.get("id"):
+                tramos[tramo["id"]] = tramo
+
+    por_id = {
+        elemento.get("id"): (nombre, elemento)
+        for nombre, elemento in datos.get("elementos", {}).items()
+        if elemento.get("id")
+    }
+    biblioteca = None
+    resultado: dict[str, list[dict]] = {}
+    avisos: list[str] = []
+    for aplicacion in datos.get("aplicaciones", []):
+        if aplicacion.get("portico") != nombre_portico or not aplicacion.get("activa", True):
+            continue
+        encontrado = por_id.get(aplicacion.get("carga_id"))
+        if not encontrado:
+            avisos.append(f"Aplicación {aplicacion.get('id', '?')}: no existe su carga; se ignora")
+            continue
+        nombre, fuente = encontrado
+        if not fuente.get("activo", True):
+            continue
+        tramo_id = aplicacion.get("tramo_id", "")
+        tramo = tramos.get(tramo_id)
+        if not tramo:
+            avisos.append(f"{aplicacion.get('id', '?')}: no existe el tramo {tramo_id}; se ignora")
+            continue
+        longitud = float(tramo.get("longitud_m", 0.0))
+        x0 = float(aplicacion.get("x_inicio_m", 0.0))
+        x1 = float(aplicacion.get("x_fin_m", longitud))
+        if longitud <= 0 or x0 < 0 or x1 <= x0 or x1 > longitud + 1e-8:
+            avisos.append(f"{aplicacion.get('id', '?')}: intervalo fuera del tramo {tramo_id}; se ignora")
+            continue
+
+        elemento = deepcopy(fuente)
+        ancho = None
+        if elemento.get("tipo") in ("losa", "cubierta"):
+            modo = aplicacion.get("ancho_modo", "manual")
+            luz = float(elemento.get("luz_transversal_m", 0.0))
+            if modo == "media_luz":
+                ancho = luz / 2
+            elif modo == "luz_completa":
+                ancho = luz
+            else:
+                ancho = aplicacion.get("ancho_tributario_m")
+            if ancho is None or float(ancho) <= 0:
+                avisos.append(f"{aplicacion.get('id', '?')}: falta ancho tributario; se ignora")
+                continue
+            elemento["ancho_tributario_m"] = float(ancho)
+        try:
+            if biblioteca is None:
+                biblioteca = materiales.cargar()
+            items = cargas.items_de_elemento(f"{fuente.get('id')} · {nombre}", elemento, biblioteca)
+        except (KeyError, ValueError) as exc:
+            avisos.append(f"{aplicacion.get('id', '?')}: no se pudo calcular {nombre}: {exc}")
+            continue
+
+        # Pynite toma las cargas parciales desde el eje local del miembro. En el
+        # voladizo derecho ese eje apunta desde la punta hacia la columna.
+        a, b = x0, x1
+        if tramo.get("es_voladizo") and "der" in str(tramo_id).lower():
+            a, b = longitud - x1, longitud - x0
+        for item in items:
+            tipo = item["tipo"]
+            if tipo not in ("D", "L", "W"):
+                continue
+            valor = float(item["valor"])
+            # D y L actúan hacia abajo. La succión de cubierta actúa hacia arriba.
+            signo = 1.0 if tipo == "W" and "succión" in item["descripcion"].lower() else -1.0
+            resultado.setdefault(tramo_id, []).append({
+                "aplicacion_id": aplicacion.get("id", ""),
+                "carga_id": fuente.get("id", ""),
+                "descripcion": nombre,
+                "tipo": tipo,
+                "valor_kN_m": valor,
+                "x_inicio_m": a,
+                "x_fin_m": b,
+                "ancho_tributario_m": float(ancho) if ancho is not None else None,
+                "modo_cargas_previas": aplicacion.get("modo_cargas_previas", "reemplazar"),
+                "signo": signo,
+            })
+    return resultado, avisos
+
+
 # ---------------------------------------------------------------------------
 # Armar el modelo (pórtico plano)
 # ---------------------------------------------------------------------------
-def construir(portico: dict) -> tuple[FEModel3D, dict, list[str]]:
+def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[str]]:
     """
     Arma el modelo Pynite del pórtico como PÓRTICO PLANO (libre en el plano,
     fijo fuera de él: DZ, RX y RY bloqueados en todos los nudos). Aplica las
@@ -96,13 +189,24 @@ def construir(portico: dict) -> tuple[FEModel3D, dict, list[str]]:
     Devuelve (modelo, mapa_de_barras, avisos). El mapa dice el nombre Pynite de
     cada barra: mapa['columnas'][cid], mapa['vigas'][tramo], mapa['voladizos'][tramo].
     """
-    avisos: list[str] = []
+    aplicaciones, avisos = _cargas_asignadas(nombre)
     m = FEModel3D()
     m.add_material("mat", E_MOD, G_MOD, POISSON, 0.0)
     m.add_section("sec", A_SEC, I_SEC, I_SEC, J_SEC)
 
     mapa: dict[str, dict] = {"columnas": {}, "vigas": {}, "voladizos": {}}
+    # Solo se informan como aplicadas las cargas de miembros que se pudieron
+    # crear en el modelo. Una asignación a un tramo sin apoyos no debe aparecer
+    # en el resultado como si hubiera entrado al cálculo.
+    mapa["cargas_aplicadas"] = []
     columnas = portico.get("columnas", {})
+    datos_carga_proyecto = cargas.datos_cargas() if nombre else {}
+    viento_config = datos_carga_proyecto.get("viento", {})
+    w_general = 0.0
+    if viento_config.get("activo"):
+        items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
+        w_general = sum(float(item["valor"]) for item in items_viento)
+    mapa["viento_general_kN_m"] = w_general
 
     # --- Columnas (de abajo hacia arriba: i-end = base, j-end = punta) -----
     for cid, col in columnas.items():
@@ -165,13 +269,30 @@ def construir(portico: dict) -> tuple[FEModel3D, dict, list[str]]:
                 m.add_member(miembro_id, _nodo(cols[i]["x"], y_viga), _nodo(cols[i + 1]["x"], y_viga), "mat", "sec")
                 mapa["vigas"][tramo["id"]] = miembro_id
 
-            # cargas repartidas (casos base D y L)
+            cargas_nuevas = aplicaciones.get(tramo["id"], [])
+            mapa["cargas_aplicadas"].extend(
+                dict(carga, tramo_id=tramo["id"]) for carga in cargas_nuevas
+            )
+            reemplaza_anteriores = any(
+                c.get("modo_cargas_previas") == "reemplazar" for c in cargas_nuevas
+            )
+            # Las aplicaciones nuevas reemplazan las cargas distribuidas de P00
+            # cuando así se indicó; las cargas puntuales se conservan.
             wD = float(cargas_tramo.get("D_total", 0.0))
             wL = float(cargas_tramo.get("L_total", 0.0))
-            if abs(wD) > 1e-9:
+            if not reemplaza_anteriores and abs(wD) > 1e-9:
                 m.add_member_dist_load(miembro_id, "FY", -wD, -wD, case="D")
-            if abs(wL) > 1e-9:
+            if not reemplaza_anteriores and abs(wL) > 1e-9:
                 m.add_member_dist_load(miembro_id, "FY", -wL, -wL, case="L")
+            for carga_aplicada in cargas_nuevas:
+                m.add_member_dist_load(
+                    miembro_id, "FY",
+                    carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
+                    carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
+                    x1=carga_aplicada["x_inicio_m"],
+                    x2=carga_aplicada["x_fin_m"],
+                    case=carga_aplicada["tipo"],
+                )
 
             # cargas puntuales (caso P, entero en toda combinación)
             for cp in tramo.get("cargas_puntuales", []):
@@ -189,7 +310,13 @@ def construir(portico: dict) -> tuple[FEModel3D, dict, list[str]]:
         cols = [c for cid, c in columnas.items() if cid.startswith(f"C{piso}-")]
         if not cols:
             continue
-        w_total = float(viga["tramos"][0].get("cargas", {}).get("W_total", 0.0))
+        carga_legacy = viga["tramos"][0].get("cargas", {})
+        if "viento" in datos_carga_proyecto:
+            # La configuración del proyecto es la única fuente del viento.
+            # Evita sumar el viento general nuevo con el total copiado por P00.
+            w_total = w_general
+        else:
+            w_total = float(carga_legacy.get("W_total", 0.0))
         total = w_total * float(cols[0]["altura_m"])
         if abs(total) < 1e-9:
             continue
@@ -245,7 +372,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
     máximos en módulo (la que usarán los dimensionadores). No guarda nada: eso
     lo hace `guardar`.
     """
-    m, mapa, avisos = construir(portico)
+    m, mapa, avisos = construir(portico, nombre)
     m.analyze()
 
     combos = list(combinaciones())
@@ -312,6 +439,8 @@ def calcular(portico: dict, nombre: str = "") -> dict:
         "rigidez": {"EA": EA, "EI": EI},
         "combinaciones": combos,
         "avisos": avisos,
+        "cargas_aplicadas": mapa.get("cargas_aplicadas", []),
+        "viento_general_kN_m": mapa.get("viento_general_kN_m", 0.0),
         "solicitaciones": solicitaciones,
         "envolvente": envolvente,
     }
@@ -329,6 +458,21 @@ def informe(resultado: dict) -> str:
     ]
     for aviso in resultado["avisos"]:
         lineas.append(f"[AVISO] {aviso}")
+
+    aplicaciones = resultado.get("cargas_aplicadas", [])
+    if aplicaciones:
+        lineas.extend(["", "CARGAS APLICADAS DESDE EL PROYECTO:"])
+        for carga in aplicaciones:
+            linea = (
+                f"{carga['carga_id']} · {carga['descripcion']} → {carga['tramo_id']} "
+                f"x={carga['x_inicio_m']:.2f}–{carga['x_fin_m']:.2f} m: "
+                f"{carga['valor_kN_m']:.2f} kN/m ({carga['tipo']}); "
+                f"P00: {carga['modo_cargas_previas']}"
+            )
+            if carga.get("ancho_tributario_m") is not None:
+                linea += f"; b trib.={carga['ancho_tributario_m']:.2f} m"
+            lineas.append(linea)
+        lineas.append("Las cargas puntuales guardadas previamente en P00 se conservaron.")
 
     tabla = resultado["solicitaciones"]
     for combo in resultado["combinaciones"]:

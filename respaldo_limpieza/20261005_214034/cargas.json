@@ -1,20 +1,10 @@
 {
-  "obra": "Casa_Eric",
+  "obra": "Casa_Mercedes_Portico",
   "notas": "Los elementos que reciben carga. Cada uno se puede calcular solo (una losa, un muro) o entrar al portico como conjunto. Los materiales salen de materiales.json por 'clave'.",
   "viento": {
     "activo": 1,
     "ancho_tributario_m": 2.85,
-    "notas": "Viento horizontal sobre el portico. La velocidad (V), la densidad del aire y el coeficiente Cd salen de materiales.json",
-    "referencia_cirsoc_102_25": {
-      "ubicacion": {
-        "pais": "Argentina",
-        "provincia": "Santa Fe",
-        "ciudad": "Santa Fe"
-      },
-      "categoria_riesgo": null,
-      "V_basica_ms": null,
-      "fuente": "CIRSOC 102-25, Figura 1.5-1D"
-    }
+    "notas": "Viento horizontal sobre el portico. La velocidad (V), la densidad del aire y el coeficiente Cd salen de materiales.json"
   },
   "elementos": {
     "Losa Alivianada L0-1": {
@@ -286,6 +276,18 @@
       "tramo_id": "V0-1 T1",
       "x_inicio_m": 0.0,
       "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.0,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-2",
+      "carga_id": "Carga 0-14",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T2",
+      "x_inicio_m": 0.5,
+      "x_fin_m": 3.0,
       "ancho_modo": "media_luz",
       "ancho_tributario_m": 2.0,
       "modo_cargas_previas": "reemplazar",

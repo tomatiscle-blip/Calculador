@@ -1,0 +1,47 @@
+ANALISIS DE CARGAS: Cargas Portico 1
+------------------------------------------------------------
+Cubierta liviana de chapa c/estructura y cielorraso suspendido – cargas permanentes    1.11 kN/m (D)
+  Cubierta liviana (chapa ondulada + fijaciones + correas) 0.15 kN/m2
+  Correas metálicas livianas          0.05 kN/m2
+  Cielorraso de yeso suspendido       0.33 kN/m2
+  q total = 0.53 kN/m2 · b = 2.10 m
+
+Cubierta liviana de chapa c/estructura y cielorraso suspendido – sobrecarga    2.10 kN/m (L)
+  q = 1.00 kN/m2 · b = 2.10 m
+
+Losa Alivianada L0-1 – cargas permanentes   12.95 kN/m (D)
+  Porcelanato 10mm + pegamento        0.20 kN/m2
+  Carpeta nivelación 3.0 cm           0.63 kN/m2
+  Contrapiso cascotes/cal 8 cm        1.36 kN/m2
+  Losa alivianada EPS P.P estimado    1.81 kN/m2
+  Cielorraso de yeso suspendido       0.33 kN/m2
+  q total = 4.33 kN/m2 · b = 2.99 m
+
+Losa Alivianada L0-1 – sobrecarga      5.98 kN/m (L)
+  q = 2.00 kN/m2 · b = 2.99 m
+
+Muro de Ladrillo cerámico común (e=24 cm · h=1.33 m)    5.43 kN/m (D)
+  γ=17.0 kN/m3 · e=0.24 m · h=1.33 m
+
+Muro de Ladrillo cerámico común (e=12 cm · h=5.00 m)   10.20 kN/m (D)
+  γ=17.0 kN/m3 · e=0.12 m · h=5.0 m
+
+Muro de Ladrillo hueco (e=8 cm · h=5.00 m)    4.20 kN/m (D)
+  γ=10.5 kN/m3 · e=0.08 m · h=5.0 m
+
+Encadenado de Hormigón armado (20x20 cm) × 1    1.00 kN/m (D)
+  γ=25.0 kN/m3 · b=0.2 m · h=0.2 m · cantidad=1
+
+Viento diseño Santa Fe (V=51 m/s) – general    6.20 kN/m (W)
+  b = 2.99 m · Cd = 1.3
+
+------------------------------------------------------------
+D total = 34.89 kN/m
+L total = 8.08 kN/m
+W total = 6.20 kN/m
+
+COMBINACIONES CIRSOC:
+1.4D: 48.84 kN/m
+1.2D+1.6L: 54.79 kN/m
+1.2D+0.5L+1.6W: 55.82 kN/m
+0.9D+1.6W: 41.31 kN/m

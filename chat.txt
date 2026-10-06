@@ -20,3 +20,27 @@ si resolves una viga simplemente apoyada se podria usar analisas de carga para d
 carga y la viga si es de hormigon no? pero la solicictaciones estan para poritcos nomas 
 y asi creo q con eso se puede ir avanzando?
 se transcribe el ultimo chat con Cline no contestado.
+
+Calculador\
+├─ calculador.bat        <- abre la ventana (PySide6)
+├─ estado.bat            <- semáforo de etapas
+├─ ver_cambios.bat       <- qué cambió y falta guardar
+├─ README.md             <- tablero de trabajo
+├─ PUESTA_EN_MARCHA.md   <- decisiones y guía de arranque
+├─ app\                  <- la interfaz gráfica (pantallas, colores, tablas)
+│   ├─ principal.py
+│   └─ paginas\          (una pantalla por etapa)
+├─ calc\                 <- el cálculo (funciones `calcular(datos)`)
+│   ├─ rutas.py  pipeline.py  materiales.py
+│   └─ cargas.py  portico.py  vigas.py  columnas.py  bases.py  losas.py  planos.py
+├─ datos\                <- la única fuente de verdad (JSON)
+│   ├─ estructura.json  cargas.json  materiales.json
+│   ├─ terreno.json  tipos_losa.json  viguetas.json
+│   ├─ coeficientes_kd.json  perfiles_metalicos.json
+│   └─ diagramas_interaccion\
+├─ salidas\              <- resultados (no se editan a mano)
+│   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  reacciones\  dxf\
+├─ docs\                 <- explicaciones y memorias
+├─ legacy\               <- scripts viejos (P00…P06, L00, etc.) solo de referencia
+├─ tools\                <- utilidades (regresión, comparar motores)
+├─ tests\                <- copias congeladas de referencia

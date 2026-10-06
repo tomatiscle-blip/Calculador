@@ -24,8 +24,9 @@ La regla que hace posible esa versatilidad:
 > **Todo es un elemento que se puede calcular solo, y los elementos se pueden combinar
 > en un contenedor (el pórtico).**
 
-Por eso el programa **no arranca por el pórtico**: arranca por los elementos. El pórtico
-es solo el que junta lo que ya se calculó por separado.
+El modelo permite calcular elementos sueltos o combinarlos dentro de un pórtico. En el
+flujo actual de la app ya se definen y aplican cargas a tramos existentes; la creación
+gráfica de la geometría del pórtico todavía está pendiente.
 
 ---
 
@@ -43,7 +44,7 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
 
 ---
 
-## 3. Los 7 pasos (en el orden del trabajo, y de la pantalla)
+## 3. Los 7 pasos del flujo de trabajo objetivo
 
 1. **Obra** — nombre, ubicación (de ahí sale el viento de CIRSOC 102), reglamento.
 2. **Materiales** — la biblioteca (`datos/materiales.json`): pesos específicos, cargas
@@ -60,6 +61,11 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
 7. **Salidas** — planilla, memoria de cálculo, planos (DXF) y cómputo, armados desde los
    resultados (no recalculados).
 
+**Estado de la interfaz:** este es el orden conceptual, pero la app aún no permite crear
+la geometría en el paso 4. `datos/crear_estructura.py` la solicita por consola; la lista
+superior de la app solo selecciona pórticos ya guardados. El editor visual de geometría
+es el siguiente paso de producto.
+
 ---
 
 ## 4. Dónde vive cada dato
@@ -68,7 +74,8 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
 |---|---|---|
 | `datos/materiales.json` | La biblioteca: pesos específicos, cargas superficiales, sobrecargas, viento | `calc/materiales.py` → todo el programa |
 | `datos/cargas.json` | **Los elementos** (muro, losa, techo, encadenado) y el viento general | `calc/cargas.py` |
-| `datos/estructura.json` | Los pórticos: columnas, vigas, tramos, bases | `calc/motor.py` (hoy `P00`/`P01`) |
+| `datos/estructura.json` | Los pórticos: columnas, vigas, tramos, bases y, tras dimensionar, datos de sección `b`/`fc` | `datos/crear_estructura.py`, `calc/portico.py`, `calc/diseno_vigas.py`, P02 |
+| `datos/cargas.json` → `aplicaciones` | Qué carga va a qué pórtico y tramo, intervalo `x`, ancho tributario y modo de reemplazo | `app/cargas_proyecto.py`, `calc/cargas.py`, `calc/portico.py` |
 | `datos/terreno.json` | Capas, nivel freático, q_adm, módulo de balasto | bases (falta crear) |
 | `datos/tipos_losa.json` | Vigueta / maciza / casetonada con sus datos | losas (falta crear) |
 | `salidas/…` | Todo lo que produce el cálculo | la ventana y los planos |
@@ -83,17 +90,18 @@ es el mismo renglón del mismo archivo: lo que hace que el mismo contrapiso no p
 
 | Paso | Estado | Cómo se ve hoy |
 |---|---|---|
-| 1. Obra | Falta | El nombre y el viento están en `datos/cargas.json` |
+| 1. Obra | Parcial | La app guarda identidad de proyecto y referencia de viento en `datos/cargas.json`; aún falta el manejo de varias obras/archivos aislados |
 | 2. Materiales | **Hecho (30/09)** | `datos/materiales.json` es la única biblioteca y `calc/materiales.py` la reparte |
 | 3. Elementos que reciben carga | **Hecho (30/09)** | `datos/cargas.json` + `calc/cargas.py` (calcula el conjunto **o un elemento solo**); 01/10: la **losa entrega sus reacciones** (`calc/losas.py`) |
-| 4. Pórticos | A medias | La geometría está en `datos/estructura.json`, pero la carga **no** dice a qué pórtico va |
-| 5. Solicitaciones | **Hecho (03/10)** | El motor vive en `calc/portico.py` (Pynite) y escribe `salidas/solicitaciones/<pórtico>.json`; ya no quedan mezcladas dentro de `estructura.json` (`P01`) |
-| 6. Dimensionamiento | En marcha | **01/10: la losa alivianada vive en `calc/losas.py`**; faltan `P02` vigas, `P04` columnas, `P05` bases y el acero |
+| 4. Pórticos y asignación de cargas | Parcial | `datos/estructura.json` guarda geometría y `datos/cargas.json` ya guarda aplicaciones a pórtico/tramo/intervalo/ancho; falta crear y editar geometría desde la app |
+| 5. Solicitaciones | **Hecho (03/10)** | `calc/portico.py` (Pynite) escribe `salidas/solicitaciones/<pórtico>.json`; Inicio puede ejecutar el motor y visualizar geometría/cargas |
+| 6. Dimensionamiento | En marcha | Losas en `calc/losas.py`; vigas conectadas a la app mediante `calc/diseno_vigas.py`, que adapta solicitaciones al P02 legacy. Falta migrar la lógica P02 a `calc/vigas.py`; P04 columnas y P05 bases siguen pendientes |
 | 7. Salidas | A migrar | `P03` Excel, `P06` DXF; las memorias están dentro de cada script |
 
-Lo que sigue, en orden: **reparto de cargas al pórtico (paso 4)** → **dimensionadores uno
-por uno (paso 6, leyendo `salidas/solicitaciones/`)** → **salidas (7)**. (El paso 5 —las
-solicitaciones en archivo propio— quedó **hecho** con `calc/portico.py`.)
+Lo siguiente para retomar es **crear/editar pórticos desde la app** y visualizar su
+geometría. Después, continuar la migración de dimensionadores (columnas y bases) y salidas.
+La aplicación de cargas a tramos ya está modelada; revisar especialmente combinaciones,
+cargas parciales y que no se dupliquen D/L.
 
 ---
 
@@ -123,10 +131,10 @@ que la info quede suelta ni se pise).
 | **Obra** (con nombre) | Un proyecto: sus elementos, sus pórticos, sus salidas | `obras\<Obra>\` |
 | **`_sueltos`** | Un elemento individual, para consultar rápido | `obras\_sueltos\` |
 
-El `id` (`L0-1`) es único **dentro** de su alcance: la identidad completa es
-**`alcance/id`**. Por eso el `L0-1` de una obra **nunca** choca con el `L0-1` suelto.
-La app **pregunta al inicio** qué vas a calcular (elemento suelto u obra) y muestra
-siempre el alcance actual.
+El `id` (`L0-1`) debería ser único **dentro** de su alcance: la identidad completa es
+**`alcance/id`**. La separación real por obra y el selector de alcance todavía no están
+implementados. Hoy se trabaja con los JSON compartidos de `datos/` y el inicio de la app
+muestra la identidad del proyecto actual.
 
 ### 7.2. Un resultado, un archivo. Los agregados son vistas
 
@@ -140,12 +148,11 @@ Implementado (01/10, losas): `salidas/losas/<id>.json` es la **fuente** (una por
 memoria de la L00 quedó idéntica.
 
 **Por qué** (el caso que lo motivó): `datos/estructura.json` **junta todos los pórticos**
-con una clave por nombre (`"Portico 1"`, `"Portico 2"`…). Eso es "un archivo, muchos
-escritores": **si repetís el nombre, se pisa** el pórtico anterior. Lo crea `P00` con
-`nro_portico = len(estructura) + 1` (puede colisionar si borraste uno del medio). Existe
-`calc/rutas.py::proximo_nombre_portico()` para evitarlo, **pero no se usa y el riesgo de
-fondo sigue**. Con **un archivo por pórtico** eso desaparece. (`P00`, `P01` y
-`rutas.guardar_estructura` son hoy los únicos que escriben ese archivo.)
+con una clave por nombre (`"Portico 1"`, `"Portico 2"`…). El creador actual
+`datos/crear_estructura.py` usa `calc/rutas.py::proximo_nombre_portico()` para proponer
+un nombre libre, pero todavía trabaja por consola. La app no tiene aún editor para crear,
+renombrar o modificar geometría; su selector superior solo elige los pórticos existentes.
+La separación de datos por obra sigue pendiente.
 
 ### 7.3. Lo que es común va junto
 
@@ -176,4 +183,42 @@ Calculador\
 `calc/rutas.py` pasa a ser "consciente del alcance" (`obra_actual()`, `datos()`,
 `salidas()`), con el **alcance por defecto apuntando a lo de hoy** (`datos\` y `salidas\`
 de la raíz). Así nada se rompe y se migra de a poco a `obras\`.
+
+## 8. Estado de la app y cómo retomar — 05/10/2026
+
+### Lo que ya se puede hacer desde `calculador.bat`
+
+- **Inicio:** elegir el pórtico existente en la lista superior; ver su estado y la
+  visualización de la geometría y las cargas. Desde ahí se pueden resolver las
+  solicitaciones del motor Pynite.
+- **Cargas:** crear/editar composiciones y asignarlas a un pórtico y tramo, con intervalo
+  `x_inicio`–`x_fin`, ancho tributario y opción de reemplazar cargas previas. La carga
+  permanente `D` y la sobrecarga `L` se conservan separadas para combinarlas una sola vez.
+- **Vigas:** tras resolver el motor, el botón **Dimensionar vigas** pide `b` y `fc` por
+  viga. `app/diseno_vigas.py` guarda esos datos en `estructura.json`; `calc/diseno_vigas.py`
+  construye la entrada para P02 a partir de `estructura.json`, las aplicaciones de carga
+  y `salidas/solicitaciones/<pórtico>.json`. P02 genera el JSON de resultados y la planilla
+  TXT. `P02_Viga_portico.py` también conserva el uso por consola y ahora evita iniciar el
+  diálogo al importarse.
+- El diálogo de secciones fija el contraste de sus campos para evitar texto blanco sobre
+  fondo blanco con el tema de Windows.
+
+### Límites actuales que hay que tener presentes
+
+- P02 sigue siendo el cálculo legacy; el adaptador lo conecta a los datos actuales, pero
+  no reemplaza ni valida por sí mismo sus criterios de diseño.
+- P02 aproxima la flecha con carga uniforme equivalente. Avisa cuando hay cargas parciales;
+  las cargas puntuales no se incluyen en esa comprobación de flecha.
+- Los valores de ubicación de viento CIRSOC 102-25 se guardan como referencia en el
+  proyecto; la configuración todavía indica que el motor usa el cálculo de viento previo.
+- La creación de geometría no está en la GUI. `datos/crear_estructura.py` sigue siendo el
+  ingreso por consola; no se debe confundir el selector de pórtico con un editor.
+
+### Próximo paso acordado
+
+Crear una pantalla inicial para crear y editar uno o varios pórticos: nombre, cantidad de
+pisos, luces de tramos, alturas, columnas/apoyos y voladizos. Debe guardar en el formato
+actual de `datos/estructura.json`, evitar pisar nombres existentes y mostrar una vista
+previa clara. Luego revisar con el usuario el flujo y la geometría antes de conectar más
+dimensionadores. Mantener los scripts legacy disponibles durante esa transición.
 
