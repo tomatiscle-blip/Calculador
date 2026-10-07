@@ -204,18 +204,50 @@ def _componente_valor(componente: dict, biblioteca: dict) -> tuple[str, float]:
 
     - material 'superficial': el valor es directo.
     - material 'volumetrico' con `espesor_m`: gamma * espesor.
+    - `peso_propio_override_kNm2`: ajuste por obra de un forjado superficial.
     - `nombre` puede traer la plantilla `{espesor}` (metros) o `{espesor_cm}`.
     """
     material = materiales.buscar(componente["grupo"], componente["clave"], biblioteca)
     espesor = componente.get("espesor_m")
-    valor = float(material["valor"])
-    if espesor is not None and material.get("tipo") == "volumetrico":
+    valor_override = componente.get("peso_propio_override_kNm2")
+    if valor_override is not None:
+        valor = float(valor_override)
+        if valor <= 0:
+            raise ValueError("El peso propio ajustado del forjado debe ser mayor que cero.")
+    else:
+        valor = float(material["valor"])
+    if valor_override is None and espesor is not None and material.get("tipo") == "volumetrico":
         valor = carga_superficial(valor, float(espesor))
     return _nombre_componente(componente, material, espesor), valor
 
 
+def valor_componente_superficial(
+    componente: dict, biblioteca: dict | None = None
+) -> tuple[str, float]:
+    """Devuelve la descripción y el aporte kN/m² de una capa de losa/cubierta."""
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    return _componente_valor(componente, bib)
+
+
 def _componentes(elemento: dict, biblioteca: dict) -> list[tuple[str, float]]:
     return [_componente_valor(c, biblioteca) for c in elemento.get("componentes", [])]
+
+
+def valores_superficiales(elemento: dict, biblioteca: dict | None = None) -> dict:
+    """Devuelve D y L de una losa/cubierta por unidad de superficie (kN/m²)."""
+    if elemento.get("tipo") not in ("losa", "cubierta"):
+        raise ValueError("Los valores superficiales solo aplican a losas y cubiertas.")
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    componentes = _componentes(elemento, bib)
+    sobrecargas = materiales.sobrecargas(bib)
+    clave_sobrecarga = elemento.get("sobrecarga")
+    if clave_sobrecarga not in sobrecargas:
+        raise KeyError(f"No existe la sobrecarga '{clave_sobrecarga}' en materiales.json")
+    return {
+        "D_kNm2": sum(valor for _nombre, valor in componentes),
+        "L_kNm2": float(sobrecargas[clave_sobrecarga]),
+        "componentes": componentes,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -235,8 +267,9 @@ def items_de_elemento(nombre: str, elemento: dict, biblioteca: dict) -> list[dic
 
 def _items_horizontal(nombre: str, elemento: dict, biblioteca: dict) -> list[dict]:
     """Losa o cubierta: la carga por m2 pasa a carga por metro con el ancho tributario."""
-    componentes = _componentes(elemento, biblioteca)
-    q_d_total = sum(q for _, q in componentes)
+    valores = valores_superficiales(elemento, biblioteca)
+    componentes = valores["componentes"]
+    q_d_total = valores["D_kNm2"]
     b = float(elemento["ancho_tributario_m"])
 
     items = [{
@@ -248,7 +281,7 @@ def _items_horizontal(nombre: str, elemento: dict, biblioteca: dict) -> list[dic
                        + [f"q total = {q_d_total:.2f} kN/m2 · b = {b:.2f} m"],
     }]
 
-    q_l = materiales.sobrecargas(biblioteca)[elemento["sobrecarga"]]
+    q_l = valores["L_kNm2"]
     items.append({
         "descripcion": f"{nombre} – sobrecarga",
         "tipo": "L",

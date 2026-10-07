@@ -1,0 +1,78 @@
+{
+    "B0-a": {
+        "geotecnia": {
+            "lado_m": 1.87,
+            "area_m2": 3.49,
+            "excentricidad_m": 0.11,
+            "q_max_kPa": 115.41,
+            "q_min_kPa": 55.28,
+            "requiere_viga_fundacion": false
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 9,
+            "longitud_total_m": 31.14,
+            "peso_total_kg": 12.3
+        },
+        "tronco": {
+            "lado_m": 0.4,
+            "altura_m": 0.45,
+            "volumen_m3": 0.072
+        },
+        "pelos_columna": {
+            "cantidad": 8,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-b": {
+        "geotecnia": {
+            "lado_m": 1.7,
+            "area_m2": 2.88,
+            "excentricidad_m": 0.292,
+            "q_max_kPa": 173.35,
+            "q_min_kPa": -2.66,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 8,
+            "longitud_total_m": 24.96,
+            "peso_total_kg": 9.9
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 2.0,
+            "anclaje_m": 0.6,
+            "empalme_m": 1.0,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 2.05
+        }
+    },
+    "vigas_fundacion": {
+        "B0-a-B0-b": {
+            "longitud_m": 4.85,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 39.2,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 25,
+                "peso_kg": 11.9
+            }
+        }
+    }
+}

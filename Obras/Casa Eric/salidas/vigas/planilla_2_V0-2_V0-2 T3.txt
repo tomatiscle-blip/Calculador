@@ -1,0 +1,77 @@
+================================================================================
+PLANILLA DE DOBLADO – V0-2 – TRAMO INTERIOR – TRAMO V0-2 T3
+================================================================================
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 6     | 8    | Sup. apoyo izq        | 0.99    | 2.36      
+2    | 3     | 8    | Inf. tramo            | 3.34    | 3.96      
+3    | 3     | 8    | Inf. tramo completo   | 4.69    | 5.56      
+4    | 6     | 8    | Sup. apoyo der        | 1.00    | 2.36      
+5    | 2     | 8    | Auxiliar superior     | 4.74    | 3.74      
+6    | 23    | 6    | Estribo central       | 1.22    | 6.23       | c/20cm (Ø6)
+--------------------------------------------------------------------------------
+TOTAL PESO                                            | 24.21 kg
+
+NOTAS TÉCNICAS
+--------------------------------------------------------------------------------
+1 FLEXIÓN
+   As requerida       = 0.76 cm²
+   As mínima          = 2.87 cm²
+   As máxima          = 13.05 cm²
+   As adoptada        = 3.02 cm²
+   Estado             = ✅ Cuantía dentro del rango permitido
+   Luz libre = 4.50 m
+
+2 SECCIÓN
+   b = 20.0 cm
+   h = 48.0 cm
+   d = 43.0 cm
+   recubrimiento = 4.0 cm
+
+3 MATERIALES
+   f'c = 20 MPa
+   fy  = 420 MPa
+   Ec  = 21019 MPa
+
+4 INERCIAS (Rigidez global de la viga)
+- Inercia bruta Ig              = 184320 cm⁴
+- Inercia efectiva global Ief   = 197390 cm⁴
+- Relación Ief / Ig             = 1.071  (sección poco fisurada)
+- Momento de fisuración Mcr     = 23.20 kNm (tramo)
+- c usado                       = 9.98 cm
+
+5 HORMIGÓN
+   Volumen = 0.432 m³
+   Peso ≈ 1080 kg
+
+6 PUNTOS DE INFLEXIÓN
+   PI izquierdo = 0.67 m
+   PI derecho   = 3.82 m
+
+7 ARMADURAS (As calculadas)
+   As apoyo izq = 3.02 cm²
+   As tramo     = 3.02 cm²
+   As apoyo der = 3.02 cm²
+
+8 ESTRIBOS
+   Cantidad total Ø6 = 23 unidades (s_teor≈7809.9 mm → s_final=20 cm)
+   Cantidad total Ø8 = 23 unidades (s_teor≈13884.3 mm → s_final=20 cm)
+   Zonificación   = central=0.00-4.50 m
+
+9 FLECHA DE SERVICIO
+   Método: Carga virtual con rigidez variable (tramo + apoyos)
+   δmax = 0.00 mm
+   Flecha adm L/250 = 18.00 mm | q_serv = 0.00 kN/m → ✅ Cumple
+   Flecha adm L/360 = 12.50 mm | q_serv = 0.00 kN/m → ✅ Cumple
+   Flecha adm L/480 = 9.38 mm | q_serv = 0.00 kN/m → ✅ Cumple
+
+   Inercias usadas (tramo + apoyos)
+   Ie tramo       = 1.949e-03 m⁴
+   Ie apoyo izq   = 1.999e-03 m⁴
+   Ie apoyo der   = 1.999e-03 m⁴
+   c usado        = 9.98 cm
+
+10 ABERTURA DE FISURAS
+   dc = 44.0 mm | fs = 280.0 MPa | A_barra = 50.3 mm²
+   w ≈ 50.2 μm / 0.050 mm
+   Limite CIRSOC = 0.10 mm → ✅ Cumple

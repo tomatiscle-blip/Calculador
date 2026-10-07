@@ -28,6 +28,7 @@ class VistaPortico(QWidget):
         self.ancho_viento_m = 0.0
         self.viento_lineal_kN_m = 0.0
         self.viento_nodos: list[dict] = []
+        self.capas_carga = 0
 
     def actualizar(self, nombre: str) -> None:
         self.nombre = nombre
@@ -36,6 +37,7 @@ class VistaPortico(QWidget):
         self.vigas = estructura.get("vigas", {})
         self.tramos = self._geometria_tramos()
         self.cargas = {}
+        self.capas_carga = 0
         self.aviso = ""
         self.ancho_viento_m = 0.0
         self.viento_lineal_kN_m = 0.0
@@ -48,6 +50,11 @@ class VistaPortico(QWidget):
                 self.aviso = "; ".join(avisos)
             except Exception as exc:
                 self.aviso = f"No se pudieron leer las cargas: {exc}"
+        self.capas_carga = max((
+            len({c.get("aplicacion_id", "") for c in cargas_tramo})
+            for cargas_tramo in self.cargas.values()
+        ), default=0)
+        self.setMinimumHeight(max(250, 210 + self.capas_carga * 30))
         proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
         configuracion_viento = proyecto.get("viento", {}) or {}
         if configuracion_viento.get("activo"):
@@ -156,7 +163,9 @@ class VistaPortico(QWidget):
         if not xs or not ys:
             return
         ancho, alto = self.width(), self.height()
-        margen_x, margen_y_superior, margen_y_inferior = 42.0, 92.0, 38.0
+        margen_x = 56.0
+        margen_y_superior = max(48.0, 32.0 + self.capas_carga * 30.0)
+        margen_y_inferior = 38.0
         xmin, xmax = min(xs), max(xs)
         ymin, ymax = min(ys), max(ys)
         rango_x, rango_y = max(xmax - xmin, 1.0), max(ymax - ymin, 1.0)
@@ -179,21 +188,8 @@ class VistaPortico(QWidget):
             painter.setBrush(QColor("#334155"))
             painter.drawEllipse(punto(x, y0), 3.5, 3.5)
 
-        if self.columnas:
-            y_base = min(float(c.get("nivel", 0.0)) for c in self.columnas.values())
-            y_cima = max(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values())
-            extremo_izquierdo = min(float(c.get("x", 0.0)) for c in self.columnas.values())
-            base_marco, cima_marco = punto(extremo_izquierdo, y_base), punto(extremo_izquierdo, y_cima)
-            p_base = QPointF(base_marco.x() - 16, base_marco.y())
-            p_cima = QPointF(cima_marco.x() - 16, cima_marco.y())
-            painter.setPen(QPen(QColor("#64748b"), 1))
-            painter.drawLine(p_base, p_cima)
-            painter.drawLine(QPointF(p_base.x() - 4, p_base.y()), QPointF(p_base.x() + 5, p_base.y()))
-            painter.drawLine(QPointF(p_cima.x() - 4, p_cima.y()), QPointF(p_cima.x() + 5, p_cima.y()))
-            painter.drawText(QPointF(p_cima.x() - 4, p_cima.y() - 5), f"H={y_cima - y_base:.2f} m")
-
         font = QFont()
-        font.setPointSize(8)
+        font.setPointSize(7)
         painter.setFont(font)
         for tramo in self.tramos:
             a, b = punto(tramo["x0"], tramo["y"]), punto(tramo["x1"], tramo["y"])
@@ -204,8 +200,10 @@ class VistaPortico(QWidget):
             painter.drawLine(a, b)
             color_texto = QColor("#334155") if tramo["apoyado"] else QColor("#b91c1c")
             painter.setPen(color_texto)
-            texto_tramo = f"{tramo['id']} ({abs(tramo['x1'] - tramo['x0']):.2f} m)"
-            painter.drawText(QPointF((a.x() + b.x()) / 2 - 35, a.y() + 18), texto_tramo)
+            texto_tramo = f"{tramo['id']} · {abs(tramo['x1'] - tramo['x0']):.2f} m"
+            ancho_texto_tramo = painter.fontMetrics().horizontalAdvance(texto_tramo)
+            x_texto_tramo = (a.x() + b.x() - ancho_texto_tramo) / 2
+            painter.drawText(QPointF(x_texto_tramo, a.y() + 17), texto_tramo)
 
         grupos = {}
         por_id = {t["id"]: t for t in self.tramos}
@@ -264,18 +262,23 @@ class VistaPortico(QWidget):
                 ]))
 
             painter.setPen(QColor("#0f172a") if geometria["apoyado"] else QColor("#b91c1c"))
-            valores = " · ".join(f"{t}: {v:.2f} kN/m" for t, v in tipos.items())
-            sin_apoyo = " · SIN APOYO" if not geometria["apoyado"] else ""
-            etiqueta = f"{valores}{sin_apoyo}"
+            valores = " / ".join(f"{t} {v:.2f}" for t, v in tipos.items())
+            sin_apoyo = " · voladizo" if not geometria["apoyado"] else ""
+            etiqueta = f"{valores} kN/m{sin_apoyo}"
             ancho_texto = painter.fontMetrics().horizontalAdvance(etiqueta)
             x_texto = max(4.0, min((base.x() + final.x() - ancho_texto) / 2, ancho - ancho_texto - 4))
             painter.drawText(QPointF(x_texto, y_linea - 4), etiqueta)
 
-        # El motor actual concentra el resultante de viento en los nudos superiores.
-        for nudo in self.viento_nodos:
-            p = punto(nudo["x"], nudo["y"])
-            y_flecha = p.y() - 8
-            x0, x1 = p.x() - 11, p.x() + 14
+        # El viento se indica una vez fuera del marco; el motor conserva su
+        # distribución interna en los nudos superiores.
+        if self.viento_nodos:
+            x_marco = min(float(c.get("x", 0.0)) for c in self.columnas.values())
+            y_base = min(float(c.get("nivel", 0.0)) for c in self.columnas.values())
+            y_cima = max(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values())
+            centro = punto(x_marco, (y_base + y_cima) / 2)
+            y_flecha = centro.y()
+            x1 = centro.x() - 8
+            x0 = x1 - 32
             painter.setPen(QPen(QColor("#d97706"), 2.5))
             painter.drawLine(QPointF(x0, y_flecha), QPointF(x1, y_flecha))
             painter.setBrush(QColor("#d97706"))
@@ -283,7 +286,8 @@ class VistaPortico(QWidget):
                 QPointF(x1, y_flecha), QPointF(x1 - 6, y_flecha - 4), QPointF(x1 - 6, y_flecha + 4)
             ]))
             painter.setPen(QColor("#9a3412"))
-            painter.drawText(QPointF(x1 + 3, y_flecha - 3), f"W {nudo['valor_kN']:.2f} kN")
+            total = sum(nudo["valor_kN"] for nudo in self.viento_nodos)
+            painter.drawText(QPointF(x0 - 8, y_flecha - 7), f"W = {total:.2f} kN")
 
         if self.aviso:
             painter.setPen(QColor("#b91c1c"))

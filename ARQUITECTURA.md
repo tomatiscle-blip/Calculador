@@ -24,9 +24,11 @@ La regla que hace posible esa versatilidad:
 > **Todo es un elemento que se puede calcular solo, y los elementos se pueden combinar
 > en un contenedor (el pórtico).**
 
-El modelo permite calcular elementos sueltos o combinarlos dentro de un pórtico. En el
-flujo actual de la app ya se definen y aplican cargas a tramos existentes; la creación
-gráfica de la geometría del pórtico todavía está pendiente.
+El modelo permite calcular elementos sueltos o combinarlos dentro de un pórtico. En la
+app, la ficha de `datos/cargas.json` representa la obra activa; `datos/estructura.json`
+guarda varios pórticos bajo esa misma obra. Las cargas y sus elementos se comparten a
+nivel de obra, y cada aplicación identifica su destino. Los resultados calculados son
+salidas regenerables, no la fuente de las cargas.
 
 ---
 
@@ -61,10 +63,11 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
 7. **Salidas** — planilla, memoria de cálculo, planos (DXF) y cómputo, armados desde los
    resultados (no recalculados).
 
-**Estado de la interfaz:** este es el orden conceptual, pero la app aún no permite crear
-la geometría en el paso 4. `datos/crear_estructura.py` la solicita por consola; la lista
-superior de la app solo selecciona pórticos ya guardados. El editor visual de geometría
-es el siguiente paso de producto.
+**Estado de la interfaz:** Inicio permite crear geometría básica de un pórtico; se
+ingresan las luces entre columnas y voladizos opcionales en cada extremo. Todos los
+niveles repiten esas luces y comparten una altura uniforme. Todavía no incluye edición
+posterior ni cargas puntuales. `datos/crear_estructura.py` sigue disponible por consola;
+el selector de pórticos quedó dentro del bloque correspondiente en Inicio.
 
 ---
 
@@ -86,7 +89,32 @@ es el mismo renglón del mismo archivo: lo que hace que el mismo contrapiso no p
 
 ---
 
-## 5. Estado: qué está hecho y qué sigue
+## 5. Carátula y navegación del programa
+
+La pantalla **Inicio** funciona como carátula de la obra activa y punto de entrada,
+no como una pantalla técnica más. Su alcance mínimo:
+
+- Identidad: nombre de obra, ID generado y ubicación (la ubicación alimenta la
+  configuración de viento). Notas son opcionales; cliente/propietario puede agregarse
+  cuando exista un uso concreto.
+- Resumen: cantidad de pórticos, vigas aisladas y losas, más cálculos disponibles o
+  pendientes.
+- Acciones principales: crear obra, abrir obra y continuar con **Pórticos**, **Viga
+  aislada** o **Losas**.
+- El selector de pórtico aparece dentro de Pórticos, donde corresponde elegir qué
+  estructura resolver. No ocupa la navegación global.
+
+La navegación inicial agrupa el selector bajo Pórticos y ofrece accesos a Cargas y Losas.
+La ficha y las rutas de cálculo usan la obra seleccionada en `Obras/`; la migración inicial
+copia los datos y resultados existentes y conserva los originales. La biblioteca de
+materiales permanece común.
+
+Para controlar el alcance, no se agregan campos a la carátula hasta que un flujo los
+necesite. El análisis de cargas se comparte por obra y puede asignarse a varios pórticos;
+las salidas se regeneran desde los datos fuente. Los cálculos existentes de losas y vigas
+aisladas se conectan desde la navegación, sin duplicar sus motores.
+
+## 6. Estado: qué está hecho y qué sigue
 
 | Paso | Estado | Cómo se ve hoy |
 |---|---|---|
@@ -132,9 +160,9 @@ que la info quede suelta ni se pise).
 | **`_sueltos`** | Un elemento individual, para consultar rápido | `obras\_sueltos\` |
 
 El `id` (`L0-1`) debería ser único **dentro** de su alcance: la identidad completa es
-**`alcance/id`**. La separación real por obra y el selector de alcance todavía no están
-implementados. Hoy se trabaja con los JSON compartidos de `datos/` y el inicio de la app
-muestra la identidad del proyecto actual.
+**`alcance/id`**. La app ahora selecciona una obra en `Obras/`; cada obra mantiene sus
+datos y resultados bajo su propia carpeta. `_sueltos` queda como idea futura para cálculos
+individuales que no pertenecen a una obra.
 
 ### 7.2. Un resultado, un archivo. Los agregados son vistas
 
@@ -178,11 +206,15 @@ Calculador\
 │       └─ salidas\        losas\  reacciones\
 ```
 
-### 7.5. Migración sin romper
+### 7.5. Selección y migración de obras
 
-`calc/rutas.py` pasa a ser "consciente del alcance" (`obra_actual()`, `datos()`,
-`salidas()`), con el **alcance por defecto apuntando a lo de hoy** (`datos\` y `salidas\`
-de la raíz). Así nada se rompe y se migra de a poco a `obras\`.
+`calculador.bat` abre la última obra activa. La primera apertura copia los datos fuente a
+`Obras/<nombre>/datos`; los resultados previos se conservan bajo
+`Obras/<nombre>/archivo_migracion/salidas` y los originales siguen en la raíz. El botón
+**Nueva obra** crea una carpeta independiente y vacía; el selector cambia entre obras.
+`calc/rutas.py` dirige cargas, estructura, losas, terreno, `moments_input.json` y resultados
+a la obra seleccionada. Materiales, viguetas, perfiles, coeficientes y viento quedan en
+`datos/` como bibliotecas compartidas.
 
 ## 8. Estado de la app y cómo retomar — 05/10/2026
 

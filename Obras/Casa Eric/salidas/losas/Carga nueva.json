@@ -1,0 +1,100 @@
+{
+  "nombre": "Carga nueva",
+  "luz_libre_m": 5.8,
+  "luz_calculo_m": 5.9,
+  "ancho_losa_m": 4.2,
+  "serie": "D",
+  "tipo_vigueta": "vigueta_doble",
+  "combo": "bovedilla_12_losa_17",
+  "bovedilla_altura": "12",
+  "imagen": "imagenes/vigueta_doble_bovedilla_12.png",
+  "D1": 1.81,
+  "D2": 2.6000000000000005,
+  "D": 4.41,
+  "L": 2.0,
+  "Q": 8.492,
+  "combo_critico": "1.2D + 1.6L",
+  "uso_sobrecarga": "Vivienda / habitación",
+  "momento_req_kgm": 3767.8746055500005,
+  "momento_busqueda_kgm": 4186.5273395,
+  "momento_disponible_kgm": 4503,
+  "phi": 0.9,
+  "momento_reducido_kgm": 4052.7000000000003,
+  "momento_reducido_kNm": 39.74404236540159,
+  "area_losa_m2": 24.78,
+  "n_viguetas": 13,
+  "n_bloques": 39,
+  "vol_hormigon_m3": 1.8585,
+  "seleccion": [
+    {
+      "categoria": "Hormigon",
+      "nombre": "Contrapiso de cascotes y cal",
+      "espesor_m": 0.08
+    },
+    {
+      "categoria": "Morteros_Revoques",
+      "nombre": "Mortero de cemento y arena",
+      "espesor_m": 0.03
+    },
+    {
+      "categoria": "Pisos",
+      "nombre": "Ceramica 12mm + pegamento"
+    },
+    {
+      "categoria": "Cielorrasos",
+      "nombre": "Yeso Suspendido"
+    }
+  ],
+  "malla": {
+    "modelo": "Malla electrosoldada Q-131 / R-131 (SIMA)",
+    "tamanio_pano": "2.40x6",
+    "solape_m": 0.2,
+    "area_losa_m2": 24.78,
+    "area_pano_efectiva_m2": 12.76,
+    "cantidad_mallas": 2,
+    "area_total_mallas_m2": 28.8,
+    "criterio": "Cómputo por área (m²)",
+    "nota": null
+  },
+  "nervios": {
+    "n_nervios": 3,
+    "barras_por_nervio": 2,
+    "diametro_mm": 8,
+    "largo_por_nervio_m": 4.2,
+    "barras_total": 6,
+    "longitud_total_barras_m": 25.200000000000003
+  },
+  "reacciones": [
+    {
+      "apoyo": "izq",
+      "apoya_en": null,
+      "cargas": {
+        "D": 13.009500000000001,
+        "L": 5.9,
+        "W": 0.0
+      },
+      "combinaciones": {
+        "1.4D": 18.2133,
+        "1.2D+1.6L": 25.0514,
+        "1.2D+0.5L+1.6W": 18.5614,
+        "0.9D+1.6W": 11.70855
+      }
+    },
+    {
+      "apoyo": "der",
+      "apoya_en": null,
+      "cargas": {
+        "D": 13.009500000000001,
+        "L": 5.9,
+        "W": 0.0
+      },
+      "combinaciones": {
+        "1.4D": 18.2133,
+        "1.2D+1.6L": 25.0514,
+        "1.2D+0.5L+1.6W": 18.5614,
+        "0.9D+1.6W": 11.70855
+      }
+    }
+  ],
+  "carga_id": "Carga 0-15"
+}

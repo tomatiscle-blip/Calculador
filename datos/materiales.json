@@ -359,6 +359,14 @@
       "valor": 1.81,
       "unidad": "kN/m2",
       "notas": "Valor estándar inicial para arrancar el análisis. El peso propio definitivo depende del cálculo geométrico y materiales; revisar contra script L00_Losas_alivianadas.py (usa 1,881 fijo)."
+    },
+    {
+      "clave": "Losa_maciza",
+      "nombre": "Losa maciza de hormigón armado",
+      "tipo": "volumetrico",
+      "valor": 25.0,
+      "unidad": "kN/m3",
+      "notas": "Peso propio automático = peso específico × espesor. El predimensionado inicial del espesor usa CIRSOC 201-25, Tabla 7.3.1.1: luz/20 para paño unidireccional simplemente apoyado, hormigón de peso normal y fy=420 MPa."
     }
   ],
   "Sobrecargas": [

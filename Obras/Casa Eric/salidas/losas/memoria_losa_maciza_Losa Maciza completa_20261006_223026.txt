@@ -1,0 +1,45 @@
+MEMORIA DE CÁLCULO - LOSA MACIZA
+=================================
+
+Losa: Losa Maciza completa
+Carga del proyecto: Carga 0-3
+Luz entre apoyos: 5.00 m
+Ancho del paño: 4.00 m
+Espesor adoptado: 12.0 cm
+Criterio de espesor: Espesor ingresado manualmente
+
+Materiales seleccionados:
+ - Ceramica 12mm + pegamento (carga accesoria) → 0.280 kN/m²
+ - Carpeta nivelación 2.5 cm (carga accesoria) → 0.525 kN/m²
+ - Hormigón alivianado (EPS 250 kg/m³) 0.08 m (carga accesoria) → 0.196 kN/m²
+ - Hormigón armado 0.12 m (peso propio estructural) → 3.000 kN/m²
+ - Yeso Suspendido (carga accesoria) → 0.330 kN/m²
+Subtotal cargas accesorias (D2): 1.331 kN/m²
+Total cargas permanentes (D1+D2): 4.331 kN/m²
+
+Cargas consideradas:
+ - D1 (peso propio): 3.000 kN/m²
+ - D2 (accesoria): 1.331 kN/m²
+ - D total: 4.331 kN/m²
+ - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
+ - Carga de servicio (D+L): 6.331 kN/m²
+
+Modelo de análisis: Franja de 1 m; unidireccional, simplemente apoyada
+Combinaciones consideradas (kN/m²):
+ - 1.4D: 6.063
+ - 1.2D+1.6L: 8.397
+ - 1.2D+0.5L+1.6W: 6.197
+ - 0.9D+1.6W: 3.898
+
+Combinación crítica: 1.2D+1.6L
+Momento último requerido: 26.241 kN·m/m
+Corte último: 20.993 kN/m
+
+Reacciones por borde largo:
+ - izq: D=10.828, L=5.000 kN/m
+ - der: D=10.828, L=5.000 kN/m
+
+=================================
+Alcance: solicitaciones elásticas de un paño aislado.
+No dimensiona armadura ni verifica flecha, corte o continuidad entre paños.
+Fin de la memoria de cálculo

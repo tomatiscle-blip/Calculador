@@ -311,13 +311,14 @@ ETAPAS: tuple[Etapa, ...] = (
     Etapa(
         clave="losas",
         nombre="10. Losas",
-        descripcion="Losas alivianadas, macizas y casetonadas (por tipología).",
+        descripcion="Dimensionamiento de alivianadas y análisis inicial de macizas.",
         script="L00_Losas_alivianadas.py",
         entradas=(rutas.MATERIALES, rutas.VIGUETAS),
         salidas=(rutas.COMPUTO_LOSAS, rutas.SAL_LOSAS),
         interactiva=True,
         marca=_marca_losas,
-        nota="A desarrollar: separar por tipología (vigueta / maciza / casetonada).",
+        nota=("Alivianadas: cálculo de viguetas. Macizas: solicitaciones elásticas para "
+              "un paño unidireccional simplemente apoyado. Casetonadas y continuidad: pendientes."),
     ),
 )
 
@@ -511,7 +512,7 @@ def ejecutar(
     try:
         proceso = subprocess.run(
             comando,
-            cwd=str(rutas.RAIZ),
+            cwd=str(rutas.CARPETA_OBRA or rutas.RAIZ),
             env=entorno,
             input=respuestas,
             capture_output=True,

@@ -1,0 +1,85 @@
+{
+  "nombre": "Losa Maciza completa",
+  "carga_id": "Carga 0-3",
+  "metodo": "Franja de 1 m; unidireccional, simplemente apoyada",
+  "criterio_espesor": "Espesor ingresado manualmente",
+  "luz_m": 5.0,
+  "ancho_m": 4.0,
+  "espesor_m": 0.12,
+  "peso_propio_kNm2": 3.0,
+  "componentes": [
+    {
+      "descripcion": "Ceramica 12mm + pegamento",
+      "valor_kNm2": 0.28,
+      "estructural": false
+    },
+    {
+      "descripcion": "Carpeta nivelación 2.5 cm",
+      "valor_kNm2": 0.525,
+      "estructural": false
+    },
+    {
+      "descripcion": "Hormigón alivianado (EPS 250 kg/m³) 0.08 m",
+      "valor_kNm2": 0.196,
+      "estructural": false
+    },
+    {
+      "descripcion": "Hormigón armado 0.12 m",
+      "valor_kNm2": 3.0,
+      "estructural": true
+    },
+    {
+      "descripcion": "Yeso Suspendido",
+      "valor_kNm2": 0.33,
+      "estructural": false
+    }
+  ],
+  "D2_kNm2": 1.3310000000000002,
+  "uso_sobrecarga": "Vivienda / habitación",
+  "D_kNm2": 4.331,
+  "L_kNm2": 2.0,
+  "q_servicio_kNm2": 6.331,
+  "combinaciones_kNm2": {
+    "1.4D": 6.063400000000001,
+    "1.2D+1.6L": 8.397200000000002,
+    "1.2D+0.5L+1.6W": 6.1972000000000005,
+    "0.9D+1.6W": 3.8979000000000004
+  },
+  "combo_critica": "1.2D+1.6L",
+  "momento_ultimo_kNm_m": 26.241250000000004,
+  "corte_ultimo_kN_m": 20.993000000000002,
+  "reacciones": [
+    {
+      "apoyo": "izq",
+      "apoya_en": null,
+      "cargas_kN_m": {
+        "D": 10.8275,
+        "L": 5.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 15.158500000000002,
+        "1.2D+1.6L": 20.993000000000002,
+        "1.2D+0.5L+1.6W": 15.493000000000002,
+        "0.9D+1.6W": 9.744750000000002
+      },
+      "reaccion_total_D_kN": 43.31,
+      "reaccion_total_L_kN": 20.0
+    },
+    {
+      "apoyo": "der",
+      "apoya_en": null,
+      "cargas_kN_m": {
+        "D": 10.8275,
+        "L": 5.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 15.158500000000002,
+        "1.2D+1.6L": 20.993000000000002,
+        "1.2D+0.5L+1.6W": 15.493000000000002,
+        "0.9D+1.6W": 9.744750000000002
+      },
+      "reaccion_total_D_kN": 43.31,
+      "reaccion_total_L_kN": 20.0
+    }
+  ]
+}

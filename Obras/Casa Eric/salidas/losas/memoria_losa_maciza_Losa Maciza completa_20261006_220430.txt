@@ -1,0 +1,30 @@
+ANÁLISIS DE LOSA MACIZA — MODELO INICIAL
+============================================================
+Losa: Losa Maciza completa
+Carga del proyecto: Carga 0-3
+Modelo: Franja de 1 m; unidireccional, simplemente apoyada
+Criterio de espesor: Espesor ingresado manualmente
+Luz: 5.000 m · ancho: 4.000 m · espesor: 0.120 m
+
+Peso propio estructural de la losa: 3.000 kN/m²
+Cargas superficiales (kN/m²):
+  D = 4.331
+  L = 2.000
+  D + L = 6.331
+
+Combinaciones (kN/m²):
+  1.4D: 6.063
+  1.2D+1.6L: 8.397
+  1.2D+0.5L+1.6W: 6.197
+  0.9D+1.6W: 3.898
+
+Combinación crítica: 1.2D+1.6L
+Momento último máximo: 26.241 kN·m/m
+Corte último máximo: 20.993 kN/m
+
+Reacciones por borde largo (kN/m):
+  izq: D=10.828, L=5.000
+  der: D=10.828, L=5.000
+
+Alcance: este resultado calcula solicitaciones elásticas de un paño aislado.
+No verifica armadura, flecha, corte ni continuidad con otros paños.

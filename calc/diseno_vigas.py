@@ -93,11 +93,25 @@ def preparar_datos(portico: str, secciones: dict | None = None) -> tuple[dict, l
     return datos_vigas, sorted(set(advertencias))
 
 
-def dimensionar(portico: str, secciones: dict | None = None) -> tuple[Path, list[str]]:
+def dimensionar(portico: str, secciones: dict | None = None, tipo_flecha: str = "piso") -> tuple[Path, list[str]]:
     """Ejecuta los cálculos conservados en P02 y genera sus salidas habituales."""
     import P02_Viga_portico as legacy
 
+    if tipo_flecha not in ("piso", "cubierta"):
+        raise ValueError("El criterio de flecha debe ser piso o cubierta.")
     datos_vigas, advertencias = preparar_datos(portico, secciones)
+    if tipo_flecha == "cubierta":
+        advertencias.append("Cubierta: el modelo usa la categoría L disponible como carga variable; verificá que represente Lr/S/R. No se incluyen flecha por viento ni acumulación de agua.")
+    # El dimensionador legacy recibe estos valores dentro de cada tramo.
+    limite_flecha = 360 if tipo_flecha == "piso" else 180
+    for viga in datos_vigas.values():
+        for tramo in viga["tramos"]:
+            tramo["cargas"]["flecha_q_kN_m"] = tramo["cargas"].get("L_total", 0.0)
+            tramo["cargas"]["flecha_limite"] = limite_flecha
+            tramo["cargas"]["tipo_flecha"] = tipo_flecha
+    # P02 escribe las planillas directamente en esta carpeta; una obra nueva
+    # puede tener solicitaciones sin haber generado todavÃ­a sus directorios.
+    rutas.SAL_VIGAS.mkdir(parents=True, exist_ok=True)
     coef_kd = rutas.leer_json(rutas.COEFICIENTES_KD)
     if not coef_kd:
         raise FileNotFoundError(f"Falta la tabla {rutas.COEFICIENTES_KD}")

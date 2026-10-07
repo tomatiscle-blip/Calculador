@@ -546,7 +546,7 @@ def estado_texto() -> str:
     else:
         lineas.append("(todavía no hay solicitaciones guardadas)")
     lineas.append("")
-    lineas.append('Resolver uno:   py -m calc.portico "<nombre>" [--guardar]')
+    lineas.append('Resolver uno:   py -m calc.portico "<nombre o número>" [--guardar]')
     return "\n".join(lineas)
 
 
@@ -560,9 +560,11 @@ def _main(argv: list[str]) -> int:
 
     estructura = rutas.cargar_estructura()
     codigo = 0
-    for nombre in nombres:
-        if nombre not in estructura:
-            print(f"No existe el pórtico '{nombre}'. Ver: py -m calc.portico")
+    for referencia in nombres:
+        try:
+            nombre = rutas.resolver_portico(referencia, estructura)
+        except KeyError as exc:
+            print(f"{exc} Ver: py -m calc.portico")
             codigo = 1
             continue
         resultado = calcular(estructura[nombre], nombre)

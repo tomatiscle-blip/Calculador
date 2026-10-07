@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import math
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -26,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from calc import cargas, rutas
+from calc import cargas, losas, losas_macizas, rutas
 
 
 class EditorElemento(QDialog):
@@ -36,6 +37,7 @@ class EditorElemento(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"Componer carga — {nombre}")
         self.elemento = dict(elemento)
+        self.tipo = self.elemento.get("tipo")
         self.biblioteca = biblioteca
         self.nombre = QLineEdit(nombre)
         self.formulario = QFormLayout()
@@ -49,11 +51,25 @@ class EditorElemento(QDialog):
         self.componentes.horizontalHeader().setStretchLastSection(True)
         self.grupo = QComboBox()
         self.material = QComboBox()
-        for grupo, entradas in biblioteca.items():
+        grupos = list(biblioteca.items())
+        preferidos = (
+            ("Forjados", "Hormigon") if self.tipo == "losa"
+            else ("Cubiertas", "EstructuraCubierta") if self.tipo == "cubierta"
+            else ()
+        )
+        grupos.sort(key=lambda par: preferidos.index(par[0]) if par[0] in preferidos else len(preferidos))
+        nombres_grupo = {
+            "Forjados": "Forjado estructural",
+            "Hormigon": "Hormigón (materiales y capas)",
+            "Morteros_Revoques": "Morteros y revoques",
+            "Mamposteria": "Mampostería",
+            "Viguetas_Bovedillas": "Viguetas y bovedillas",
+        }
+        for grupo, entradas in grupos:
             if isinstance(entradas, list) and any(e.get("clave") for e in entradas if isinstance(e, dict)):
-                self.grupo.addItem(grupo)
-        self.grupo.currentTextChanged.connect(self._cargar_materiales)
-        self._cargar_materiales(self.grupo.currentText())
+                self.grupo.addItem(nombres_grupo.get(grupo, grupo), grupo)
+        self.grupo.currentIndexChanged.connect(self._cargar_materiales)
+        self._cargar_materiales()
         self.espesor = self._numero(0.01, 5.0, 0.01, 2)
         self.boton_agregar = QPushButton("Agregar capa")
         self.boton_quitar = QPushButton("Quitar capa seleccionada")
@@ -61,7 +77,6 @@ class EditorElemento(QDialog):
         self.boton_quitar.clicked.connect(lambda: self.componentes.removeRow(self.componentes.currentRow())
                                           if self.componentes.currentRow() >= 0 else None)
 
-        self.tipo = self.elemento.get("tipo")
         if self.tipo in ("losa", "cubierta"):
             if self.tipo == "losa":
                 self.tipologia = QComboBox()
@@ -70,7 +85,66 @@ class EditorElemento(QDialog):
                 self.caja_datos.addWidget(self._fila("Tipología:", self.tipologia))
             self.luz_completa = self._numero(0.0, 100.0, 0.1, 2)
             self.luz_completa.setValue(float(self.elemento.get("luz_transversal_m", 0.0)))
-            self.caja_datos.addWidget(self._fila("Luz completa de la losa (m):", self.luz_completa))
+            etiqueta_luz = (
+                "Luz libre entre apoyos (m):" if self.tipo == "losa"
+                else "Luz completa de la losa (m):"
+            )
+            self.caja_datos.addWidget(self._fila(etiqueta_luz, self.luz_completa))
+            if self.tipo == "losa":
+                self.ancho_losa = self._numero(0.0, 100.0, 0.1, 2)
+                self.ancho_losa.setValue(float(self.elemento.get("ancho_losa_m", 0.0)))
+                self.caja_datos.addWidget(self._fila(
+                    "Ancho del paño paralelo a los apoyos (m):", self.ancho_losa
+                ))
+                componentes_previos = self.elemento.get("componentes", [])
+                comp_maciza = next((
+                    c for c in componentes_previos
+                    if (c.get("grupo"), c.get("clave")) in {
+                        ("Forjados", "Losa_maciza"), ("Hormigon", "armado")
+                    }
+                ), {})
+                self.espesor_maciza = self._numero(0.05, 2.0, 0.01, 2)
+                espesor_guardado = float(comp_maciza.get("espesor_m", 0.0) or 0.0)
+                if espesor_guardado > 0:
+                    self.espesor_maciza.setValue(espesor_guardado)
+                else:
+                    self.espesor_maciza.setValue(max(0.05, self._espesor_cirsoc()))
+                self.espesor_automatico = QCheckBox(
+                    "Predimensionar automáticamente según CIRSOC 201-25 (luz/20)"
+                )
+                self.espesor_automatico.setChecked(bool(
+                    self.elemento.get("espesor_automatico", True)
+                ))
+                self.campo_espesor_maciza = self._fila(
+                    "Espesor estructural de losa maciza (m):", self.espesor_maciza
+                )
+                self.caja_datos.addWidget(self.espesor_automatico)
+                self.caja_datos.addWidget(self.campo_espesor_maciza)
+                base_alivianada = next((
+                    c for c in componentes_previos
+                    if c.get("grupo") == "Forjados" and c.get("clave") == "Losa_alivianada"
+                ), {})
+                catalogo_alivianada = next((
+                    m for m in self.biblioteca.get("Forjados", [])
+                    if m.get("clave") == "Losa_alivianada"
+                ), {})
+                peso_catalogo = float(catalogo_alivianada.get("valor", 1.81))
+                peso_guardado = float(base_alivianada.get("peso_propio_override_kNm2", peso_catalogo))
+                self.peso_propio_alivianada = self._numero(0.01, 20.0, 0.05, 2)
+                self.peso_propio_alivianada.setValue(peso_guardado)
+                self.campo_peso_alivianada = self._fila(
+                    "Peso propio base de losa alivianada (kN/m²):", self.peso_propio_alivianada
+                )
+                self.caja_datos.addWidget(self.campo_peso_alivianada)
+                self.caja_datos.addWidget(QLabel(
+                    "Al guardar, el forjado base se agrega según la tipología. "
+                    "La maciza calcula su peso con el espesor. En la alivianada, el valor "
+                    "de catálogo es editable y aún no se recalibra según la vigueta elegida."
+                ))
+                self.luz_completa.valueChanged.connect(self._actualizar_espesor_cirsoc)
+                self.espesor_automatico.toggled.connect(self._actualizar_espesor_cirsoc)
+                self.tipologia.currentTextChanged.connect(self._actualizar_campos_tipologia)
+                self._actualizar_campos_tipologia()
             self.caja_datos.addWidget(QLabel(
                 "El ancho tributario se elige en cada aplicación a una viga o tramo."
             ))
@@ -97,7 +171,9 @@ class EditorElemento(QDialog):
                 self.caja_datos.addWidget(self.altura_manual_activa)
                 self.caja_datos.addWidget(self._fila("Altura vertical (m):", self.altura_manual))
             fila_capas = QHBoxLayout()
+            fila_capas.addWidget(QLabel("Grupo:"))
             fila_capas.addWidget(self.grupo)
+            fila_capas.addWidget(QLabel("Material:"))
             fila_capas.addWidget(self.material, 1)
             fila_capas.addWidget(QLabel("Espesor (m):"))
             fila_capas.addWidget(self.espesor)
@@ -158,14 +234,15 @@ class EditorElemento(QDialog):
         layout.addWidget(control)
         return fila
 
-    def _cargar_materiales(self, grupo: str) -> None:
+    def _cargar_materiales(self, *_args) -> None:
+        grupo = self.grupo.currentData()
         self.material.clear()
         for material in self.biblioteca.get(grupo, []):
             if material.get("clave"):
                 self.material.addItem(material["nombre"], material["clave"])
 
     def _agregar_capa(self) -> None:
-        grupo = self.grupo.currentText()
+        grupo = self.grupo.currentData()
         clave = self.material.currentData()
         if not grupo or not clave:
             return
@@ -194,6 +271,25 @@ class EditorElemento(QDialog):
             self.componentes.setItem(fila, 2, QTableWidgetItem(material.get("tipo", "")))
             self.componentes.item(fila, 0).setData(Qt.ItemDataRole.UserRole, dict(componente))
 
+    def _espesor_cirsoc(self) -> float:
+        """Predimensionado conservador para una losa maciza unidireccional simple: h = L/20."""
+        luz = float(self.luz_completa.value()) if hasattr(self, "luz_completa") else 0.0
+        return math.ceil(luz / 20.0 * 100.0 - 1e-9) / 100.0 if luz > 0 else 0.05
+
+    def _actualizar_espesor_cirsoc(self, *_args) -> None:
+        if self.espesor_automatico.isChecked():
+            self.espesor_maciza.setValue(self._espesor_cirsoc())
+        self.espesor_maciza.setEnabled(not self.espesor_automatico.isChecked())
+
+    def _actualizar_campos_tipologia(self, *_args) -> None:
+        visible = self.tipologia.currentText() == "maciza"
+        alivianada = self.tipologia.currentText() == "alivianada"
+        self.espesor_automatico.setVisible(visible)
+        self.campo_espesor_maciza.setVisible(visible)
+        self.campo_peso_alivianada.setVisible(alivianada)
+        if visible:
+            self._actualizar_espesor_cirsoc()
+
     def resultado(self) -> tuple[str, dict]:
         elemento = dict(self.elemento)
         nombre = self.nombre.text().strip()
@@ -205,7 +301,38 @@ class EditorElemento(QDialog):
             elemento["luz_transversal_m"] = self.luz_completa.value()
             elemento["sobrecarga"] = self.sobrecarga.currentData()
             if self.tipo == "losa":
-                elemento["tipologia"] = self.tipologia.currentText()
+                elemento["ancho_losa_m"] = self.ancho_losa.value()
+                tipologia = self.tipologia.currentText()
+                elemento["tipologia"] = tipologia
+                sistemas_forjado = {"Losa_alivianada", "Losa_maciza", "Losa_casetonada"}
+                componentes = [
+                    dict(c) for c in elemento["componentes"]
+                    if not (c.get("grupo") == "Forjados" and c.get("clave") in sistemas_forjado)
+                ]
+                if tipologia == "alivianada":
+                    catalogo = next((
+                        m for m in self.biblioteca.get("Forjados", [])
+                        if m.get("clave") == "Losa_alivianada"
+                    ), {})
+                    peso_catalogo = float(catalogo.get("valor", 1.81))
+                    componente_forjado = {"grupo": "Forjados", "clave": "Losa_alivianada"}
+                    peso_propio = self.peso_propio_alivianada.value()
+                    if abs(peso_propio - peso_catalogo) > 1e-9:
+                        componente_forjado["peso_propio_override_kNm2"] = peso_propio
+                    componentes.append(componente_forjado)
+                elif tipologia == "maciza":
+                    # Migra el espesor estructural legado a Forjados y evita contar dos veces el hormigón.
+                    componentes = [
+                        c for c in componentes
+                        if not (c.get("grupo") == "Hormigon" and c.get("clave") == "armado")
+                    ]
+                    componentes.append({
+                        "grupo": "Forjados",
+                        "clave": "Losa_maciza",
+                        "espesor_m": self.espesor_maciza.value(),
+                    })
+                    elemento["espesor_automatico"] = self.espesor_automatico.isChecked()
+                elemento["componentes"] = componentes
             elif self.tipo == "cubierta":
                 elemento["viento_activo"] = int(self.succion_activa.isChecked())
                 elemento["pendiente_grados"] = self.pendiente.value()
@@ -226,7 +353,8 @@ class EditorElemento(QDialog):
 class EditorAplicaciones(QDialog):
     """Permite aplicar una misma carga varias veces, con distinto tramo y ancho."""
 
-    def __init__(self, carga_id: str, elemento: dict, estructura: dict, aplicaciones: list[dict], parent=None):
+    def __init__(self, carga_id: str, elemento: dict, estructura: dict, aplicaciones: list[dict], parent=None,
+                 portico_inicial: str = ""):
         super().__init__(parent)
         self.setWindowTitle(f"Aplicaciones de {carga_id}")
         self.carga_id = carga_id
@@ -263,7 +391,7 @@ class EditorAplicaciones(QDialog):
         modo_existente = next((a.get("modo_cargas_previas") for a in self.aplicaciones
                                if a.get("modo_cargas_previas")), "reemplazar")
         self.modo_legacy.setCurrentIndex(max(0, self.modo_legacy.findData(modo_existente)))
-        self.boton_agregar = QPushButton("Agregar aplicación")
+        self.boton_agregar = QPushButton("Añadir a la lista")
         self.boton_quitar = QPushButton("Quitar aplicación seleccionada")
         self.boton_agregar.clicked.connect(self._agregar)
         self.boton_quitar.clicked.connect(self._quitar)
@@ -272,6 +400,8 @@ class EditorAplicaciones(QDialog):
 
         for nombre in estructura:
             self.portico.addItem(nombre, nombre)
+        if portico_inicial in estructura:
+            self.portico.setCurrentIndex(self.portico.findData(portico_inicial))
         self._cargar_tramos()
         self.ancho_modo.setEnabled(self.es_superficial)
         self.ancho_manual.setEnabled(self.es_superficial)
@@ -298,6 +428,7 @@ class EditorAplicaciones(QDialog):
         fila.addWidget(self.boton_quitar)
         caja.addLayout(fila)
         botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        botones.button(QDialogButtonBox.StandardButton.Save).setText("Guardar aplicaciones")
         botones.accepted.connect(self.accept)
         botones.rejected.connect(self.reject)
         caja.addWidget(botones)
@@ -400,9 +531,10 @@ class EditorAplicaciones(QDialog):
 class PaginaCargas(QWidget):
     """Catálogo del proyecto y asignación de cargas a intervalos de tramos."""
 
-    def __init__(self, al_guardar=None):
+    def __init__(self, al_guardar=None, portico_actual=None):
         super().__init__()
         self.al_guardar = al_guardar
+        self.portico_actual = portico_actual or (lambda: "")
         self.etiqueta = QLabel()
         self.etiqueta.setWordWrap(True)
         self.viento_activo = QCheckBox("Aplicar viento horizontal general al pórtico")
@@ -410,7 +542,7 @@ class PaginaCargas(QWidget):
         self.ancho_viento.setRange(0.0, 100.0)
         self.ancho_viento.setDecimals(2)
         self.ancho_viento.setSingleStep(0.1)
-        catalogo_viento = rutas.leer_json(rutas.DATOS / "viento_cirsoc_102_25.json", {}) or {}
+        catalogo_viento = rutas.leer_json(rutas.DATOS_GLOBAL / "viento_cirsoc_102_25.json", {}) or {}
         self.catalogo_viento = catalogo_viento.get("ciudades", {})
         self.ciudad_viento = QComboBox()
         for ciudad in self.catalogo_viento:
@@ -427,9 +559,10 @@ class PaginaCargas(QWidget):
         self.nota_viento_ref.setWordWrap(True)
         self.ciudad_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
         self.categoria_riesgo_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
-        self.tabla = QTableWidget(0, 6)
+        self.tabla = QTableWidget(0, 8)
         self.tabla.setHorizontalHeaderLabels(
-            ("ID", "Descripción", "Aplicación", "Categoría", "Activa", "N.º aplicaciones")
+            ("ID", "Descripción", "Aplicación", "Categoría", "D (kN/m²)",
+             "L (kN/m²)", "Incluir", "N.º aplicaciones")
         )
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -441,6 +574,8 @@ class PaginaCargas(QWidget):
         self.boton_guardar = QPushButton("Guardar cargas")
         self.boton_editar = QPushButton("Editar composición")
         self.boton_aplicaciones = QPushButton("Aplicar a tramos…")
+        self.boton_disenar_losa = QPushButton("Calcular losa seleccionada")
+        self.boton_disenar_losa.setEnabled(False)
         self.boton_informe = QPushButton("Generar informe TXT")
         self.boton_abrir = QPushButton("Abrir último informe")
         self.boton_abrir.setEnabled(False)
@@ -448,6 +583,9 @@ class PaginaCargas(QWidget):
 
         caja = QVBoxLayout(self)
         caja.addWidget(self.etiqueta)
+        self.etiqueta_portico = QLabel()
+        self.etiqueta_portico.setStyleSheet("font-weight: 600;")
+        caja.addWidget(self.etiqueta_portico)
         fila_viento = QHBoxLayout()
         fila_viento.addWidget(self.viento_activo)
         fila_viento.addWidget(QLabel("Ancho tributario del viento (m):"))
@@ -470,6 +608,7 @@ class PaginaCargas(QWidget):
         fila.addWidget(self.boton_editar)
         fila.addWidget(self.boton_guardar)
         caja.addLayout(fila)
+        caja.addWidget(self.boton_disenar_losa)
         acciones = QHBoxLayout()
         acciones.addWidget(self.boton_informe)
         acciones.addWidget(self.boton_abrir)
@@ -477,16 +616,85 @@ class PaginaCargas(QWidget):
         caja.addLayout(acciones)
 
         self.tabla.itemChanged.connect(self._actualizar_estado_activo)
+        self.tabla.currentCellChanged.connect(self._actualizar_boton_disenar_losa)
         self.boton_guardar.clicked.connect(self.guardar)
         self.boton_nueva.clicked.connect(self.nueva)
         self.boton_editar.clicked.connect(self.editar)
         self.boton_aplicaciones.clicked.connect(self.editar_aplicaciones)
         self.boton_informe.clicked.connect(self.generar_informe)
         self.boton_abrir.clicked.connect(self.abrir_informe)
+        self.boton_disenar_losa.clicked.connect(self.disenar_losa_seleccionada)
         self.recargar()
 
+    def _actualizar_boton_disenar_losa(self, *_args) -> None:
+        nombre = self._fila_nombre()
+        elemento = (cargas.datos_cargas().get("elementos", {}) or {}).get(nombre, {}) if nombre else {}
+        tipologia = elemento.get("tipologia")
+        try:
+            disponible = (
+                elemento.get("tipo") == "losa"
+                and tipologia in ("alivianada", "maciza")
+                and float(elemento.get("luz_transversal_m", 0.0) or 0.0) > 0
+                and float(elemento.get("ancho_losa_m", 0.0) or 0.0) > 0
+            )
+        except (TypeError, ValueError):
+            disponible = False
+        self.boton_disenar_losa.setEnabled(disponible)
+        if tipologia == "maciza":
+            self.boton_disenar_losa.setText("Calcular solicitaciones de losa maciza")
+            ayuda = (
+                "Analiza un paño unidireccional simplemente apoyado. "
+                "Requiere luz, ancho y hormigón armado con espesor. Para cargar las vigas "
+                "de apoyo, aplicá esta carga a ambos bordes con ancho tributario igual a media luz."
+            )
+        elif tipologia == "alivianada":
+            self.boton_disenar_losa.setText("Calcular viguetas de losa alivianada")
+            ayuda = "Dimensiona viguetas con esta misma composición."
+        elif tipologia == "casetonada":
+            self.boton_disenar_losa.setText("Análisis de losa casetonada pendiente")
+            ayuda = "La tipología casetonada todavía no tiene un motor de cálculo."
+        else:
+            self.boton_disenar_losa.setText("Calcular losa seleccionada")
+            ayuda = "Elegí una losa y completá la luz y el ancho del paño."
+        if not disponible and tipologia in ("alivianada", "maciza"):
+            ayuda = "Completá la luz y el ancho del paño para habilitar el cálculo."
+        self.boton_disenar_losa.setToolTip(ayuda)
+
+    def disenar_losa_seleccionada(self) -> None:
+        nombre = self._fila_nombre()
+        if not nombre:
+            return
+        datos = cargas.datos_cargas()
+        elemento = (datos.get("elementos", {}) or {}).get(nombre)
+        if not elemento:
+            return
+        try:
+            if elemento.get("tipologia") == "maciza":
+                resultado = losas_macizas.calcular_desde_elemento_carga(nombre, elemento)
+                memoria, archivo = losas_macizas.guardar_resultado(resultado)
+                detalle = (
+                    f"Se calcularon las solicitaciones de {nombre}.\n\n"
+                    f"Memoria: {memoria}\nResultado: {archivo}\n\n"
+                    "El resultado no dimensiona armaduras ni contempla continuidad."
+                )
+            else:
+                resultado = losas.calcular_desde_elemento_carga(nombre, elemento)
+                memoria, computo, archivo = losas.guardar_resultado(resultado)
+                detalle = (
+                    f"Se calcularon las viguetas de {nombre}.\n\n"
+                    f"Memoria: {memoria}\nCómputo: {computo}\nResultado: {archivo}"
+                )
+        except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
+            QMessageBox.warning(self, "No se pudo calcular la losa", str(exc))
+            return
+        QMessageBox.information(
+            self, "Cálculo de losa", detalle,
+        )
+        if self.al_guardar:
+            self.al_guardar()
+
     def _actualizar_estado_activo(self, item: QTableWidgetItem) -> None:
-        if item.column() == 4:
+        if item.column() == 6:
             estado = "Sí" if item.checkState() == Qt.CheckState.Checked else "No"
             if item.text() != estado:
                 item.setText(estado)
@@ -516,6 +724,7 @@ class PaginaCargas(QWidget):
         return re.sub(r"[^a-z0-9]+", "_", obra).strip("_") or "obra"
 
     def recargar(self) -> None:
+        self.actualizar_portico()
         datos = cargas.datos_cargas()
         id_proyecto = self._id_proyecto(datos)
         viento = datos.get("viento", {})
@@ -530,6 +739,7 @@ class PaginaCargas(QWidget):
         self._actualizar_velocidad_referencia()
         elementos = datos.get("elementos", {})
         aplicaciones = datos.get("aplicaciones", [])
+        biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
         self.tabla.setRowCount(len(elementos))
         self.tabla.setProperty("carga_names", list(elementos))
         for fila, (nombre, elemento) in enumerate(elementos.items()):
@@ -545,30 +755,53 @@ class PaginaCargas(QWidget):
             categorias = "D + L" if tipo in ("losa", "cubierta") else "D"
             if elemento.get("viento_activo"):
                 categorias += " + W"
+            q_d = q_l = "—"
+            if tipo in ("losa", "cubierta"):
+                try:
+                    valores = cargas.valores_superficiales(elemento, biblioteca)
+                    q_d = f"{valores['D_kNm2']:.2f}"
+                    q_l = f"{valores['L_kNm2']:.2f}"
+                except (KeyError, TypeError, ValueError):
+                    pass
             n_aplicaciones = sum(1 for a in aplicaciones if a.get("carga_id") == elemento.get("id"))
             valores = (
-                elemento["id"], nombre, forma, categorias,
+                elemento["id"], nombre, forma, categorias, q_d, q_l,
                 "Sí" if elemento.get("activo") else "No",
                 str(n_aplicaciones),
             )
             for columna, valor in enumerate(valores):
                 item = QTableWidgetItem(str(valor))
                 item.setData(Qt.ItemDataRole.UserRole, nombre)
-                if columna == 4:
+                if columna == 6:
+                    item.setToolTip(
+                        "Marcada: esta carga entra en los informes y en las aplicaciones al pórtico. "
+                        "Desmarcada: se conserva en la obra, pero se omite del cálculo."
+                    )
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                     item.setCheckState(
                         Qt.CheckState.Checked if elemento.get("activo") else Qt.CheckState.Unchecked
                     )
+                else:
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.tabla.setItem(fila, columna, item)
         self.etiqueta.setText(
             f"{len(elementos)} elementos de carga. "
             "Losas y cubiertas convierten kN/m² a kN/m con el ancho tributario de cada aplicación; "
-            "muros y encadenados generan carga lineal. Marcá las cargas que entran "
-            "al informe. Los cambios se guardan con los botones de abajo; los TXT "
+            "sus D y L superficiales se calculan aunque no tengan aplicaciones. "
+            "Muros y encadenados generan carga lineal. La casilla Incluir activa u omite "
+            "el elemento en el análisis y en el pórtico. Los cambios se guardan con los botones de abajo; los TXT "
             "anteriores quedan como estaban. Una carga puede tener varias aplicaciones "
             "en distintos tramos; las puntuales siguen ingresándose desde P00."
         )
         self.tabla.resizeColumnsToContents()
+        self._actualizar_boton_disenar_losa()
+
+    def actualizar_portico(self) -> None:
+        portico_actual = str(self.portico_actual() or "").strip()
+        self.etiqueta_portico.setText(
+            f"Pórtico seleccionado: {portico_actual or 'ninguno'}. "
+            "Las aplicaciones nuevas se proponen para este pórtico; podés cambiarlo en el editor."
+        )
 
     def _fila_nombre(self) -> str | None:
         fila = self.tabla.currentRow()
@@ -614,7 +847,8 @@ class PaginaCargas(QWidget):
             QMessageBox.warning(self, "Falta ID", "No se pudo identificar la carga del proyecto.")
             return
         editor = EditorAplicaciones(
-            carga_id, elemento, rutas.cargar_estructura(), datos.get("aplicaciones", []), self
+            carga_id, elemento, rutas.cargar_estructura(), datos.get("aplicaciones", []), self,
+            portico_inicial=self.portico_actual(),
         )
         if editor.exec() != QDialog.DialogCode.Accepted:
             return
@@ -703,7 +937,7 @@ class PaginaCargas(QWidget):
         nombre = self._fila_nombre()
         for fila in range(self.tabla.rowCount()):
             item = self.tabla.item(fila, 0)
-            activo = self.tabla.item(fila, 4)
+            activo = self.tabla.item(fila, 6)
             if item and activo:
                 elementos[item.data(Qt.ItemDataRole.UserRole)]["activo"] = (
                     activo.checkState() == Qt.CheckState.Checked

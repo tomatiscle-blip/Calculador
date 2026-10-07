@@ -40,6 +40,7 @@ def ingresar_datos_estructura():
     estructura = rutas.cargar_estructura()
     archivo = rutas.ESTRUCTURA
     portico_id = rutas.proximo_nombre_portico()
+    numero_portico = rutas.numero_portico(portico_id, estructura)
     estructura[portico_id] = {"vigas": {}, "columnas": {}, "bases": {}, "cargas_puntuales": []}
 
     # 2. Preguntar cantidad de pisos
@@ -86,7 +87,7 @@ def ingresar_datos_estructura():
                 x_pos += L
 
         # Crear viga principal
-        viga_id = f"V{piso}-1"
+        viga_id = f"V{piso}-{numero_portico}"
         estructura[portico_id]["vigas"][viga_id] = {"tramos": []}
 
         # Guardar tramos
@@ -144,7 +145,7 @@ def ingresar_datos_estructura():
                 break
 
             # calcular rango total de la viga en este piso
-            viga_id = f"V{piso}-1"
+            viga_id = f"V{piso}-{numero_portico}"
             x_min = min(tramo["x_inicio"] for tramo in estructura[portico_id]["vigas"][viga_id]["tramos"])
             x_max = max(tramo["x_fin"] for tramo in estructura[portico_id]["vigas"][viga_id]["tramos"])
 

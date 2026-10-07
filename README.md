@@ -7,8 +7,23 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **05/10/2026**
-- Último trabajo: conexión inicial de **P02 con el motor y la app** (05/10). El motor de
+- Última actualización: **06/10/2026**
+- Último trabajo: primera reorganización de **Inicio como carátula y navegación** (06/10):
+  el selector quedó en el bloque de Pórticos, y hay accesos a Cargas y Losas. La ficha
+  muestra la ubicación del proyecto, derivada de la configuración de viento.
+  - **Obras:** la app ahora guarda cada obra en `Obras/<nombre>/datos` y
+    `Obras/<nombre>/salidas`. La obra activa se recuerda al volver a abrir el calculador;
+    **Nueva obra** crea una carpeta vacía. En el primer arranque se copian los datos fuente;
+    las salidas anteriores se guardan aparte en `archivo_migracion/salidas`.
+  - **Alcance:** cargas, estructura, losas, terreno y resultados son propios de cada obra.
+    `moments_input.json` solo se copia al migrar datos existentes; una obra nueva no recibe
+    los datos de ejemplo. Materiales y tablas de diseño siguen siendo compartidos. La viga
+    aislada aún no tiene recorrido integrado en la app.
+  - **Losas en Cargas:** cada losa conserva su composición y muestra D/L en kN/m² aunque
+    todavía no esté aplicada a un pórtico. Se guarda la luz y el ancho del paño; la misma
+    composición alimenta el cálculo de viguetas para losas alivianadas. Macizas y casetonadas
+    quedan disponibles como cargas, sin dimensionado estructural propio todavía.
+- Trabajo anterior: conexión inicial de **P02 con el motor y la app** (05/10). El motor de
   `calc/portico.py` entrega los esfuerzos por combinación; `calc/diseno_vigas.py` adapta
   esos resultados al dimensionador conservado en `P02_Viga_portico.py`. Desde la pestaña
   **2 · Vigas** se ingresan `b` y `fc`, se generan el JSON y la planilla TXT. El script
@@ -16,10 +31,12 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   - **Importante:** P02 todavía no se migró como cálculo a `calc/vigas.py`; se conserva
     su lógica de diseño. La flecha usa carga uniforme equivalente cuando hay cargas
     parciales y no incluye cargas puntuales en esa estimación.
-  - `calculador.bat` abre la app. El pórtico se elige arriba; primero se resuelven sus
-    solicitaciones desde Inicio y después se usa **Dimensionar vigas**.
-  - **Lo siguiente para retomar:** crear y editar la geometría de uno o varios pórticos
-    desde la app. Hoy esa carga todavía se hace por consola con `datos/crear_estructura.py`.
+  - `calculador.bat` abre la app. Inicio muestra la obra y ubica el selector en el bloque
+    **Pórticos**; también da accesos a Cargas y Losas.
+  - La ficha de cada obra queda en `Obras/<nombre>/obra.json`; cargas y pórticos, en su
+    subcarpeta `datos/`. El análisis de cargas pertenece a la obra y sus aplicaciones
+    indican a qué pórtico/tramo llegan. La app recuerda la obra activa. Editar cargas no
+    borra los informes anteriores: las salidas quedan dentro de la misma obra.
 - Trabajo anterior: **el MOTOR de cálculo quedó armado en `calc/portico.py`** (03/10).
   Resuelve el pórtico 2D con **Pynite** (casos base D, L, W y P + las 5 combinaciones, con
   viento) y devuelve **M, V, N, reacciones y desplazamientos por barra y por combinación**,
@@ -52,6 +69,11 @@ La ventana tiene 7 pestañas: **Inicio** (las dos piezas resueltas: **cargas** y
 **envolvente** del pórtico elegido), **1 · Estado y etapas** (el semáforo en colores),
 **2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias),
 **6 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.).
+
+En **Cargas**, las losas y cubiertas muestran sus cargas superficiales D/L sin exigir que
+estén aplicadas a una viga. Al seleccionar una losa alivianada con luz, ancho y la capa
+`Losa_alivianada`, el botón **Calcular viguetas de la losa** genera la memoria y el cómputo
+en las salidas de la obra. Aplicarla a tramos sigue siendo opcional.
 
 ---
 
@@ -91,10 +113,24 @@ un script y la losa lo repite por su cuenta (ver el punto 4).
   en esa estimación. Los esfuerzos de diseño se toman de las combinaciones del motor.
 - **Contraste de campos corregido** en el diálogo de diseño de vigas para que el texto sea
   legible con el tema de Windows.
-- **Pendiente principal:** no hay todavía un formulario de geometría en la app. El selector
-  superior solo elige pórticos que ya existen; `datos/crear_estructura.py` los crea por
-  consola. Retomar por un editor inicial de obra/pórticos y una visualización clara de la
-  geometría creada, preservando los JSON existentes.
+- **Pendiente principal:** el formulario de Inicio crea geometría básica con las luces
+  entre columnas ingresadas como lista y voladizos opcionales en ambos extremos; todos
+  los niveles repiten esa geometría y tienen altura uniforme. Faltan edición posterior,
+  cargas puntuales en el asistente y gestión de varias obras independientes en una misma
+  instalación.
+
+### Dirección de interfaz acordada — carátula y navegación
+
+La carátula representa **una obra abierta**. Debe mostrar nombre, identificador, ubicación
+(necesaria para viento), notas opcionales y un resumen de los elementos/cálculos. Desde
+allí se podrá crear o abrir una obra y entrar a tres recorridos: **Pórticos**, **Viga
+aislada** y **Losas**. La selección del pórtico se hará dentro de Pórticos, no como
+selector global. La ficha no será una pantalla de datos técnicos ni duplicará cargas.
+
+El selector, la creación de carpetas y la migración inicial de la obra actual ya están
+implementados. La carátula y el manejo de obras quedan conectados; los recorridos de viga
+aislada y losa todavía deben integrarse sin rehacer sus motores. Evitar sumar módulos o
+campos hasta que un flujo los necesite.
 
 ### Última sesión — 03/10/2026
 - **El MOTOR quedó armado: `calc/portico.py`.** Resuelve el pórtico 2D con Pynite con los

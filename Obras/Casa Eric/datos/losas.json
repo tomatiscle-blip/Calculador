@@ -1,0 +1,19 @@
+{
+  "notas": "Datos de cada losa alivianada para calc/losas.py (el desarrollo clasico de L00: cargas -> momento -> tabla de viguetas -> computo). Los materiales y las sobrecargas salen de materiales.json; la tabla de momentos, de viguetas.json. La losa L00 reproduce el caso ya calculado (memoria_losa_L00_20260928_202740).",
+  "losas": {
+    "L00": {
+      "nombre": "L00",
+      "luz_libre_m": 5.0,
+      "ancho_losa_m": 6.0,
+      "peso_propio_kNm2": 1.881,
+      "materiales": [
+        { "categoria": "Pisos", "nombre": "Ceramica 12mm + pegamento" },
+        { "categoria": "Contrapiso", "nombre": "Carpeta nivelacion 2.5cm" },
+        { "categoria": "Contrapiso", "nombre": "Contrapiso de cascotes y cal 5cm" },
+        { "categoria": "Cielorrasos", "nombre": "Yeso Suspendido" }
+      ],
+      "sobrecarga": "vivienda",
+      "malla": { "tamanio_pano": "2.40x6", "solape_m": 0.20 }
+    }
+  }
+}

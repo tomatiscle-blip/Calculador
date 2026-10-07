@@ -1,0 +1,543 @@
+{
+  "obra": "Casa_Eric",
+  "notas": "Los elementos que reciben carga. Cada uno se puede calcular solo (una losa, un muro) o entrar al portico como conjunto. Los materiales salen de materiales.json por 'clave'.",
+  "viento": {
+    "activo": 1,
+    "ancho_tributario_m": 2.65,
+    "notas": "Viento horizontal sobre el portico. La velocidad (V), la densidad del aire y el coeficiente Cd salen de materiales.json",
+    "referencia_cirsoc_102_25": {
+      "ubicacion": {
+        "pais": "Argentina",
+        "provincia": "Santa Fe",
+        "ciudad": "Santa Fe"
+      },
+      "categoria_riesgo": "I",
+      "V_basica_ms": 58.3,
+      "fuente": "CIRSOC 102-25, Figura 1.5-1D"
+    }
+  },
+  "elementos": {
+    "Losa Alivianada L0-1": {
+      "tipo": "losa",
+      "tipologia": "alivianada",
+      "activo": false,
+      "ancho_tributario_m": 1.5,
+      "componentes": [
+        {
+          "grupo": "Pisos",
+          "clave": "porcelanato"
+        },
+        {
+          "grupo": "Morteros_Revoques",
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "nombre": "Carpeta nivelación {espesor_cm:.1f} cm"
+        },
+        {
+          "grupo": "Hormigon",
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "nombre": "Contrapiso cascotes/cal {espesor_cm:.0f} cm"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        },
+        {
+          "grupo": "Cielorrasos",
+          "clave": "yeso_suspendido"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "id": "Carga 0-1"
+    },
+    "Cubierta de teja cerámica con cielorraso incorporado": {
+      "tipo": "cubierta",
+      "activo": false,
+      "ancho_tributario_m": 3.0,
+      "componentes": [
+        {
+          "grupo": "Cubiertas",
+          "clave": "teja",
+          "nombre": "Teja cerámica tipo Marsella con entablonado"
+        },
+        {
+          "grupo": "Madera",
+          "clave": "pino",
+          "espesor_m": 0.02,
+          "nombre": "Cabios de madera (espesor equivalente 0.02 m)"
+        }
+      ],
+      "sobrecarga": "cubierta_acceso_poco_frecuente",
+      "viento_activo": 0,
+      "pendiente_grados": 6,
+      "altura_vertical_m": null,
+      "id": "Carga 0-5"
+    },
+    "Muro hueco 8 cm (doble pared)": {
+      "tipo": "muro",
+      "activo": true,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco",
+      "espesor_m": 0.08,
+      "altura_m": 3.0,
+      "id": "Carga 0-6"
+    },
+    "Muro hueco 18 cm": {
+      "tipo": "muro",
+      "activo": false,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco",
+      "espesor_m": 0.18,
+      "altura_m": 2.8,
+      "id": "Carga 0-7"
+    },
+    "Muro común 24 cm": {
+      "tipo": "muro",
+      "activo": false,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.24,
+      "altura_m": 1.33,
+      "id": "Carga 0-8"
+    },
+    "Muro común 18 cm": {
+      "tipo": "muro",
+      "activo": false,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.18,
+      "altura_m": 1.33,
+      "id": "Carga 0-9"
+    },
+    "Muro común 12 cm (pared doble)": {
+      "tipo": "muro",
+      "activo": false,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.12,
+      "altura_m": 5.0,
+      "id": "Carga 0-10"
+    },
+    "Encadenado 20x20": {
+      "tipo": "encadenado",
+      "activo": false,
+      "base_m": 0.2,
+      "altura_m": 0.2,
+      "cantidad": 1,
+      "id": "Carga 0-13"
+    },
+    "Carga_losa_CGPT": {
+      "tipo": "losa",
+      "activo": false,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "Losa_alivianada",
+          "grupo": "Forjados"
+        },
+        {
+          "clave": "yeso_adherido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "porcelanato",
+          "grupo": "Pisos"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 4.0,
+      "id": "Carga 0-14"
+    },
+    "Cubierta liviana de chapa c/estructura y cielorraso suspendido": {
+      "tipo": "cubierta",
+      "activo": false,
+      "ancho_tributario_m": 2.1,
+      "componentes": [
+        {
+          "clave": "chapa_ondulada",
+          "grupo": "Cubiertas"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        }
+      ],
+      "sobrecarga": "cubierta_acceso_poco_frecuente",
+      "viento_activo": 1,
+      "pendiente_grados": 6.0,
+      "altura_vertical_m": null,
+      "id": "Carga 0-4",
+      "destino": "",
+      "luz_transversal_m": 0.0
+    },
+    "Encadenado 20x40": {
+      "tipo": "encadenado",
+      "activo": false,
+      "base_m": 0.2,
+      "altura_m": 0.4,
+      "cantidad": 1,
+      "id": "Carga 0-12"
+    },
+    "Muro hueco portante 20 cm": {
+      "tipo": "muro",
+      "activo": false,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_hueco_portante",
+      "espesor_m": 0.2,
+      "altura_m": 2.6,
+      "id": "Carga 0-11"
+    },
+    "Carga nueva": {
+      "tipo": "losa",
+      "activo": false,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "Losa_alivianada",
+          "grupo": "Forjados"
+        },
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "ceramica",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "casetonada",
+      "luz_transversal_m": 5.8,
+      "ancho_losa_m": 4.2,
+      "id": "Carga 0-15"
+    },
+    "Losa Maciza completa": {
+      "tipo": "losa",
+      "tipologia": "maciza",
+      "activo": false,
+      "ancho_tributario_m": 2.9,
+      "componentes": [
+        {
+          "clave": "ceramica",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.025,
+          "grupo": "Morteros_Revoques",
+          "nombre": "Carpeta nivelación {espesor_cm:.1f} cm"
+        },
+        {
+          "clave": "alivianado_eps_250",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "armado",
+          "espesor_m": 0.12,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "id": "Carga 0-3",
+      "destino": "",
+      "luz_transversal_m": 5.0,
+      "ancho_losa_m": 4.0
+    },
+    "LM01": {
+      "tipo": "losa",
+      "activo": false,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "mosaico_granitico",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "yeso_adherido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_maciza",
+          "espesor_m": 0.25
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "maciza",
+      "luz_transversal_m": 5.0,
+      "ancho_losa_m": 4.0,
+      "espesor_automatico": true,
+      "id": "Carga 0-16"
+    },
+    "Losa Alivianada completa": {
+      "tipo": "losa",
+      "tipologia": "alivianada",
+      "activo": false,
+      "ancho_tributario_m": 1.1,
+      "componentes": [
+        {
+          "clave": "porcelanato",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques",
+          "nombre": "Carpeta nivelación {espesor_cm:.1f} cm"
+        },
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon",
+          "nombre": "Contrapiso cascotes/cal {espesor_cm:.0f} cm"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "id": "Carga 0-2",
+      "destino": "",
+      "luz_transversal_m": 4.78,
+      "ancho_losa_m": 5.0
+    }
+  },
+  "id_proyecto": "casa_eric",
+  "aplicaciones": [
+    {
+      "id": "Aplicacion 0-1",
+      "carga_id": "Carga 0-14",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.0,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-4",
+      "carga_id": "Carga 0-14",
+      "portico": "2",
+      "tramo_id": "V0-2 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 5.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.0,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-5",
+      "carga_id": "Carga 0-14",
+      "portico": "2",
+      "tramo_id": "V1-2 tv_der",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 1.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.0,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-7",
+      "carga_id": "Carga 0-15",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.9,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-8",
+      "carga_id": "Carga 0-16",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.5,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-6",
+      "carga_id": "Carga 0-3",
+      "portico": "2",
+      "tramo_id": "V0-2 T2",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 6.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.5,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-9",
+      "carga_id": "Carga 0-3",
+      "portico": "1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.5,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-10",
+      "carga_id": "Carga 0-3",
+      "portico": "1",
+      "tramo_id": "V0-1 T2",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.5,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-11",
+      "carga_id": "Carga 0-2",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.39,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-20",
+      "carga_id": "Carga 0-2",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": "media_luz",
+      "ancho_tributario_m": 2.39,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-13",
+      "carga_id": "Carga 0-6",
+      "portico": "1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-15",
+      "carga_id": "Carga 0-6",
+      "portico": "2",
+      "tramo_id": "V0-2 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 5.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-16",
+      "carga_id": "Carga 0-6",
+      "portico": "2",
+      "tramo_id": "V0-2 tv_der",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 1.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-17",
+      "carga_id": "Carga 0-6",
+      "portico": "2",
+      "tramo_id": "V1-2 T3",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.5,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-18",
+      "carga_id": "Carga 0-6",
+      "portico": "1",
+      "tramo_id": "V0-1 T2",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-19",
+      "carga_id": "Carga 0-6",
+      "portico": "Portico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 4.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "reemplazar",
+      "activa": true
+    }
+  ]
+}

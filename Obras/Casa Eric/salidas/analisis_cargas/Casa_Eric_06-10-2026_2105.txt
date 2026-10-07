@@ -1,0 +1,14 @@
+ANÁLISIS DE CARGAS APLICADAS: Casa_Eric
+PROYECTO: casa_eric
+------------------------------------------------------------------------
+Las combinaciones se calculan por tramo e intervalo, con D, L y W una sola vez.
+Las cargas puntuales existentes de P00 se conservan y el viento horizontal general se informa aparte.
+
+DETALLE DE APLICACIONES:
+No hay aplicaciones activas asociadas a tramos.
+
+DISTRIBUCIÓN Y COMBINACIONES POR TRAMO:
+
+VIENTO HORIZONTAL GENERAL (se aplica al pórtico):
+  5.60 kN/m · Viento diseño Santa Fe (V=51 m/s) – general
+    b = 2.65 m · Cd = 1.3

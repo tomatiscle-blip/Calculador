@@ -1,0 +1,69 @@
+Informe Bases - Pórtico Portico 2
+==================================================
+
+Base B0-a
+----------------------------------------
+Geotecnia:
+  Lado zapata: 1.87 m
+  Área: 3.49 m²
+  Excentricidad: 0.11 m
+  q_max: 115.41 kPa
+  q_min: 55.28 kPa
+  Requiere viga: False
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 9
+  Longitud total: 31.14 m
+  Peso total: 12.3 kg
+Tronco (pedestal):
+  Lado: 0.4 m
+  Altura: 0.45 m
+  Volumen: 0.072 m³
+Pelos columna:
+  Cantidad barras: 8
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+Base B0-b
+----------------------------------------
+Geotecnia:
+  Lado zapata: 1.7 m
+  Área: 2.88 m²
+  Excentricidad: 0.292 m
+  q_max: 173.35 kPa
+  q_min: -2.66 kPa
+  Requiere viga: True
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 8
+  Longitud total: 24.96 m
+  Peso total: 9.9 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 2.0 cm
+  Anclaje: 0.6 m
+  Empalme: 1.0 m
+  Altura tronco: 0.45 m
+  Longitud total: 2.05 m
+
+==================================================
+Vigas de fundación:
+B0-a-B0-b:
+  Longitud: 4.85 m
+  Sección: 20x40
+  Armadura longitudinal: 2Ø12
+  As requerida: 39.2 mm²
+  Estribos: 25 uds ØØ8 cada 20 cm
+  Peso estribos: 11.9 kg
+

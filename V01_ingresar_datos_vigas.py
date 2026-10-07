@@ -1,6 +1,7 @@
 import json
 import os
 import math
+from calc import rutas
 
 def ingresar_datos():
     viga_id = input("ID de la viga: ")
@@ -82,10 +83,8 @@ def ingresar_datos():
         }
     }
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    carpeta = os.path.join(base_dir, "datos")
-    os.makedirs(carpeta, exist_ok=True)
-    archivo = os.path.join(carpeta, "moments_input.json")
+    archivo = rutas.MOMENTS_INPUT
+    os.makedirs(archivo.parent, exist_ok=True)
 
     if os.path.exists(archivo):
         with open(archivo, "r") as f:

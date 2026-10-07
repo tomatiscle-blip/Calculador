@@ -690,14 +690,15 @@ def factor_k(nivel_columna):
 
 from pathlib import Path
 import json
+from calc import rutas
 
 # =========================================================
 # PROGRAMA PRINCIPAL – análisis de COLUMNAS
 # =========================================================
 
-BASE = Path(__file__).parent
+BASE = rutas.CARPETA_OBRA or Path(__file__).parent
 
-with open(BASE / "datos" / "estructura.json", encoding="utf-8") as f:
+with open(rutas.ESTRUCTURA, encoding="utf-8") as f:
     estructura = json.load(f)
 
 print("Pórticos encontrados:")
@@ -1017,7 +1018,7 @@ else:
         memoria_txt.append(texto_col)
 
         # Guardar memoria en TXT
-        SALIDA = BASE / "salidas" / "columnas"
+        SALIDA = rutas.SAL_COLUMNAS
         SALIDA.mkdir(parents=True, exist_ok=True)
 
         with open(SALIDA / f"memoria_{nombre_portico}.txt", "w", encoding="utf-8") as f:

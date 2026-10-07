@@ -1,0 +1,80 @@
+{
+  "nombre": "LM01",
+  "carga_id": "Carga 0-16",
+  "metodo": "Franja de 1 m; unidireccional, simplemente apoyada",
+  "criterio_espesor": "CIRSOC 201-25, Tabla 7.3.1.1: L/20, redondeado hacia arriba al cm (hormigón normal, fy=420 MPa)",
+  "luz_m": 5.0,
+  "ancho_m": 4.0,
+  "espesor_m": 0.25,
+  "peso_propio_kNm2": 6.25,
+  "componentes": [
+    {
+      "descripcion": "Contrapiso de cascotes y cal 0.08 m",
+      "valor_kNm2": 1.36,
+      "estructural": false
+    },
+    {
+      "descripcion": "Mosaico granitico",
+      "valor_kNm2": 0.6,
+      "estructural": false
+    },
+    {
+      "descripcion": "Yeso Adherido",
+      "valor_kNm2": 0.18,
+      "estructural": false
+    },
+    {
+      "descripcion": "Losa maciza de hormigón armado 0.25 m",
+      "valor_kNm2": 6.25,
+      "estructural": true
+    }
+  ],
+  "D2_kNm2": 2.14,
+  "uso_sobrecarga": "Vivienda / habitación",
+  "D_kNm2": 8.39,
+  "L_kNm2": 2.0,
+  "q_servicio_kNm2": 10.39,
+  "combinaciones_kNm2": {
+    "1.4D": 11.746,
+    "1.2D+1.6L": 13.268,
+    "1.2D+0.5L+1.6W": 11.068,
+    "0.9D+1.6W": 7.551000000000001
+  },
+  "combo_critica": "1.2D+1.6L",
+  "momento_ultimo_kNm_m": 41.462500000000006,
+  "corte_ultimo_kN_m": 33.17,
+  "reacciones": [
+    {
+      "apoyo": "izq",
+      "apoya_en": null,
+      "cargas_kN_m": {
+        "D": 20.975,
+        "L": 5.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 29.365000000000002,
+        "1.2D+1.6L": 33.17,
+        "1.2D+0.5L+1.6W": 27.669999999999998,
+        "0.9D+1.6W": 18.8775
+      },
+      "reaccion_total_D_kN": 83.9,
+      "reaccion_total_L_kN": 20.0
+    },
+    {
+      "apoyo": "der",
+      "apoya_en": null,
+      "cargas_kN_m": {
+        "D": 20.975,
+        "L": 5.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 29.365000000000002,
+        "1.2D+1.6L": 33.17,
+        "1.2D+0.5L+1.6W": 27.669999999999998,
+        "0.9D+1.6W": 18.8775
+      },
+      "reaccion_total_D_kN": 83.9,
+      "reaccion_total_L_kN": 20.0
+    }
+  ]
+}

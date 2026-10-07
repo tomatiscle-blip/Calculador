@@ -88,6 +88,7 @@ class ResultadoLosa:
     nervios: dict = field(default_factory=dict)
     reacciones: list = field(default_factory=list)
     memoria: str = ""
+    carga_id: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +159,11 @@ def calcular_D2(seleccion: list, biblioteca: dict) -> float:
                 f"El material '{sel['nombre']}' no está en la categoría '{categoria}' "
                 f"de {rutas.MATERIALES.name}"
             )
-        total += carga_de_material(material)
+        espesor = sel.get("espesor_m")
+        if espesor is not None and material.get("tipo") == "volumetrico":
+            total += float(material["valor"]) * float(espesor)
+        else:
+            total += carga_de_material(material)
     return total
 
 
@@ -390,9 +395,52 @@ def calcular(datos: dict, biblioteca: dict | None = None, tabla_viguetas: dict |
         malla=malla,
         nervios=nervios,
         reacciones=reacciones,
+        carga_id=datos.get("carga_id"),
     )
     resultado.memoria = generar_memoria(resultado, biblioteca=bib)
     return resultado
+
+
+def calcular_desde_elemento_carga(
+    nombre: str,
+    elemento: dict,
+    biblioteca: dict | None = None,
+    tabla_viguetas: dict | None = None,
+) -> ResultadoLosa:
+    """Dimensiona una losa alivianada usando la composición ya definida en Cargas."""
+    if elemento.get("tipo") != "losa" or elemento.get("tipologia") != "alivianada":
+        raise ValueError("El cálculo de viguetas está disponible para losas alivianadas.")
+    luz = float(elemento.get("luz_transversal_m", 0.0))
+    ancho = float(elemento.get("ancho_losa_m", 0.0))
+    if luz <= 0 or ancho <= 0:
+        raise ValueError("Completá la luz entre apoyos y el ancho del paño en la composición de la losa.")
+
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    componentes = elemento.get("componentes", [])
+    base = [c for c in componentes if c.get("grupo") == "Forjados"]
+    if not any(c.get("clave") == "Losa_alivianada" for c in base):
+        raise ValueError("Agregá la capa 'Losa alivianada' del grupo Forjados a la composición.")
+    accesorios = [c for c in componentes if c.get("grupo") != "Forjados"]
+    seleccion = []
+    for componente in accesorios:
+        material = materiales.buscar(componente["grupo"], componente["clave"], bib)
+        sel = {"categoria": componente["grupo"], "nombre": material["nombre"]}
+        if "espesor_m" in componente:
+            sel["espesor_m"] = componente["espesor_m"]
+        seleccion.append(sel)
+
+    datos = {
+        "nombre": nombre,
+        "carga_id": elemento.get("id"),
+        "luz_libre_m": luz,
+        "ancho_losa_m": ancho,
+        "materiales": seleccion,
+        "sobrecarga": elemento.get("sobrecarga", "vivienda"),
+        "peso_propio_kNm2": sum(
+            cargas.valor_componente_superficial(componente, bib)[1] for componente in base
+        ),
+    }
+    return calcular(datos, biblioteca=bib, tabla_viguetas=tabla_viguetas)
 
 
 
@@ -409,6 +457,8 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
     m.append("=================================\n\n")
 
     m.append(f"Losa: {r.nombre}\n")
+    if r.carga_id:
+        m.append(f"Carga del proyecto: {r.carga_id}\n")
     m.append(f"Luz libre: {r.luz_libre_m:.2f} m\n")
     m.append(f"Luz de cálculo (con tolerancia): {r.luz_calculo_m:.2f} m\n\n")
 
@@ -420,7 +470,12 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
         material = _buscar_material(bib, categoria, nombre)
         if material is None:
             continue
-        carga = carga_de_material(material)
+        espesor = sel.get("espesor_m")
+        carga = (
+            float(material["valor"]) * float(espesor)
+            if espesor is not None and material.get("tipo") == "volumetrico"
+            else carga_de_material(material)
+        )
         subtotal_D2 += carga
         m.append(f" - {categoria}: {nombre} → {carga:.3f} kN/m²\n")
     m.append(f"Subtotal cargas accesorias (D2): {subtotal_D2:.3f} kN/m²\n")
@@ -428,6 +483,7 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
 
     m.append("Cargas consideradas:\n")
     m.append(f" - D1 (peso propio): {r.D1:.3f} kN/m²\n")
+    m.append(" - D1 se toma del forjado base configurado; no se recalibra automáticamente con la vigueta elegida.\n")
     m.append(f" - D2 (accesoria): {r.D2:.3f} kN/m²\n")
     m.append(f" - D total: {r.D:.3f} kN/m²\n")
     m.append(f" - Sobrecarga seleccionada: {r.uso_sobrecarga} → {r.L:.3f} kN/m²\n")

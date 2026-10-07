@@ -1,0 +1,77 @@
+================================================================================
+PLANILLA DE DOBLADO – V0-1 – TRAMO INTERIOR – TRAMO V0-1 T1
+================================================================================
+Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
+--------------------------------------------------------------------------------
+1    | 4     | 8    | Sup. apoyo izq        | 0.92    | 1.45      
+2    | 2     | 8    | Inf. tramo            | 2.99    | 2.36      
+3    | 2     | 8    | Inf. tramo completo   | 4.19    | 3.31      
+4    | 4     | 8    | Sup. apoyo der        | 0.92    | 1.45      
+5    | 2     | 8    | Auxiliar superior     | 4.24    | 3.35      
+6    | 29    | 6    | Estribo central       | 0.90    | 5.79       | c/14cm (Ø6)
+--------------------------------------------------------------------------------
+TOTAL PESO                                            | 17.73 kg
+
+NOTAS TÉCNICAS
+--------------------------------------------------------------------------------
+1 FLEXIÓN
+   As requerida       = 1.35 cm²
+   As mínima          = 1.80 cm²
+   As máxima          = 8.20 cm²
+   As adoptada        = 2.01 cm²
+   Estado             = ✅ Cuantía dentro del rango permitido
+   Luz libre = 4.00 m
+
+2 SECCIÓN
+   b = 20.0 cm
+   h = 32.0 cm
+   d = 27.0 cm
+   recubrimiento = 4.0 cm
+
+3 MATERIALES
+   f'c = 20 MPa
+   fy  = 420 MPa
+   Ec  = 21019 MPa
+
+4 INERCIAS (Rigidez global de la viga)
+- Inercia bruta Ig              = 54613 cm⁴
+- Inercia efectiva global Ief   = 54613 cm⁴
+- Relación Ief / Ig             = 1.000  (sección poco fisurada)
+- Momento de fisuración Mcr     = 9.46 kNm (tramo)
+- c (eje neutro)                = 6.43 cm
+
+5 HORMIGÓN
+   Volumen = 0.256 m³
+   Peso ≈ 640 kg
+
+6 PUNTOS DE INFLEXIÓN
+   PI izquierdo = 0.60 m
+   PI derecho   = 3.40 m
+
+7 ARMADURAS (As calculadas)
+   As apoyo izq = 2.01 cm²
+   As tramo     = 2.01 cm²
+   As apoyo der = 2.01 cm²
+
+8 ESTRIBOS
+   Cantidad total Ø6 = 29 unidades (s_teor≈7809.9 mm → s_final=14 cm)
+   Cantidad total Ø8 = 29 unidades (s_teor≈13884.3 mm → s_final=14 cm)
+   Zonificación   = central=0.00-4.00 m
+
+9 FLECHA DE SERVICIO
+   Método: estimación elástica para viga con carga distribuida equivalente
+   δmax = 0.67 mm
+   Caso: piso · carga variable sin mayorar
+   Límite: δ ≤ ℓ/360 = 11.11 mm | q variable = 2.52 kN/m → ✅ Cumple
+   Inercia equivalente usada = 5.958e-04 m⁴
+
+   Inercias usadas (tramo + apoyos)
+   Ie tramo       = 5.461e-04 m⁴
+   Ie apoyo izq   = 5.461e-04 m⁴
+   Ie apoyo der   = 5.461e-04 m⁴
+   c (eje neutro) = 6.43 cm | d = 27.00 cm
+
+10 ABERTURA DE FISURAS
+   dc = 44.0 mm | fs = 280.0 MPa | A_barra = 50.3 mm²
+   w ≈ 50.2 μm / 0.050 mm
+   Estimación orientativa; no verifica separación de barras según CIRSOC 201-25, 24.3.2.

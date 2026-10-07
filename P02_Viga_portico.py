@@ -416,14 +416,14 @@ class DisenadorViga:
         """
         Momento de fisuración del hormigón
         """
-        fr_MPa = 0.625 * math.sqrt(self.fc)
+        fr_MPa = 0.62 * math.sqrt(self.fc)
         Ig = self.b * self.h**3 / 12.0
         yt = self.h / 2.0
 
         Mcr_Nm = fr_MPa * 1e6 * Ig / yt
         return Mcr_Nm / 1000.0  # kNm
      
-    def inercias_seccion(self, As_cm2, c=None, M_kNm=None, factor_servicio=0.73, Es_MPa=210000):
+    def inercias_seccion(self, As_cm2, c=None, M_kNm=None, factor_servicio=1.0, Es_MPa=210000):
         """
         Devuelve:
         Ig   : inercia bruta (sección completa)
@@ -452,14 +452,12 @@ class DisenadorViga:
             + n * As * (y_s - Yg)**2
 
         # --- Momento de fisuración (según libro) ---
-        fr_MPa = 0.625 * math.sqrt(self.fc)
-        Mcr = fr_MPa * 1e6 * Jh / (self.h - Yg) / 1000.0  # kNm
+        fr_MPa = 0.62 * math.sqrt(self.fc)
+        Mcr = fr_MPa * 1e6 * Ig / (self.h / 2.0) / 1000.0  # kNm, sección bruta
 
         # --- Jhf: inercia fisurada (bloque comprimido c) ---
         if c is None:
-            c = 0.40 * self.d * factor_servicio
-        else:
-            c = c * factor_servicio
+            c = 0.40 * self.d
 
         y_hormigon = c / 2.0
         y_acero = self.d - c
@@ -468,16 +466,16 @@ class DisenadorViga:
         I_s = n * As * y_acero**2
         Jhf = I_h + I_s
 
-        # --- Ie: inercia efectiva (Branson corregida) ---
+        # --- Ie según CIRSOC 201-25, 24.2.3.5 ---
         if M_kNm is not None:
-            M_servicio = M_kNm * factor_servicio
-            if M_servicio > Mcr:
-                ratio = (Mcr / M_servicio) ** 3
-                Ie = ratio * Jh + (1 - ratio) * Jhf
+            M_servicio = abs(M_kNm)
+            if M_servicio <= (2.0 / 3.0) * Mcr:
+                Ie = Ig
             else:
-                Ie = Jh
+                denominador = 1.0 - ((2.0 * Mcr / (3.0 * M_servicio)) ** 2) * (1.0 - Jhf / Ig)
+                Ie = Jhf / denominador if denominador > 0 else Jhf
         else:
-            Ie = Jh
+            Ie = Ig
         
         return Ig, Jh, Jhf, Mcr, Ie
 
@@ -837,27 +835,25 @@ class DisenadorViga:
 # Función para calcular k y c
 # =======================================
 def calcular_k_c(b_cm, d_cm, As_cm2, fc_MPa, Es_MPa=210000):
+    if b_cm <= 0 or d_cm <= 0 or As_cm2 <= 0 or fc_MPa <= 0:
+        raise ValueError("b, d, As y f'c deben ser positivos para calcular el eje neutro fisurado.")
     Ec = 4700.0 * math.sqrt(fc_MPa)
     n = Es_MPa / Ec
 
-    A = (b_cm * d_cm**2) / 2.0
-    B = n * As_cm2 * d_cm       # positivo
-    C = - n * As_cm2 * d_cm     # negativo
+    # Eje neutro de la sección fisurada transformada: b*c²/2 = n*As*(d-c).
+    A = b_cm / 2.0
+    B = n * As_cm2
+    C = -n * As_cm2 * d_cm
 
     disc = B**2 - 4*A*C
-    print(f"[DEBUG] A={A:.6f}, B={B:.6f}, C={C:.6f}, disc={disc:.6f}")
     if disc < 0:
-        print(f"[DEBUG] Discriminante negativo: {disc:.6f}")
-        # fallback: usar c aproximado del libro
-        k = 0.40
-        c = 0.40 * d_cm
-        return k, c
+        raise ValueError("No se pudo obtener un eje neutro real para la sección fisurada.")
 
-    k1 = (-B + math.sqrt(disc)) / (2*A)
-    k2 = (-B - math.sqrt(disc)) / (2*A)
-    k = k1 if 0 < k1 < 1 else k2
-    c = k * d_cm
-    print(f"[DEBUG] k={k:.6f}, c={c:.6f}")
+    # La raíz positiva entrega c directamente en cm; la otra raíz es negativa.
+    c = (-B + math.sqrt(disc)) / (2*A)
+    if not 0 < c < d_cm:
+        raise ValueError(f"Eje neutro fisurado fuera de rango: c={c:.2f} cm para d={d_cm:.2f} cm.")
+    k = c / d_cm
     return k, c
 
 # FUNCIÓN PLANILLA (VOLADIZO + INTERIOR)
@@ -1006,7 +1002,7 @@ def generar_planilla(
             Ig_emp, Jh_emp, Jhf_emp, Mcr_emp, Ie_emp = v.inercias_seccion(
                 As_cm2=arm_sup["area_total_cm2"],
                 c=c_emp/ 100.0,  # ✅ convertir cm → m
-                M_kNm=Mu         # momento máximo en el empotramiento
+                M_kNm=cargas.get("Mu_servicio", {}).get("izq", Mu)
             )
 
             # --- Guardar resultados en diccionario ---
@@ -1025,7 +1021,7 @@ def generar_planilla(
             }
 
             # --- Flecha de servicio ---
-            q_serv = cargas.get("servicio", 0.0)   # kN/m (D+L)
+            q_serv = cargas.get("flecha_q_kN_m", cargas.get("servicio", 0.0))
             q_serv = q_serv * 1e3 / 1000           # convertir a N/mm si lo tenés así
             L = L_viga * 1000                       # mm
             Ec = 4700 * math.sqrt(fc_MPa)           # N/mm²
@@ -1060,7 +1056,8 @@ def generar_planilla(
         lineas.append("")
         lineas.append("FLECHA DE SERVICIO (Voladizo)")
         lineas.append(f"   δmax = {delta:.2f} mm")
-        lineas.append(f"   Flecha adm L/180 (Voladizos) = {L/180:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → {'✅ Cumple' if delta <= L/180 else '❌ No cumple'}")
+        limite_mm = L / int(cargas.get("flecha_limite", 180))
+        lineas.append(f"   Flecha adm L/{int(cargas.get('flecha_limite', 180))} = {limite_mm:.2f} mm | q_L = {q_serv:.2f} kN/m → {'✅ Cumple' if delta <= limite_mm else '❌ No cumple'}")
 
         lineas.append("")
         lineas.append("INERCIAS Y MOMENTO DE FISURACIÓN")
@@ -1069,7 +1066,7 @@ def generar_planilla(
         lineas.append(f"   Ie  (efectiva)    = {Ie_emp:.3e} m⁴")
         lineas.append(f"   Mcr (fisuración)  = {Mcr_emp:.2f} kNm")
         lineas.append(f"   Relación Ie/Ig    = {Ie_emp/Ig_emp:.3f}")
-        lineas.append(f"   k usado           = {k_emp:.3f} | c usado = {c_emp:.2f} cm")
+        lineas.append(f"   k = c/d            = {k_emp:.3f} | c (eje neutro) = {c_emp:.2f} cm")
         lineas.append(f"   Materiales: fc = {fc_MPa} MPa | fy = {fy_MPa} MPa | Ec = {Ec:.0f} MPa")  
 
         # Guardado homogéneo en RESULTADOS
@@ -1381,10 +1378,11 @@ def generar_planilla(
     # --- Calculo de inercias ---
     # Tramo central
     k_tramo, c_tramo = calcular_k_c(b_cm, v.d*100, As_tramo_total, fc_MPa)
+    Mserv = cargas.get("Mu_servicio", {})
     Ig_t, Jh_t, Jhf_t, Mcr_t, Ie_t = v.inercias_seccion(
      As_cm2=As_tramo_total,
         c=c_tramo / 100.0,   # ✅ cm → m
-        M_kNm=viga_data["m_tra"]
+        M_kNm=Mserv.get("campo", viga_data["m_tra"])
     )
 
     # Apoyo izquierdo
@@ -1392,7 +1390,7 @@ def generar_planilla(
     Ig_i, Jh_i, Jhf_i, Mcr_i, Ie_i = v.inercias_seccion(
         As_cm2=As_apoyo_izq,
         c=c_izq / 100.0,   # ✅ cm → m
-        M_kNm=viga_data["m_izq"]
+        M_kNm=Mserv.get("izq", viga_data["m_izq"])
     )
 
     # Apoyo derecho
@@ -1400,7 +1398,7 @@ def generar_planilla(
     Ig_d, Jh_d, Jhf_d, Mcr_d, Ie_d = v.inercias_seccion(
         As_cm2=As_apoyo_der,
         c=c_der / 100.0,   # ✅ cm → m
-        M_kNm=viga_data["m_der"]
+        M_kNm=Mserv.get("der", viga_data["m_der"])
     )   
 
     # Promedio de apoyos y efectiva
@@ -1585,7 +1583,7 @@ def generar_planilla(
 
     lineas.append(f"- Relación Ief / Ig             = {ratio:.3f}  ({nota})")
     lineas.append(f"- Momento de fisuración Mcr     = {Mcr_t:.2f} kNm (tramo)")
-    lineas.append(f"- c usado                       = {c_tramo:.2f} cm")  # Mostrar c usado
+    lineas.append(f"- c (eje neutro)                = {c_tramo:.2f} cm")
 
 
     RESULTADOS["inercias"].append({
@@ -1673,9 +1671,11 @@ def generar_planilla(
         raise ValueError("Inercias no calculadas para este tramo")
     
     # Inercias ya calculadas para ESTA viga
-    Ec = 4700 * math.sqrt(fc_MPa)/ 1000.0   # kN/m²
+    Ec = 4700 * math.sqrt(fc_MPa) * 1000.0   # MPa → kN/m²
     L = L_viga               # m
-    q = cargas["servicio"]     # kN/m 
+    q = cargas.get("flecha_q_kN_m", cargas["servicio"])
+    limite_flecha = int(cargas.get("flecha_limite", 360))
+    tipo_flecha = cargas.get("tipo_flecha", "piso")
 
     # en m⁴
     Ie_t = inercias["tramo"]["Ie"] 
@@ -1694,44 +1694,41 @@ def generar_planilla(
     # --- Flecha máxima de servicio ---
     coef_global = 5 / 384
 
-    delta = (coef_global * q * L**4) / (Ec * inv_Ie_eq) * 1000   # mm
+    Ie_equiv = 1.0 / inv_Ie_eq if inv_Ie_eq > 0 else 0.0
+    if Ie_equiv <= 0:
+        raise ValueError(f"No se pudo calcular la inercia efectiva equivalente para {id_tramo}.")
+    delta = (coef_global * q * L**4) / (Ec * Ie_equiv) * 1000   # mm
     # Debug rápido 👀
     print(f"Ie_t={Ie_t:.3e} m⁴ | Ie_i={Ie_i:.3e} m⁴ | Ie_d={Ie_d:.3e} m⁴ → δmax={delta:.2f} mm")
 
 
     lineas.append("")
     lineas.append("9 FLECHA DE SERVICIO")
-    lineas.append("   Método: Carga virtual con rigidez variable (tramo + apoyos)")
+    lineas.append("   Método: estimación elástica para viga con carga distribuida equivalente")
     lineas.append(f"   δmax = {delta:.2f} mm")
-
-    lineas.append(
-        f"   Flecha adm L/250 = {L*1000/250:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L*1000/250 else '❌ No cumple'}"
-    )
-    lineas.append(
-        f"   Flecha adm L/360 = {L*1000/360:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L*1000/360 else '❌ No cumple'}"
-    )
-    lineas.append(
-        f"   Flecha adm L/480 = {L*1000/480:.2f} mm | q_serv = {cargas['servicio']:.2f} kN/m → "
-        f"{'✅ Cumple' if delta <= L*1000/480 else '❌ No cumple'}"
-    )
+    limite_mm = L * 1000 / limite_flecha
+    cumple_flecha = delta <= limite_mm
+    lineas.append(f"   Caso: {tipo_flecha} · carga variable sin mayorar")
+    lineas.append(f"   Límite: δ ≤ ℓ/{limite_flecha} = {limite_mm:.2f} mm | q variable = {q:.2f} kN/m → {'✅ Cumple' if cumple_flecha else '❌ No cumple'}")
+    lineas.append(f"   Inercia equivalente usada = {Ie_equiv:.3e} m⁴")
 
     lineas.append("")
     lineas.append("   Inercias usadas (tramo + apoyos)")
     lineas.append(f"   Ie tramo       = {inercias['tramo']['Ie']:.3e} m⁴")
     lineas.append(f"   Ie apoyo izq   = {inercias['apoyo_izq']['Ie']:.3e} m⁴")
     lineas.append(f"   Ie apoyo der   = {inercias['apoyo_der']['Ie']:.3e} m⁴")
-    lineas.append(f"   c usado        = {c_tramo:.2f} cm")
+    lineas.append(f"   c (eje neutro) = {c_tramo:.2f} cm | d = {v.d*100:.2f} cm")
     RESULTADOS["flecha"].append({
         "viga": nombre_viga,
         "tramo": id_tramo,
         "tipo_tramo": "voladizo" if es_voladizo else "interior",
         "L_m": L_viga,
-        "q_serv_kN_m": cargas["servicio"],   # D+L en kN/m
+        "q_serv_kN_m": q,
         "delta_mm": delta,
-        "lim_L360_mm": L / 360,
-        "cumple_L360": delta <= L / 360,
+        "limite_divisor": limite_flecha,
+        "limite_mm": limite_mm,
+        "tipo_flecha": tipo_flecha,
+        "cumple": cumple_flecha,
         "Ie_tramo_cm4": inercias["tramo"]["Ie"] * 1e8,
         "Ie_apoyo_izq_cm4": inercias["apoyo_izq"]["Ie"] * 1e8,
         "Ie_apoyo_der_cm4": inercias["apoyo_der"]["Ie"] * 1e8,
@@ -1768,18 +1765,7 @@ def generar_planilla(
     lineas.append("10 ABERTURA DE FISURAS")
     lineas.append(f"   dc = {dc:.1f} mm | fs = {fs:.1f} MPa | A_barra = {A_barra_mm2:.1f} mm²")
     lineas.append(f"   w ≈ {w_um:.1f} μm / {w_mm:.3f} mm")
-    # límites según CIRSOC 201
-    limites_w_mm = {
-        "aire_seco": 0.41,
-        "aire_humedo": 0.30,
-        "contencion_agua": 0.10
-    }
-
-    # elegimos el límite más restrictivo para comparar
-    w_lim_mm = min(limites_w_mm.values())  # 0.10 mm
-    cumple = w_mm <= w_lim_mm
-
-    lineas.append(f"   Limite CIRSOC = {w_lim_mm:.2f} mm → {'✅ Cumple' if cumple else '❌ No cumple'}")
+    lineas.append("   Estimación orientativa; no verifica separación de barras según CIRSOC 201-25, 24.3.2.")
     RESULTADOS["fisuracion"].append({
         "tramo": tramo_id,
         "viga": nombre_viga,
@@ -1788,8 +1774,8 @@ def generar_planilla(
         "A_barra_mm2": A_barra_mm2,   # área efectiva de cada barra
         "w_um": w_um,                 # apertura de fisura en µm
         "w_mm": w_mm,                 # apertura de fisura en mm
-        "w_lim_mm": w_lim_mm,         # límite más restrictivo según CIRSOC
-        "cumple": cumple              # verificación final
+        "cumple": None,
+        "criterio": "estimación de abertura; separación normativa pendiente"
     })
 
     return "\n".join(lineas)

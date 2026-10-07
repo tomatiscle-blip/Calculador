@@ -1,0 +1,9 @@
+{
+  "nombre": "Casa_Eric",
+  "id": "casa_eric",
+  "ubicacion": {
+    "pais": "Argentina",
+    "provincia": "Santa Fe",
+    "ciudad": "Santa Fe"
+  }
+}

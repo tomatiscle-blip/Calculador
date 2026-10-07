@@ -1835,15 +1835,17 @@ def guardar_resultados_json(ruta, resultados):
 # =========================================================
 # PROGRAMA PRINCIPAL
 # =========================================================
-BASE = Path(__file__).parent
+from calc import rutas
 
-with open(BASE / "datos" / "moments_input.json", encoding="utf-8") as f:
+BASE = rutas.CARPETA_OBRA or Path(__file__).parent
+
+with open(rutas.MOMENTS_INPUT, encoding="utf-8") as f:
     datos_vigas = json.load(f)
 
-with open(BASE / "datos" / "coeficientes_kd.json", encoding="utf-8") as f:
+with open(rutas.COEFICIENTES_KD, encoding="utf-8") as f:
     coef_kd = json.load(f)
 
-salidas = BASE / "salidas"
+salidas = rutas.SALIDAS
 vigas_dir = salidas / "vigas"
 vigas_dir.mkdir(parents=True, exist_ok=True)
 

@@ -1,0 +1,54 @@
+MEMORIA DE CÁLCULO - LOSA ALIVIANADA
+=================================
+
+Losa: L00
+Luz libre: 5.00 m
+Luz de cálculo (con tolerancia): 5.10 m
+
+Materiales seleccionados:
+ - Pisos: Ceramica 12mm + pegamento → 0.280 kN/m²
+ - Contrapiso: Carpeta nivelacion 2.5cm → 0.520 kN/m²
+ - Contrapiso: Contrapiso de cascotes y cal 5cm → 0.800 kN/m²
+ - Cielorrasos: Yeso Suspendido → 0.330 kN/m²
+Subtotal cargas accesorias (D2): 1.930 kN/m²
+Total cargas permanentes (D1+D2): 3.811 kN/m²
+
+Cargas consideradas:
+ - D1 (peso propio): 1.881 kN/m²
+ - D2 (accesoria): 1.930 kN/m²
+ - D total: 3.811 kN/m²
+ - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
+ - Combinación crítica: 1.2D + 1.6L → 7.773 kN/m²
+
+Selección de vigueta:
+ - Serie de vigueta: C
+ - Tipo de vigueta seleccionada: vigueta_simple
+ - Combinación bovedilla/losa: bovedilla_16_5_losa_21_5
+ - Momento requerido (sin φ): 2577.05 kg·m
+ - Momento requerido para búsqueda (con φ aplicado): 2863.39 kg·m
+ - Momento disponible de la vigueta seleccionada: 3640.00 kg·m
+ - Momento reducido aplicado φ=0.9: 3276.00 kg·m (32.13 kN·m)
+ - Referencia de capacidad: Tabla 4 – Tensolite
+
+Cómputo de materiales:
+ - Área de losa: 30.60 m²
+ - Viguetas: 12 unidades de 5.10 m
+ - Bovedillas: 61 unidades EPS n°16
+ - Hormigón: 2.417 m³ (capa de compresión)
+
+Malla electrosoldada SIMA Q-131 / R-131:
+ - Paño comercial: 2.40x6 m (solape 0.20 m)
+ - Área losa: 30.60 m²
+ - Área efectiva de paño: 12.76 m²
+ - Cantidad adoptada: 2 unidad(es)
+ - Nota: Área remanente de malla a completar con barras Ø6 según criterio habitual de obra.
+
+Nervios de refuerzo:
+ - Tramo máximo: 1.80 m
+ - Nervios requeridos: 2 unidades
+ - Especificación por nervio: 2 barras Ø8 de 6.00 m
+ - Total barras: 4 unidades
+ - Longitud total de barras: 24.00 m
+
+=================================
+Fin de la memoria de cálculo

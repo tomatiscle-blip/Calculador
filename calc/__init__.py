@@ -23,7 +23,8 @@ Módulos:
     materiales  -> la biblioteca del proyecto (datos/materiales.json)
     cargas      -> de los elementos que reciben carga a las cargas D/L/W y las combinaciones
     losas       -> el cálculo de una losa alivianada (por tipología)
+    losas_macizas -> análisis elástico inicial de paños macizos unidireccionales
     portico     -> el MOTOR: resuelve el pórtico 2D y devuelve las solicitaciones (M, V, N)
 """
 
-__all__ = ["rutas", "pipeline", "materiales", "cargas", "losas", "portico"]
+__all__ = ["rutas", "pipeline", "materiales", "cargas", "losas", "losas_macizas", "portico"]
