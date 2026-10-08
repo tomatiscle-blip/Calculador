@@ -15,7 +15,7 @@ TOTAL PESO                                            | 17.73 kg
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 0.94 cm²
+   As requerida       = 0.70 cm²
    As mínima          = 1.80 cm²
    As máxima          = 8.20 cm²
    As adoptada        = 2.01 cm²
@@ -35,10 +35,10 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 54613 cm⁴
-- Inercia efectiva global Ief   = 57534 cm⁴
-- Relación Ief / Ig             = 1.053  (sección poco fisurada)
-- Momento de fisuración Mcr     = 10.14 kNm (tramo)
-- c usado                       = 6.43 cm
+- Inercia efectiva global Ief   = 54613 cm⁴
+- Relación Ief / Ig             = 1.000  (sección poco fisurada)
+- Momento de fisuración Mcr     = 9.46 kNm (tramo)
+- c (eje neutro)                = 6.43 cm
 
 5 HORMIGÓN
    Volumen = 0.256 m³
@@ -59,19 +59,19 @@ NOTAS TÉCNICAS
    Zonificación   = central=0.00-4.00 m
 
 9 FLECHA DE SERVICIO
-   Método: Carga virtual con rigidez variable (tramo + apoyos)
-   δmax = 0.00 mm
-   Flecha adm L/250 = 16.00 mm | q_serv = 0.00 kN/m → ✅ Cumple
-   Flecha adm L/360 = 11.11 mm | q_serv = 0.00 kN/m → ✅ Cumple
-   Flecha adm L/480 = 8.33 mm | q_serv = 0.00 kN/m → ✅ Cumple
+   Método: estimación elástica para viga con carga distribuida equivalente
+   δmax = 0.67 mm
+   Caso: piso · carga variable sin mayorar
+   Límite: δ ≤ ℓ/360 = 11.11 mm | q variable = 2.52 kN/m → ✅ Cumple
+   Inercia equivalente usada = 5.958e-04 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 5.697e-04 m⁴
-   Ie apoyo izq   = 5.810e-04 m⁴
-   Ie apoyo der   = 5.810e-04 m⁴
-   c usado        = 6.43 cm
+   Ie tramo       = 5.461e-04 m⁴
+   Ie apoyo izq   = 5.461e-04 m⁴
+   Ie apoyo der   = 5.461e-04 m⁴
+   c (eje neutro) = 6.43 cm | d = 27.00 cm
 
 10 ABERTURA DE FISURAS
    dc = 44.0 mm | fs = 280.0 MPa | A_barra = 50.3 mm²
    w ≈ 50.2 μm / 0.050 mm
-   Limite CIRSOC = 0.10 mm → ✅ Cumple
+   Estimación orientativa; no verifica separación de barras según CIRSOC 201-25, 24.3.2.

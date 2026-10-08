@@ -35,7 +35,8 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": []
+    "cargas_puntuales": [],
+    "posicion_planta_m": 0.0
   },
   "1": {
     "vigas": {
@@ -93,7 +94,8 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": []
+    "cargas_puntuales": [],
+    "posicion_planta_m": 5.0
   },
   "2": {
     "vigas": {
@@ -250,6 +252,66 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": []
+    "cargas_puntuales": [],
+    "posicion_planta_m": 10.0
+  },
+  "3": {
+    "vigas": {
+      "V0-3": {
+        "tramos": [
+          {
+            "id": "V0-3 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-3 T2",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 4.0,
+            "x_fin": 8.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "b_cm": 20.0,
+        "fc_MPa": 20
+      }
+    },
+    "columnas": {
+      "C0-a": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 0.0
+      },
+      "C0-b": {
+        "x": 4.0,
+        "altura_m": 3.0,
+        "nivel": 0.0
+      },
+      "C0-c": {
+        "x": 8.0,
+        "altura_m": 3.0,
+        "nivel": 0.0
+      }
+    },
+    "bases": {
+      "B0-a": {
+        "x": 0.0,
+        "tipo": "empotramiento"
+      },
+      "B0-b": {
+        "x": 4.0,
+        "tipo": "empotramiento"
+      },
+      "B0-c": {
+        "x": 8.0,
+        "tipo": "empotramiento"
+      }
+    },
+    "cargas_puntuales": [],
+    "posicion_planta_m": 15.0
   }
 }

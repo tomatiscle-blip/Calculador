@@ -1,0 +1,143 @@
+
+=== MEMORIA DE CÁLCULO ===
+PÓRTICO 2
+
+                Columna: C0-a
+                Sección: b=20.0, h=46.8
+                Altura libre: 3.00 m
+                Recubrimiento: 4.00 cm
+                Pu = 8.52 kN, Mu = 22.88 kNm
+                f'c = 20 MPa
+                Esbeltez λ = 22.21 → CORTA
+                Ast adoptado = 9.36 cm²
+                Armadura longitudinal: 6Ø16      
+                Descripción: DIAGRAMA I - rectangulares con barras en las caras extremas (f'c=20 MPa, fy=420 MPa, gamma=0.83)
+                Nota diagrama: γ=0.83, X=0.522, Y=0.091, ρg=0.010
+                Estribos: Ø6 mm @ 19.2 cm
+
+                Despiece:
+                - Barras longitudinales: 6Ø16
+                Largo individual ≈ 3.00 m + empalme (48·db ≈ 0.77 m) → 3.77 m
+                Peso por barra ≈ 4.67 kg
+                Peso total ≈ 28.05 kg
+                - Estribos: Ø6 mm
+                Largo individual ≈ 1.54 m (incluye ganchos)
+                Cantidad ≈ 16
+                Peso total ≈ 4.29 kg
+                -------------------------------------------------
+                Volumen de hormigón ≈ 0.28 m³
+        Resistencia nominal reducida φPn ≈ 1290.23 kN
+        Verificación: CUMPLE (φPn = 1290.23 kN ≥ Pu = 8.52 kN)
+        Verificación a flexo-compresión: CUMPLE (φMn = 3463.77 kNm ≥ Mu = 22.88 kNm)
+
+                Columna: C0-b
+                Sección: b=20.0, h=49.1
+                Altura libre: 3.00 m
+                Recubrimiento: 4.00 cm
+                Pu = 9.77 kN, Mu = 28.42 kNm
+                f'c = 20 MPa
+                Esbeltez λ = 21.17 → CORTA
+                Ast adoptado = 9.82 cm²
+                Armadura longitudinal: 6Ø16      
+                Descripción: DIAGRAMA I - rectangulares con barras en las caras extremas (f'c=20 MPa, fy=420 MPa, gamma=0.84)
+                Nota diagrama: γ=0.84, X=0.589, Y=0.100, ρg=0.010
+                Estribos: Ø6 mm @ 19.2 cm
+
+                Despiece:
+                - Barras longitudinales: 6Ø16
+                Largo individual ≈ 3.00 m + empalme (48·db ≈ 0.77 m) → 3.77 m
+                Peso por barra ≈ 4.67 kg
+                Peso total ≈ 28.05 kg
+                - Estribos: Ø6 mm
+                Largo individual ≈ 1.58 m (incluye ganchos)
+                Cantidad ≈ 16
+                Peso total ≈ 4.42 kg
+                -------------------------------------------------
+                Volumen de hormigón ≈ 0.29 m³
+        Resistencia nominal reducida φPn ≈ 1338.07 kN
+        Verificación: CUMPLE (φPn = 1338.07 kN ≥ Pu = 9.77 kN)
+        Verificación a flexo-compresión: CUMPLE (φMn = 3890.88 kNm ≥ Mu = 28.42 kNm)
+
+                Columna: C0-c
+                Sección: b=20.0, h=53.0
+                Altura libre: 3.00 m
+                Recubrimiento: 4.00 cm
+                Pu = 8.22 kN, Mu = 27.10 kNm
+                f'c = 20 MPa
+                Esbeltez λ = 19.61 → CORTA
+                Ast adoptado = 10.60 cm²
+                Armadura longitudinal: 6Ø16      
+                Descripción: DIAGRAMA I - rectangulares con barras en las caras extremas (f'c=20 MPa, fy=420 MPa, gamma=0.85)
+                Nota diagrama: γ=0.85, X=0.482, Y=0.078, ρg=0.010
+                Estribos: Ø6 mm @ 19.2 cm
+
+                Despiece:
+                - Barras longitudinales: 6Ø16
+                Largo individual ≈ 3.00 m + empalme (48·db ≈ 0.77 m) → 3.77 m
+                Peso por barra ≈ 4.67 kg
+                Peso total ≈ 28.05 kg
+                - Estribos: Ø6 mm
+                Largo individual ≈ 1.66 m (incluye ganchos)
+                Cantidad ≈ 16
+                Peso total ≈ 4.63 kg
+                -------------------------------------------------
+                Volumen de hormigón ≈ 0.32 m³
+        Resistencia nominal reducida φPn ≈ 1419.19 kN
+        Verificación: CUMPLE (φPn = 1419.19 kN ≥ Pu = 8.22 kN)
+        Verificación a flexo-compresión: CUMPLE (φMn = 4677.02 kNm ≥ Mu = 27.10 kNm)
+
+                Columna: C0-d
+                Sección: b=20.0, h=31.7
+                Altura libre: 3.00 m
+                Recubrimiento: 4.00 cm
+                Pu = 20.31 kN, Mu = 23.87 kNm
+                f'c = 20 MPa
+                Esbeltez λ = 32.78 → CORTA
+                Ast adoptado = 6.34 cm²
+                Armadura longitudinal: 6Ø12      
+                Descripción: DIAGRAMA I - rectangulares con barras en las caras extremas (f'c=20 MPa, fy=420 MPa, gamma=0.75)
+                Nota diagrama: γ=0.75, X=1.188, Y=0.320, ρg=0.010
+                Estribos: Ø6 mm @ 14.4 cm
+
+                Despiece:
+                - Barras longitudinales: 6Ø12
+                Largo individual ≈ 3.00 m + empalme (48·db ≈ 0.58 m) → 3.58 m
+                Peso por barra ≈ 2.50 kg
+                Peso total ≈ 14.97 kg
+                - Estribos: Ø6 mm
+                Largo individual ≈ 1.23 m (incluye ganchos)
+                Cantidad ≈ 21
+                Peso total ≈ 4.52 kg
+                -------------------------------------------------
+                Volumen de hormigón ≈ 0.19 m³
+        Resistencia nominal reducida φPn ≈ 837.56 kN
+        Verificación: CUMPLE (φPn = 837.56 kN ≥ Pu = 20.31 kN)
+        Verificación a flexo-compresión: CUMPLE (φMn = 984.08 kNm ≥ Mu = 23.87 kNm)
+
+                Columna: C1-a
+                Sección: b=20.0, h=47.3
+                Altura libre: 3.00 m
+                Recubrimiento: 4.00 cm
+                Pu = 3.21 kN, Mu = 8.76 kNm
+                f'c = 20 MPa
+                Esbeltez λ = 15.38 → CORTA
+                Ast adoptado = 9.46 cm²
+                Armadura longitudinal: 6Ø16      
+                Descripción: DIAGRAMA I - rectangulares con barras en las caras extremas (f'c=20 MPa, fy=420 MPa, gamma=0.83)
+                Nota diagrama: γ=0.83, X=0.196, Y=0.034, ρg=0.010
+                Estribos: Ø6 mm @ 19.2 cm
+
+                Despiece:
+                - Barras longitudinales: 6Ø16
+                Largo individual ≈ 3.00 m + empalme (48·db ≈ 0.77 m) → 3.77 m
+                Peso por barra ≈ 4.67 kg
+                Peso total ≈ 28.05 kg
+                - Estribos: Ø6 mm
+                Largo individual ≈ 1.55 m (incluye ganchos)
+                Cantidad ≈ 16
+                Peso total ≈ 4.32 kg
+                -------------------------------------------------
+                Volumen de hormigón ≈ 0.28 m³
+        Resistencia nominal reducida φPn ≈ 1300.63 kN
+        Verificación: CUMPLE (φPn = 1300.63 kN ≥ Pu = 3.21 kN)
+        Verificación a flexo-compresión: CUMPLE (φMn = 3552.09 kNm ≥ Mu = 8.76 kNm)

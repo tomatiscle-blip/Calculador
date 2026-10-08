@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QFormLayout,
@@ -28,6 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 from calc import cargas, losas, losas_macizas, rutas
+from app.ejes import cargar_ejes, cargar_niveles
+from app.losas_ejes import EditorLosaDesdeEjes
 
 
 class EditorElemento(QDialog):
@@ -85,16 +88,36 @@ class EditorElemento(QDialog):
                 self.caja_datos.addWidget(self._fila("Tipología:", self.tipologia))
             self.luz_completa = self._numero(0.0, 100.0, 0.1, 2)
             self.luz_completa.setValue(float(self.elemento.get("luz_transversal_m", 0.0)))
+            if self.elemento.get("panel_ejes"):
+                self.luz_completa.setReadOnly(True)
+                self.luz_completa.setToolTip(
+                    "Dimensión derivada de los ejes y apoyos; editá el paño desde el plano."
+                )
             etiqueta_luz = (
-                "Luz libre entre apoyos (m):" if self.tipo == "losa"
-                else "Luz completa de la losa (m):"
+                (
+                    "Luz del paño según ejes (m):"
+                    if self.elemento.get("panel_ejes")
+                    else "Luz libre entre apoyos (m):"
+                ) if self.tipo == "losa"
+                else "Luz transversal de cubierta (m):"
             )
             self.caja_datos.addWidget(self._fila(etiqueta_luz, self.luz_completa))
             if self.tipo == "losa":
                 self.ancho_losa = self._numero(0.0, 100.0, 0.1, 2)
                 self.ancho_losa.setValue(float(self.elemento.get("ancho_losa_m", 0.0)))
+                if self.elemento.get("panel_ejes"):
+                    self.ancho_losa.setReadOnly(True)
+                    self.ancho_losa.setToolTip(
+                        "Dimensión derivada de los ejes y desfases de bordes libres; "
+                        "editá el paño desde el plano."
+                    )
                 self.caja_datos.addWidget(self._fila(
-                    "Ancho del paño paralelo a los apoyos (m):", self.ancho_losa
+                    (
+                        "Ancho del paño según ejes (m):"
+                        if self.elemento.get("panel_ejes")
+                        else "Ancho del paño paralelo a los apoyos (m):"
+                    ),
+                    self.ancho_losa,
                 ))
                 componentes_previos = self.elemento.get("componentes", [])
                 comp_maciza = next((
@@ -137,16 +160,19 @@ class EditorElemento(QDialog):
                 )
                 self.caja_datos.addWidget(self.campo_peso_alivianada)
                 self.caja_datos.addWidget(QLabel(
-                    "Al guardar, el forjado base se agrega según la tipología. "
-                    "La maciza calcula su peso con el espesor. En la alivianada, el valor "
-                    "de catálogo es editable y aún no se recalibra según la vigueta elegida."
+                    "La alivianada agrega el forjado base de catálogo y la maciza calcula "
+                    "su peso con el espesor. La casetonada no agrega un forjado automáticamente: "
+                    "incluí sus componentes permanentes en esta composición; su motor de cálculo "
+                    "todavía está pendiente. El peso de catálogo de la alivianada es editable "
+                    "y aún no se recalibra según la vigueta elegida."
                 ))
                 self.luz_completa.valueChanged.connect(self._actualizar_espesor_cirsoc)
                 self.espesor_automatico.toggled.connect(self._actualizar_espesor_cirsoc)
                 self.tipologia.currentTextChanged.connect(self._actualizar_campos_tipologia)
                 self._actualizar_campos_tipologia()
             self.caja_datos.addWidget(QLabel(
-                "El ancho tributario se elige en cada aplicación a una viga o tramo."
+                "En paños creados desde ejes, las cargas D/L se transfieren automáticamente "
+                "a las vigas de apoyo; las losas legadas usan el ancho tributario de su aplicación."
             ))
             self.sobrecarga = QComboBox()
             for uso in biblioteca.get("Sobrecargas", []):
@@ -351,7 +377,7 @@ class EditorElemento(QDialog):
 
 
 class EditorAplicaciones(QDialog):
-    """Permite aplicar una misma carga varias veces, con distinto tramo y ancho."""
+    """Asigna cargas lineales, reacciones de muros y anchos tributarios."""
 
     def __init__(self, carga_id: str, elemento: dict, estructura: dict, aplicaciones: list[dict], parent=None,
                  portico_inicial: str = ""):
@@ -363,65 +389,120 @@ class EditorAplicaciones(QDialog):
         self.todos = [dict(a) for a in aplicaciones if a.get("carga_id") != carga_id]
         self.estructura = estructura
         self.es_superficial = elemento.get("tipo") in ("losa", "cubierta")
+        self.es_muro = elemento.get("tipo") == "muro"
+        self.pares_porticos = self._pares_porticos(portico_inicial)
 
         self.tabla = QTableWidget(0, 5)
-        self.tabla.setHorizontalHeaderLabels(("Pórtico", "Tramo", "Desde (m)", "Hasta (m)", "Ancho trib. (m)"))
+        self.tabla.setHorizontalHeaderLabels(("Pórtico(s)", "Aplicación", "Tramo(s)", "Posición / intervalo (m)", "Ancho trib. (m)"))
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabla.horizontalHeader().setStretchLastSection(True)
+
+        self.modo_aplicacion = QComboBox()
+        self.modo_aplicacion.addItem("Muro lineal sobre una viga", "lineal")
+        self.modo_aplicacion.addItem("Muro perpendicular entre pórticos", "perpendicular")
+        self.modo_aplicacion.setVisible(self.es_muro)
+
         self.portico = QComboBox()
         self.tramo = QComboBox()
-        self.desde = QDoubleSpinBox()
-        self.hasta = QDoubleSpinBox()
-        for control in (self.desde, self.hasta):
-            control.setRange(0.0, 100.0)
-            control.setDecimals(2)
-            control.setSingleStep(0.1)
+        self.desde = self._numero(0.0, 100.0)
+        self.hasta = self._numero(0.0, 100.0)
+        self.panel_lineal = QWidget()
+        formulario_lineal = QFormLayout(self.panel_lineal)
+        formulario_lineal.setContentsMargins(0, 0, 0, 0)
+        formulario_lineal.addRow("Pórtico:", self.portico)
+        formulario_lineal.addRow("Viga / tramo:", self.tramo)
+        formulario_lineal.addRow("Posición inicial local (m):", self.desde)
+        formulario_lineal.addRow("Posición final local (m):", self.hasta)
+
+        self.par_porticos = QComboBox()
+        self.tramo_a = QComboBox()
+        self.tramo_b = QComboBox()
+        self.posicion_a = self._numero(0.0, 100.0)
+        self.posicion_b = self._numero(0.0, 100.0)
+        self.panel_perpendicular = QWidget()
+        formulario_perpendicular = QFormLayout(self.panel_perpendicular)
+        formulario_perpendicular.setContentsMargins(0, 0, 0, 0)
+        formulario_perpendicular.addRow("Separación entre apoyos / pórticos:", self.par_porticos)
+        formulario_perpendicular.addRow("Tramo receptor en el primer apoyo:", self.tramo_a)
+        formulario_perpendicular.addRow("Posición local en el primer tramo (m):", self.posicion_a)
+        formulario_perpendicular.addRow("Tramo receptor en el segundo apoyo:", self.tramo_b)
+        formulario_perpendicular.addRow("Posición local en el segundo tramo (m):", self.posicion_b)
+        self.previsualizacion_muro = QLabel()
+        self.previsualizacion_muro.setWordWrap(True)
+        formulario_perpendicular.addRow("Reacciones estimadas:", self.previsualizacion_muro)
+
+        for nombre in estructura:
+            self.portico.addItem(nombre, nombre)
+        if portico_inicial in estructura:
+            self.portico.setCurrentIndex(self.portico.findData(portico_inicial))
+        for primero, segundo, separacion in self.pares_porticos:
+            self.par_porticos.addItem(
+                f"{primero} — {segundo} ({separacion:.3f} m)", (primero, segundo, separacion)
+            )
+
+        nombre_superficie = "cubierta" if elemento.get("tipo") == "cubierta" else "losa"
         self.ancho_modo = QComboBox()
-        self.ancho_modo.addItem("Media luz de la losa", "media_luz")
-        self.ancho_modo.addItem("Luz completa de la losa", "luz_completa")
-        self.ancho_modo.addItem("Ancho personalizado", "manual")
-        self.ancho_manual = QDoubleSpinBox()
-        self.ancho_manual.setRange(0.01, 100.0)
-        self.ancho_manual.setDecimals(2)
-        self.ancho_manual.setSingleStep(0.1)
+        self.ancho_modo.addItem(f"Media luz de la {nombre_superficie}", "media_luz")
+        self.ancho_modo.addItem(f"Luz completa de la {nombre_superficie}", "luz_completa")
+        self.ancho_modo.addItem(
+            "Ancho tributario del pórtico (medias separaciones)", "entre_porticos"
+        )
+        self.ancho_modo.addItem("Ancho tributario personalizado", "manual")
+        self.ancho_manual = self._numero(0.01, 100.0)
+        self.previsualizacion_ancho = QLabel()
         self.modo_legacy = QComboBox()
+        self.modo_legacy.addItem("Sumar; conservar cargas D/L de P00", "sumar")
         self.modo_legacy.addItem("Reemplazar D/L distribuidas antiguas de P00", "reemplazar")
-        self.modo_legacy.addItem("Sumar a D/L distribuidas antiguas de P00", "sumar")
         modo_existente = next((a.get("modo_cargas_previas") for a in self.aplicaciones
-                               if a.get("modo_cargas_previas")), "reemplazar")
+                               if a.get("modo_cargas_previas")), "sumar")
         self.modo_legacy.setCurrentIndex(max(0, self.modo_legacy.findData(modo_existente)))
+        self.panel_modo_legacy = QWidget()
+        fila_modo_legacy = QHBoxLayout(self.panel_modo_legacy)
+        fila_modo_legacy.setContentsMargins(0, 0, 0, 0)
+        fila_modo_legacy.addWidget(QLabel("Cargas D/L previas de P00:"))
+        fila_modo_legacy.addWidget(self.modo_legacy)
         self.boton_agregar = QPushButton("Añadir a la lista")
         self.boton_quitar = QPushButton("Quitar aplicación seleccionada")
         self.boton_agregar.clicked.connect(self._agregar)
         self.boton_quitar.clicked.connect(self._quitar)
         self.portico.currentIndexChanged.connect(self._cargar_tramos)
         self.tramo.currentIndexChanged.connect(self._actualizar_rango)
-
-        for nombre in estructura:
-            self.portico.addItem(nombre, nombre)
-        if portico_inicial in estructura:
-            self.portico.setCurrentIndex(self.portico.findData(portico_inicial))
-        self._cargar_tramos()
-        self.ancho_modo.setEnabled(self.es_superficial)
-        self.ancho_manual.setEnabled(self.es_superficial)
+        self.tramo_a.currentIndexChanged.connect(
+            lambda *_args: self._actualizar_rango_receptor(self.tramo_a, self.posicion_a)
+        )
+        self.tramo_b.currentIndexChanged.connect(
+            lambda *_args: self._actualizar_rango_receptor(self.tramo_b, self.posicion_b)
+        )
+        self.par_porticos.currentIndexChanged.connect(self._cargar_tramos_reaccion)
+        self.modo_aplicacion.currentIndexChanged.connect(self._actualizar_modo)
         self.ancho_modo.currentIndexChanged.connect(self._actualizar_ancho)
+        self.portico.currentIndexChanged.connect(self._actualizar_ancho)
+        self.portico.currentIndexChanged.connect(self._actualizar_pares_porticos)
+        self._cargar_tramos()
+        self._cargar_tramos_reaccion()
         self._actualizar_ancho()
 
         caja = QVBoxLayout(self)
-        caja.addWidget(QLabel(
-            "Cada fila es una aplicación independiente. Las posiciones se miden desde el inicio local del tramo."
-        ))
+        nota = QLabel(
+            "Cada aplicación se agrega sin borrar las anteriores. Las posiciones lineales y puntuales "
+            "se miden desde el inicio local del tramo. Para que una carga aparezca en Inicio, "
+            "agregala a un tramo, guardá las aplicaciones y seleccioná allí el pórtico receptor; "
+            "definirla en el catálogo, sin aplicarla, no la dibuja."
+        )
+        nota.setWordWrap(True)
+        caja.addWidget(nota)
         caja.addWidget(self.tabla, 1)
         formulario = QFormLayout()
-        formulario.addRow("Pórtico:", self.portico)
-        formulario.addRow("Viga / tramo:", self.tramo)
-        formulario.addRow("Posición inicial local (m):", self.desde)
-        formulario.addRow("Posición final local (m):", self.hasta)
+        if self.es_muro:
+            formulario.addRow("Tipo de aplicación:", self.modo_aplicacion)
+        formulario.addRow(self.panel_lineal)
+        formulario.addRow(self.panel_perpendicular)
         if self.es_superficial:
-            formulario.addRow("Ancho tributario:", self.ancho_modo)
+            formulario.addRow("Criterio de ancho / luz:", self.ancho_modo)
             formulario.addRow("Ancho personalizado (m):", self.ancho_manual)
-        formulario.addRow("Cargas D/L que ya estaban guardadas por P00:", self.modo_legacy)
+            formulario.addRow(self.previsualizacion_ancho)
+        formulario.addRow(self.panel_modo_legacy)
         caja.addLayout(formulario)
         fila = QHBoxLayout()
         fila.addWidget(self.boton_agregar)
@@ -433,33 +514,178 @@ class EditorAplicaciones(QDialog):
         botones.rejected.connect(self.reject)
         caja.addWidget(botones)
         self._refrescar_tabla()
-        self.resize(850, 480)
+        self._actualizar_modo()
+        self.resize(900, 650 if self.es_muro else 520)
 
-    def _cargar_tramos(self, *_args) -> None:
-        nombre = self.portico.currentData()
-        self.tramo.blockSignals(True)
-        self.tramo.clear()
-        p = self.estructura.get(nombre, {})
-        for viga_id, viga in p.get("vigas", {}).items():
+    @staticmethod
+    def _numero(minimo: float, maximo: float) -> QDoubleSpinBox:
+        control = QDoubleSpinBox()
+        control.setRange(minimo, maximo)
+        control.setDecimals(2)
+        control.setSingleStep(0.1)
+        return control
+
+    def _pares_porticos(self, portico_referencia: str = "") -> list[tuple[str, str, float]]:
+        referencia = self.estructura.get(portico_referencia, {})
+        direccion = cargas.direccion_portico(referencia)
+        posiciones = []
+        for nombre, datos in self.estructura.items():
+            if cargas.direccion_portico(datos) != direccion:
+                continue
+            try:
+                posiciones.append((float(datos["posicion_planta_m"]), nombre))
+            except (KeyError, TypeError, ValueError):
+                return []
+        cantidad = sum(
+            cargas.direccion_portico(datos) == direccion
+            for datos in self.estructura.values()
+        )
+        if (
+            len(posiciones) != cantidad
+            or len({posicion for posicion, _ in posiciones}) != len(posiciones)
+        ):
+            return []
+        posiciones.sort()
+        return [
+            (primero[1], segundo[1], segundo[0] - primero[0])
+            for primero, segundo in zip(posiciones, posiciones[1:])
+            if segundo[0] > primero[0]
+        ]
+
+    def _actualizar_pares_porticos(self, indice: int) -> None:
+        if indice < 0:
+            return
+        nombre_portico = str(self.portico.currentData() or "")
+        pares = self._pares_porticos(nombre_portico)
+        self.par_porticos.blockSignals(True)
+        self.par_porticos.clear()
+        for primero, segundo, separacion in pares:
+            self.par_porticos.addItem(
+                f"{primero} — {segundo} ({separacion:.3f} m)",
+                (primero, segundo, separacion),
+            )
+        self.par_porticos.blockSignals(False)
+        self._cargar_tramos_reaccion()
+
+    def _cargar_tramos_de(self, selector: QComboBox, nombre: str) -> None:
+        selector.blockSignals(True)
+        selector.clear()
+        portico = self.estructura.get(nombre, {})
+        for viga in portico.get("vigas", {}).values():
             for tramo in viga.get("tramos", []):
                 tid = tramo.get("id")
-                if tid:
-                    self.tramo.addItem(f"{tid} ({float(tramo.get('longitud_m', 0)):.2f} m)",
-                                       (tid, float(tramo.get("longitud_m", 0))))
-        self.tramo.blockSignals(False)
+                longitud = float(tramo.get("longitud_m", 0))
+                if tid and longitud > 0:
+                    selector.addItem(f"{tid} ({longitud:.2f} m)", (tid, longitud))
+        selector.blockSignals(False)
+
+    def _cargar_tramos(self, *_args) -> None:
+        self._cargar_tramos_de(self.tramo, self.portico.currentData())
         self._actualizar_rango()
+
+    def _cargar_tramos_reaccion(self, *_args) -> None:
+        par = self.par_porticos.currentData()
+        if not par:
+            self.tramo_a.clear()
+            self.tramo_b.clear()
+            self.previsualizacion_muro.setText(
+                "Definí primero las coordenadas acumuladas de los pórticos."
+            )
+            return
+        self._cargar_tramos_de(self.tramo_a, par[0])
+        self._cargar_tramos_de(self.tramo_b, par[1])
+        self._actualizar_rango_receptor(self.tramo_a, self.posicion_a)
+        self._actualizar_rango_receptor(self.tramo_b, self.posicion_b)
+        try:
+            elementos = rutas.leer_json(rutas.MATERIALES, {}) or {}
+            items = cargas.items_de_elemento(self.carga_id, self.elemento, elementos)
+            q = sum(float(item["valor"]) for item in items if item["tipo"] == "D")
+            reaccion = q * float(par[2]) / 2
+            self.previsualizacion_muro.setText(
+                f"q = {q:.2f} kN/m × {par[2]:.3f} m / 2 = {reaccion:.2f} kN en cada pórtico."
+            )
+        except (KeyError, TypeError, ValueError):
+            self.previsualizacion_muro.setText("No se pudo calcular el peso lineal del muro.")
+
+    def _actualizar_rango_receptor(self, selector: QComboBox, control: QDoubleSpinBox) -> None:
+        tramo = selector.currentData()
+        longitud = float(tramo[1]) if tramo else 0.0
+        control.setRange(0.0, longitud)
+        control.setValue(longitud / 2)
 
     def _actualizar_rango(self, *_args) -> None:
         tramo = self.tramo.currentData()
         longitud = float(tramo[1]) if tramo else 0.0
-        self.desde.setMaximum(longitud)
+        self.desde.setRange(0.0, longitud)
         self.hasta.setRange(0.0, longitud)
         self.hasta.setValue(longitud)
 
     def _actualizar_ancho(self, *_args) -> None:
-        self.ancho_manual.setEnabled(self.es_superficial and self.ancho_modo.currentData() == "manual")
+        modo = self.ancho_modo.currentData()
+        self.ancho_manual.setEnabled(self.es_superficial and modo == "manual")
+        nombre_superficie = "cubierta" if self.elemento.get("tipo") == "cubierta" else "losa"
+        if modo == "entre_porticos":
+            ancho = cargas.ancho_tributario_entre_porticos(
+                self.estructura, str(self.portico.currentData() or "")
+            )
+            texto = (
+                f"Ancho tributario calculado: {ancho:.3f} m, sumando medias separaciones "
+                "hacia los pórticos vecinos. Supone carga continua sobre el pórtico; "
+                "no identifica un módulo/paño individual."
+                if ancho is not None else
+                "Asigná coordenadas acumuladas a todos los pórticos para calcular el ancho."
+            )
+        elif modo == "media_luz":
+            texto = f"Se aplicará la mitad de la luz transversal guardada para esta {nombre_superficie}."
+        elif modo == "luz_completa":
+            texto = f"Se aplicará la luz transversal completa guardada para esta {nombre_superficie}."
+        elif modo == "manual":
+            texto = "Se usará el ancho tributario ingresado manualmente."
+        else:
+            texto = ""
+        self.previsualizacion_ancho.setText(texto)
+
+    def _actualizar_modo(self, *_args) -> None:
+        perpendicular = self.es_muro and self.modo_aplicacion.currentData() == "perpendicular"
+        self.panel_lineal.setVisible(not perpendicular)
+        self.panel_perpendicular.setVisible(perpendicular)
+        self.panel_modo_legacy.setVisible(not perpendicular)
+
+    def _id_aplicacion(self) -> str:
+        numero = len(self.todos) + len(self.aplicaciones) + 1
+        while any(a.get("id") == f"Aplicacion 0-{numero}" for a in self.todos + self.aplicaciones):
+            numero += 1
+        return f"Aplicacion 0-{numero}"
 
     def _agregar(self) -> None:
+        perpendicular = self.es_muro and self.modo_aplicacion.currentData() == "perpendicular"
+        if perpendicular:
+            par = self.par_porticos.currentData()
+            apoyo_a, apoyo_b = self.tramo_a.currentData(), self.tramo_b.currentData()
+            if not par or not apoyo_a or not apoyo_b:
+                QMessageBox.warning(
+                    self, "Faltan posiciones o apoyos",
+                    "Definí las posiciones de los pórticos y elegí un tramo receptor en cada uno.",
+                )
+                return
+            reacciones = []
+            for portico, tramo, posicion in (
+                (par[0], apoyo_a, self.posicion_a.value()),
+                (par[1], apoyo_b, self.posicion_b.value()),
+            ):
+                reacciones.append({
+                    "portico": portico, "tramo_id": tramo[0],
+                    "x_m": posicion, "influencia_m": float(par[2]) / 2,
+                })
+            self.aplicaciones.append({
+                "id": self._id_aplicacion(), "carga_id": self.carga_id,
+                "tipo_aplicacion": "muro_perpendicular",
+                "reacciones": reacciones, "separacion_m": float(par[2]),
+                "modo_cargas_previas": "sumar", "activa": True,
+            })
+            self._refrescar_tabla()
+            return
+
         portico = self.portico.currentData()
         tramo = self.tramo.currentData()
         if not portico or not tramo:
@@ -472,10 +698,27 @@ class EditorAplicaciones(QDialog):
         luz = float(self.elemento.get("luz_transversal_m", 0.0))
         modo = self.ancho_modo.currentData() if self.es_superficial else None
         if self.es_superficial:
-            if modo != "manual" and luz <= 0:
-                QMessageBox.warning(self, "Falta la luz de la losa", "Editá la composición e ingresá la luz completa de la losa.")
+            if modo in ("media_luz", "luz_completa") and luz <= 0:
+                superficie = "cubierta" if self.elemento.get("tipo") == "cubierta" else "losa"
+                QMessageBox.warning(
+                    self, f"Falta la luz de la {superficie}",
+                    f"Editá la composición e ingresá la luz transversal de la {superficie}.",
+                )
                 return
-            ancho = self.ancho_manual.value() if modo == "manual" else (luz / 2 if modo == "media_luz" else luz)
+            if modo == "media_luz":
+                ancho = luz / 2
+            elif modo == "luz_completa":
+                ancho = luz
+            elif modo == "entre_porticos":
+                ancho = cargas.ancho_tributario_entre_porticos(self.estructura, portico)
+                if ancho is None:
+                    QMessageBox.warning(
+                        self, "Faltan posiciones",
+                        "Configurá las coordenadas acumuladas de los pórticos antes de usar este ancho.",
+                    )
+                    return
+            else:
+                ancho = self.ancho_manual.value()
         else:
             ancho = None
         modos_mismo_tramo = {
@@ -483,29 +726,20 @@ class EditorAplicaciones(QDialog):
             for a in self.todos + self.aplicaciones
             if a.get("portico") == portico and a.get("tramo_id") == tramo[0]
         }
-        if len(modos_mismo_tramo) > 1:
-            QMessageBox.warning(
-                self, "Cargas anteriores", 
-                "Este tramo ya tiene aplicaciones con criterios distintos para las cargas de P00. "
-                "Quitá y volvé a crear esas aplicaciones con un mismo criterio antes de agregar otra."
-            )
-            return
-        if modos_mismo_tramo and self.modo_legacy.currentData() not in modos_mismo_tramo:
+        modo_legacy = self.modo_legacy.currentData()
+        if len(modos_mismo_tramo) > 1 or (modos_mismo_tramo and modo_legacy not in modos_mismo_tramo):
             QMessageBox.warning(
                 self, "Cargas anteriores",
-                "Todas las aplicaciones del mismo tramo deben usar el mismo criterio para las cargas de P00."
+                "Todas las aplicaciones del mismo tramo deben usar el mismo criterio para las cargas de P00.",
             )
             return
-        numero = len(self.todos) + len(self.aplicaciones) + 1
-        while any(a.get("id") == f"Aplicacion 0-{numero}" for a in self.todos + self.aplicaciones):
-            numero += 1
         self.aplicaciones.append({
-            "id": f"Aplicacion 0-{numero}", "carga_id": self.carga_id,
+            "id": self._id_aplicacion(), "carga_id": self.carga_id,
+            "tipo_aplicacion": "lineal",
             "portico": portico, "tramo_id": tramo[0],
             "x_inicio_m": x0, "x_fin_m": x1,
             "ancho_modo": modo, "ancho_tributario_m": ancho,
-            "modo_cargas_previas": self.modo_legacy.currentData(),
-            "activa": True,
+            "modo_cargas_previas": modo_legacy, "activa": True,
         })
         self._refrescar_tabla()
 
@@ -517,9 +751,26 @@ class EditorAplicaciones(QDialog):
 
     def _refrescar_tabla(self) -> None:
         self.tabla.setRowCount(len(self.aplicaciones))
-        for i, a in enumerate(self.aplicaciones):
-            valores = (a.get("portico", ""), a.get("tramo_id", ""), a.get("x_inicio_m", 0),
-                       a.get("x_fin_m", 0), a.get("ancho_tributario_m", "—"))
+        for i, aplicacion in enumerate(self.aplicaciones):
+            reacciones = aplicacion.get("reacciones", [])
+            if reacciones:
+                porticos = " / ".join(r.get("portico", "") for r in reacciones)
+                tramos = " / ".join(r.get("tramo_id", "") for r in reacciones)
+                posicion = " / ".join(f"{float(r.get('x_m', 0)):.2f}" for r in reacciones)
+                valores = (porticos, "Muro perpendicular", tramos, posicion, f"L={aplicacion.get('separacion_m', 0)}")
+            else:
+                ancho = aplicacion.get("ancho_tributario_m", "—")
+                if aplicacion.get("ancho_modo") == "entre_porticos":
+                    ancho = cargas.ancho_tributario_entre_porticos(
+                        self.estructura, str(aplicacion.get("portico", ""))
+                    )
+                valores = (
+                    aplicacion.get("portico", ""),
+                    "Lineal",
+                    aplicacion.get("tramo_id", ""),
+                    f"{float(aplicacion.get('x_inicio_m', 0)):.2f}–{float(aplicacion.get('x_fin_m', 0)):.2f}",
+                    "—" if ancho is None else f"{float(ancho):.3f}",
+                )
             for j, valor in enumerate(valores):
                 self.tabla.setItem(i, j, QTableWidgetItem(str(valor)))
         self.tabla.resizeColumnsToContents()
@@ -559,10 +810,10 @@ class PaginaCargas(QWidget):
         self.nota_viento_ref.setWordWrap(True)
         self.ciudad_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
         self.categoria_riesgo_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
-        self.tabla = QTableWidget(0, 8)
+        self.tabla = QTableWidget(0, 9)
         self.tabla.setHorizontalHeaderLabels(
-            ("ID", "Descripción", "Aplicación", "Categoría", "D (kN/m²)",
-             "L (kN/m²)", "Incluir", "N.º aplicaciones")
+            ("ID", "Descripción", "Aplicación", "Transferencia a apoyos", "Categoría",
+             "D (kN/m²)", "L (kN/m²)", "Incluir", "Aplicaciones manuales")
         )
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -571,27 +822,50 @@ class PaginaCargas(QWidget):
         self.tabla.horizontalHeader().setStretchLastSection(True)
 
         self.boton_nueva = QPushButton("Nueva carga")
+        self.boton_nueva_losa_planta = QPushButton("Nueva losa desde ejes…")
         self.boton_guardar = QPushButton("Guardar cargas")
         self.boton_editar = QPushButton("Editar composición")
+        self.boton_eliminar = QPushButton("Eliminar elemento…")
         self.boton_aplicaciones = QPushButton("Aplicar a tramos…")
+        self.boton_editar_composicion = QPushButton("Editar composición del elemento")
+        self.boton_quitar_aplicacion = QPushButton("Quitar asignación seleccionada")
+        self.boton_editar_composicion.setEnabled(False)
+        self.boton_quitar_aplicacion.setEnabled(False)
+        self.selector_aplicaciones = QComboBox()
+        self.contexto_aplicaciones = QLabel()
+        self.contexto_aplicaciones.setWordWrap(True)
+        self.tabla_aplicaciones = QTableWidget(0, 7)
+        self.tabla_aplicaciones.setHorizontalHeaderLabels(
+            ("Pórtico(s)", "Carga", "Tipo", "Barra / tramo", "Desde / x (m)", "Hasta / P (kN)", "Ancho / L (m)")
+        )
+        self.tabla_aplicaciones.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabla_aplicaciones.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabla_aplicaciones.setAlternatingRowColors(True)
+        self.tabla_aplicaciones.verticalHeader().setVisible(False)
+        self.tabla_aplicaciones.horizontalHeader().setStretchLastSection(True)
+        self.etiqueta_aplicaciones = QLabel()
+        self.etiqueta_aplicaciones.setWordWrap(True)
         self.boton_disenar_losa = QPushButton("Calcular losa seleccionada")
         self.boton_disenar_losa.setEnabled(False)
+        self.boton_editar_apoyos_losa = QPushButton("Editar paño y apoyos…")
+        self.boton_editar_apoyos_losa.setEnabled(False)
         self.boton_informe = QPushButton("Generar informe TXT")
         self.boton_abrir = QPushButton("Abrir último informe")
         self.boton_abrir.setEnabled(False)
         self.ultimo_informe: Path | None = None
 
-        caja = QVBoxLayout(self)
-        caja.addWidget(self.etiqueta)
+        self.pestanias_cargas = QTabWidget()
+        pagina_elementos = QWidget()
+        caja_elementos = QVBoxLayout(pagina_elementos)
+        caja_elementos.addWidget(self.etiqueta)
         self.etiqueta_portico = QLabel()
         self.etiqueta_portico.setStyleSheet("font-weight: 600;")
-        caja.addWidget(self.etiqueta_portico)
         fila_viento = QHBoxLayout()
         fila_viento.addWidget(self.viento_activo)
         fila_viento.addWidget(QLabel("Ancho tributario del viento (m):"))
         fila_viento.addWidget(self.ancho_viento)
         fila_viento.addStretch(1)
-        caja.addLayout(fila_viento)
+        caja_elementos.addLayout(fila_viento)
         fila_referencia_viento = QHBoxLayout()
         fila_referencia_viento.addWidget(QLabel("Ubicación CIRSOC 102-25:"))
         fila_referencia_viento.addWidget(self.ciudad_viento)
@@ -599,32 +873,197 @@ class PaginaCargas(QWidget):
         fila_referencia_viento.addWidget(self.categoria_riesgo_viento)
         fila_referencia_viento.addWidget(self.velocidad_viento_ref)
         fila_referencia_viento.addStretch(1)
-        caja.addLayout(fila_referencia_viento)
-        caja.addWidget(self.nota_viento_ref)
-        caja.addWidget(self.tabla, 1)
+        caja_elementos.addLayout(fila_referencia_viento)
+        caja_elementos.addWidget(self.nota_viento_ref)
+        caja_elementos.addWidget(self.tabla, 1)
         fila = QHBoxLayout()
-        fila.addWidget(self.boton_aplicaciones)
+        fila.addWidget(self.boton_nueva_losa_planta)
         fila.addWidget(self.boton_nueva)
         fila.addWidget(self.boton_editar)
+        fila.addWidget(self.boton_eliminar)
         fila.addWidget(self.boton_guardar)
-        caja.addLayout(fila)
-        caja.addWidget(self.boton_disenar_losa)
+        caja_elementos.addLayout(fila)
+        caja_elementos.addWidget(self.boton_editar_apoyos_losa)
+        caja_elementos.addWidget(self.boton_disenar_losa)
         acciones = QHBoxLayout()
         acciones.addWidget(self.boton_informe)
         acciones.addWidget(self.boton_abrir)
         acciones.addStretch(1)
-        caja.addLayout(acciones)
+        caja_elementos.addLayout(acciones)
+        self.pestanias_cargas.addTab(pagina_elementos, "Definir elementos")
+
+        pagina_aplicaciones = QWidget()
+        caja_aplicaciones = QVBoxLayout(pagina_aplicaciones)
+        caja_aplicaciones.addWidget(QLabel(
+            "Elegí un elemento del catálogo para asignarlo a una o varias barras. "
+            "Los muros pueden aplicarse sobre una viga o perpendicularmente entre pórticos; "
+            "las losas creadas desde ejes ya envían sus reacciones a las dos vigas de apoyo "
+            "con ancho tributario igual a media luz; no las asignes manualmente para evitar duplicarlas."
+        ))
+        caja_aplicaciones.addWidget(self.etiqueta_portico)
+        fila_seleccion = QHBoxLayout()
+        fila_seleccion.addWidget(QLabel("Elemento de carga:"))
+        fila_seleccion.addWidget(self.selector_aplicaciones, 1)
+        fila_seleccion.addWidget(self.boton_editar_composicion)
+        fila_seleccion.addWidget(self.boton_aplicaciones)
+        caja_aplicaciones.addLayout(fila_seleccion)
+        caja_aplicaciones.addWidget(self.contexto_aplicaciones)
+        caja_aplicaciones.addWidget(self.etiqueta_aplicaciones)
+        caja_aplicaciones.addWidget(self.tabla_aplicaciones, 1)
+        acciones_aplicaciones = QHBoxLayout()
+        acciones_aplicaciones.addWidget(self.boton_quitar_aplicacion)
+        acciones_aplicaciones.addStretch(1)
+        caja_aplicaciones.addLayout(acciones_aplicaciones)
+        self.pestanias_cargas.addTab(pagina_aplicaciones, "Aplicar y revisar en barras")
+
+        caja = QVBoxLayout(self)
+        caja.addWidget(self.pestanias_cargas)
 
         self.tabla.itemChanged.connect(self._actualizar_estado_activo)
         self.tabla.currentCellChanged.connect(self._actualizar_boton_disenar_losa)
+        self.tabla.currentCellChanged.connect(self._actualizar_boton_editar_paño)
+        self.tabla_aplicaciones.cellClicked.connect(self._seleccionar_carga_aplicada)
+        self.selector_aplicaciones.currentIndexChanged.connect(self._actualizar_boton_aplicaciones)
+        self.tabla_aplicaciones.itemSelectionChanged.connect(self._actualizar_boton_quitar)
         self.boton_guardar.clicked.connect(self.guardar)
         self.boton_nueva.clicked.connect(self.nueva)
+        self.boton_nueva_losa_planta.clicked.connect(self.nueva_losa_desde_ejes)
         self.boton_editar.clicked.connect(self.editar)
+        self.boton_eliminar.clicked.connect(self.eliminar_elemento)
         self.boton_aplicaciones.clicked.connect(self.editar_aplicaciones)
+        self.boton_editar_composicion.clicked.connect(self.editar_composicion_aplicaciones)
+        self.boton_quitar_aplicacion.clicked.connect(self.quitar_aplicacion_seleccionada)
         self.boton_informe.clicked.connect(self.generar_informe)
         self.boton_abrir.clicked.connect(self.abrir_informe)
         self.boton_disenar_losa.clicked.connect(self.disenar_losa_seleccionada)
+        self.boton_editar_apoyos_losa.clicked.connect(self.editar_paño_losa)
+        self._actualizar_boton_aplicaciones()
         self.recargar()
+
+    def ir_a_elementos(self) -> None:
+        self.pestanias_cargas.setCurrentIndex(0)
+
+    def ir_a_aplicaciones(self) -> None:
+        self.pestanias_cargas.setCurrentIndex(1)
+
+    def _actualizar_boton_aplicaciones(self, *_args) -> None:
+        nombre = self.selector_aplicaciones.currentData()
+        elementos = (cargas.datos_cargas().get("elementos", {}) or {})
+        elemento = elementos.get(nombre, {}) if nombre else {}
+        aplica_por_apoyos = bool(elemento.get("panel_ejes"))
+        disponible = self.selector_aplicaciones.currentIndex() >= 0
+        self.boton_aplicaciones.setEnabled(disponible and not aplica_por_apoyos)
+        self.boton_aplicaciones.setToolTip(
+            "La losa aplica automáticamente sus reacciones a las vigas de apoyo."
+            if aplica_por_apoyos
+            else "Aplicar el elemento seleccionado a tramos."
+        )
+        self.boton_editar_composicion.setEnabled(disponible)
+        if hasattr(self, "contexto_aplicaciones"):
+            portico = str(self.portico_actual() or "").strip() or "todos los pórticos"
+            nombre = self.selector_aplicaciones.currentData()
+            self.contexto_aplicaciones.setText(
+                f"Pórtico activo: {portico}  ·  Elemento seleccionado: {nombre or 'ninguno'}"
+            )
+
+    def _actualizar_boton_quitar(self) -> None:
+        self.boton_quitar_aplicacion.setEnabled(
+            self.tabla_aplicaciones.currentRow() >= 0
+        )
+
+    def _seleccionar_carga_aplicada(self, fila: int, _columna: int) -> None:
+        item = self.tabla_aplicaciones.item(fila, 1)
+        if item is not None:
+            indice = self.selector_aplicaciones.findData(
+                item.data(Qt.ItemDataRole.UserRole)
+            )
+            if indice >= 0:
+                self.selector_aplicaciones.setCurrentIndex(indice)
+
+    def _cargar_tabla_aplicaciones(self) -> None:
+        datos = cargas.datos_cargas()
+        estructura = rutas.cargar_estructura()
+        elementos = datos.get("elementos", {}) or {}
+        nombres_por_id = {
+            elemento.get("id"): nombre for nombre, elemento in elementos.items()
+        }
+        portico = str(self.portico_actual() or "").strip()
+        aplicaciones = [
+            (indice, aplicacion)
+            for indice, aplicacion in enumerate(datos.get("aplicaciones", []))
+            if (
+                not portico
+                or aplicacion.get("portico") == portico
+                or any(r.get("portico") == portico for r in aplicacion.get("reacciones", []))
+            )
+        ]
+        self.tabla_aplicaciones.setRowCount(len(aplicaciones))
+        por_carga = set()
+        for fila, (indice_origen, aplicacion) in enumerate(aplicaciones):
+            carga_id = aplicacion.get("carga_id")
+            nombre = nombres_por_id.get(carga_id, f"Carga desconocida ({carga_id or '?'})")
+            elemento = elementos.get(nombre, {})
+            por_carga.add(carga_id)
+            reacciones = aplicacion.get("reacciones", [])
+            if reacciones:
+                relevantes = [
+                    r for r in reacciones
+                    if not portico or r.get("portico") == portico
+                ]
+                try:
+                    biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
+                    peso_lineal = sum(
+                        float(item["valor"])
+                        for item in cargas.items_de_elemento(nombre, elemento, biblioteca)
+                        if item["tipo"] == "D"
+                    )
+                    reacciones_kN = [
+                        peso_lineal * float(r.get("influencia_m", 0.0))
+                        for r in relevantes
+                    ]
+                except (KeyError, TypeError, ValueError):
+                    reacciones_kN = []
+                valores = (
+                    " / ".join(r.get("portico", "") for r in relevantes),
+                    nombre,
+                    "Muro perpendicular",
+                    " / ".join(r.get("tramo_id", "") for r in relevantes),
+                    " / ".join(f"{float(r.get('x_m', 0.0)):.2f}" for r in relevantes) or "—",
+                    " / ".join(f"{valor:.2f}" for valor in reacciones_kN) or "—",
+                    f"{float(aplicacion.get('separacion_m', 0.0)):.2f}" if relevantes else "—",
+                )
+            else:
+                ancho = aplicacion.get("ancho_tributario_m")
+                if aplicacion.get("ancho_modo") == "entre_porticos":
+                    ancho = cargas.ancho_tributario_entre_porticos(
+                        estructura, str(aplicacion.get("portico", ""))
+                    )
+                valores = (
+                    aplicacion.get("portico", ""),
+                    nombre,
+                    elemento.get("tipo", ""),
+                    aplicacion.get("tramo_id", ""),
+                    f"{float(aplicacion.get('x_inicio_m', 0.0)):.2f}",
+                    f"{float(aplicacion.get('x_fin_m', 0.0)):.2f}",
+                    "—" if ancho is None else f"{float(ancho):.2f}",
+                )
+            for columna, valor in enumerate(valores):
+                item = QTableWidgetItem(str(valor))
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setData(Qt.ItemDataRole.UserRole, indice_origen)
+                if not aplicacion.get("activa", True):
+                    item.setForeground(Qt.GlobalColor.darkGray)
+                    item.setToolTip("Aplicación desactivada; no entra en el cálculo.")
+                self.tabla_aplicaciones.setItem(fila, columna, item)
+        self.tabla_aplicaciones.resizeColumnsToContents()
+        self.etiqueta_aplicaciones.setText(
+            f"{len(aplicaciones)} aplicación(es) "
+            f"{'en ' + portico if portico else 'en toda la obra'} · "
+            f"{len(por_carga)} elemento(s) aplicado(s). "
+            "Seleccioná una fila para editar sus aplicaciones; las filas grises están desactivadas."
+        )
+        self._actualizar_boton_quitar()
+        self._actualizar_boton_aplicaciones()
 
     def _actualizar_boton_disenar_losa(self, *_args) -> None:
         nombre = self._fila_nombre()
@@ -644,21 +1083,136 @@ class PaginaCargas(QWidget):
             self.boton_disenar_losa.setText("Calcular solicitaciones de losa maciza")
             ayuda = (
                 "Analiza un paño unidireccional simplemente apoyado. "
-                "Requiere luz, ancho y hormigón armado con espesor. Para cargar las vigas "
-                "de apoyo, aplicá esta carga a ambos bordes con ancho tributario igual a media luz."
+                "Requiere luz, ancho y hormigón armado con espesor. Si el paño se definió desde ejes, "
+                "sus reacciones se transfieren automáticamente a las vigas de apoyo."
             )
         elif tipologia == "alivianada":
             self.boton_disenar_losa.setText("Calcular viguetas de losa alivianada")
             ayuda = "Dimensiona viguetas con esta misma composición."
         elif tipologia == "casetonada":
             self.boton_disenar_losa.setText("Análisis de losa casetonada pendiente")
-            ayuda = "La tipología casetonada todavía no tiene un motor de cálculo."
+            ayuda = (
+                "La tipología casetonada todavía no tiene un motor de cálculo. Definí en la composición "
+                "sus cargas permanentes; si el paño se definió desde ejes, las cargas se transfieren "
+                "automáticamente a las vigas de apoyo."
+            )
         else:
             self.boton_disenar_losa.setText("Calcular losa seleccionada")
             ayuda = "Elegí una losa y completá la luz y el ancho del paño."
         if not disponible and tipologia in ("alivianada", "maciza"):
             ayuda = "Completá la luz y el ancho del paño para habilitar el cálculo."
         self.boton_disenar_losa.setToolTip(ayuda)
+
+    def _actualizar_boton_editar_paño(self) -> None:
+        nombre = self._fila_nombre()
+        elemento = (
+            (cargas.datos_cargas().get("elementos", {}) or {}).get(nombre, {})
+            if nombre else {}
+        )
+        disponible = elemento.get("tipo") == "losa"
+        self.boton_editar_apoyos_losa.setEnabled(disponible)
+
+    def nueva_losa_desde_ejes(self) -> None:
+        self._guardar_datos()
+        datos = cargas.datos_cargas()
+        dialogo = EditorLosaDesdeEjes(
+            cargar_ejes(), cargar_niveles(), rutas.cargar_estructura(), self
+        )
+        if dialogo.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            nombre, geometria = dialogo.resultado()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Geometría de losa incompleta", str(exc))
+            return
+        elementos = datos.setdefault("elementos", {})
+        if nombre in elementos:
+            QMessageBox.warning(
+                self, "Nombre existente", "Ya existe un elemento con ese nombre."
+            )
+            return
+        elemento = {
+            "id": self._id_nuevo(elementos),
+            "tipo": "losa",
+            "activo": 1,
+            "ancho_tributario_m": 1.0,
+            "componentes": [],
+            "sobrecarga": "vivienda",
+            "viento_activo": 0,
+            **geometria,
+        }
+        editor_cargas = EditorElemento(
+            nombre, elemento, rutas.leer_json(rutas.MATERIALES, {}) or {}, self
+        )
+        editor_cargas.setWindowTitle(f"Composición de cargas — losa {nombre}")
+        if editor_cargas.exec() != QDialog.DialogCode.Accepted:
+            return
+        nuevo_nombre, elemento = editor_cargas.resultado()
+        if not nuevo_nombre:
+            QMessageBox.warning(self, "Nombre requerido", "La losa necesita un nombre.")
+            return
+        if nuevo_nombre != nombre and nuevo_nombre in elementos:
+            QMessageBox.warning(
+                self, "Nombre existente", "Ya existe un elemento con ese nombre."
+            )
+            return
+        elementos[nuevo_nombre] = elemento
+        rutas.guardar_json(rutas.CARGAS, datos)
+        self.recargar()
+        fila = next(
+            (
+                indice for indice in range(self.tabla.rowCount())
+                if self.tabla.item(indice, 1)
+                and self.tabla.item(indice, 1).text() == nuevo_nombre
+            ),
+            -1,
+        )
+        if fila >= 0:
+            self.tabla.selectRow(fila)
+            self.tabla.scrollToItem(self.tabla.item(fila, 3))
+        self.selector_aplicaciones.setCurrentIndex(
+            self.selector_aplicaciones.findData(nuevo_nombre)
+        )
+        if self.al_guardar:
+            self.al_guardar()
+
+    def editar_paño_losa(self) -> None:
+        nombre = self._fila_nombre()
+        if not nombre:
+            return
+        self._guardar_datos()
+        datos = cargas.datos_cargas()
+        elemento = (datos.get("elementos", {}) or {}).get(nombre)
+        if not elemento or elemento.get("tipo") != "losa":
+            QMessageBox.information(
+                self, "Editar paño", "Seleccioná una losa del catálogo."
+            )
+            return
+        dialogo = EditorLosaDesdeEjes(
+            cargar_ejes(), cargar_niveles(), rutas.cargar_estructura(),
+            self, elemento, nombre,
+        )
+        if dialogo.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            nuevo_nombre, geometria = dialogo.resultado()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Geometría de losa incompleta", str(exc))
+            return
+        elementos = datos.get("elementos", {})
+        if nuevo_nombre != nombre and nuevo_nombre in elementos:
+            QMessageBox.warning(
+                self, "Nombre existente", "Ya existe un elemento con ese nombre."
+            )
+            return
+        elemento.update(geometria)
+        if nuevo_nombre != nombre:
+            elementos.pop(nombre)
+        elementos[nuevo_nombre] = elemento
+        rutas.guardar_json(rutas.CARGAS, datos)
+        self.recargar()
+        if self.al_guardar:
+            self.al_guardar()
 
     def disenar_losa_seleccionada(self) -> None:
         nombre = self._fila_nombre()
@@ -763,16 +1317,62 @@ class PaginaCargas(QWidget):
                     q_l = f"{valores['L_kNm2']:.2f}"
                 except (KeyError, TypeError, ValueError):
                     pass
-            n_aplicaciones = sum(1 for a in aplicaciones if a.get("carga_id") == elemento.get("id"))
+            aplicaciones_manuales = sum(
+                1 for a in aplicaciones if a.get("carga_id") == elemento.get("id")
+            )
+            panel = elemento.get("panel_ejes")
+            apoyos = elemento.get("apoya_en", {}) or {}
+            destinos = [
+                (lado, apoyos.get(lado) or {})
+                for lado in ("izq", "der")
+            ]
+            destinos = [
+                (lado, destino) for lado, destino in destinos
+                if destino.get("portico") and destino.get("viga")
+            ]
+            if elemento.get("tipo") == "losa" and panel:
+                resumen_apoyos = " + ".join(
+                    f"{destino['portico']} / {destino['viga']}"
+                    for _, destino in destinos
+                )
+                if not elemento.get("activo", True):
+                    estado_apoyos = f"Inactiva · {resumen_apoyos or 'sin apoyos'}"
+                    color_estado = Qt.GlobalColor.darkGray
+                    ayuda_estado = (
+                        "La losa está desactivada: sus cargas no se transfieren al análisis."
+                    )
+                elif len(destinos) == 2:
+                    estado_apoyos = f"Aplicada automáticamente · {resumen_apoyos}"
+                    color_estado = Qt.GlobalColor.darkGreen
+                    ayuda_estado = (
+                        "Paño asociado a sus dos vigas. Sus cargas D/L se transfieren "
+                        "automáticamente con ancho tributario igual a media luz."
+                    )
+                else:
+                    estado_apoyos = f"Incompleta · {resumen_apoyos or 'sin apoyos'}"
+                    color_estado = Qt.GlobalColor.darkYellow
+                    ayuda_estado = (
+                        "El paño necesita dos apoyos válidos para transferir sus cargas "
+                        "automáticamente a los pórticos."
+                    )
+            else:
+                estado_apoyos = "—"
+                color_estado = None
+                ayuda_estado = ""
             valores = (
-                elemento["id"], nombre, forma, categorias, q_d, q_l,
+                elemento["id"], nombre, forma, estado_apoyos, categorias, q_d, q_l,
                 "Sí" if elemento.get("activo") else "No",
-                str(n_aplicaciones),
+                str(aplicaciones_manuales),
             )
             for columna, valor in enumerate(valores):
                 item = QTableWidgetItem(str(valor))
                 item.setData(Qt.ItemDataRole.UserRole, nombre)
-                if columna == 6:
+                if columna == 3:
+                    item.setToolTip(ayuda_estado)
+                    if color_estado is not None:
+                        item.setForeground(color_estado)
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                elif columna == 7:
                     item.setToolTip(
                         "Marcada: esta carga entra en los informes y en las aplicaciones al pórtico. "
                         "Desmarcada: se conserva en la obra, pero se omite del cálculo."
@@ -788,13 +1388,30 @@ class PaginaCargas(QWidget):
             f"{len(elementos)} elementos de carga. "
             "Losas y cubiertas convierten kN/m² a kN/m con el ancho tributario de cada aplicación; "
             "sus D y L superficiales se calculan aunque no tengan aplicaciones. "
+            "La columna «Transferencia a apoyos» marca las losas de ejes vinculadas: las activas "
+            "transfieren D/L automáticamente a sus dos vigas, con ancho tributario igual a media luz. "
             "Muros y encadenados generan carga lineal. La casilla Incluir activa u omite "
             "el elemento en el análisis y en el pórtico. Los cambios se guardan con los botones de abajo; los TXT "
             "anteriores quedan como estaban. Una carga puede tener varias aplicaciones "
-            "en distintos tramos; las puntuales siguen ingresándose desde P00."
+            "en distintos tramos. Las reacciones de muros perpendiculares se aplican como cargas puntuales "
+            "en los tramos receptores."
         )
         self.tabla.resizeColumnsToContents()
+        seleccion_previa = self.selector_aplicaciones.currentData()
+        self.selector_aplicaciones.blockSignals(True)
+        self.selector_aplicaciones.clear()
+        for nombre, elemento in elementos.items():
+            self.selector_aplicaciones.addItem(
+                f"{nombre} · {elemento.get('tipo', 'carga')}", nombre
+            )
+        indice = self.selector_aplicaciones.findData(seleccion_previa)
+        if indice >= 0:
+            self.selector_aplicaciones.setCurrentIndex(indice)
+        self.selector_aplicaciones.blockSignals(False)
+        self._actualizar_boton_aplicaciones()
+        self._cargar_tabla_aplicaciones()
         self._actualizar_boton_disenar_losa()
+        self._actualizar_boton_editar_paño()
 
     def actualizar_portico(self) -> None:
         portico_actual = str(self.portico_actual() or "").strip()
@@ -802,6 +1419,8 @@ class PaginaCargas(QWidget):
             f"Pórtico seleccionado: {portico_actual or 'ninguno'}. "
             "Las aplicaciones nuevas se proponen para este pórtico; podés cambiarlo en el editor."
         )
+        if hasattr(self, "tabla_aplicaciones"):
+            self._cargar_tabla_aplicaciones()
 
     def _fila_nombre(self) -> str | None:
         fila = self.tabla.currentRow()
@@ -813,6 +1432,16 @@ class PaginaCargas(QWidget):
         if not nombre:
             QMessageBox.information(self, "Cargas", "Elegí primero una carga de la lista.")
             return
+        self._editar_elemento(nombre)
+
+    def editar_composicion_aplicaciones(self) -> None:
+        nombre = self.selector_aplicaciones.currentData()
+        if not nombre:
+            QMessageBox.information(self, "Cargas", "Elegí un elemento de carga.")
+            return
+        self._editar_elemento(nombre)
+
+    def _editar_elemento(self, nombre: str) -> None:
         self._guardar_datos()
         datos = cargas.datos_cargas()
         elemento = datos.get("elementos", {}).get(nombre, {})
@@ -831,13 +1460,101 @@ class PaginaCargas(QWidget):
         elementos[nuevo_nombre] = actualizado
         rutas.guardar_json(rutas.CARGAS, datos)
         self.recargar()
+        indice = self.selector_aplicaciones.findData(nuevo_nombre)
+        if indice >= 0:
+            self.selector_aplicaciones.setCurrentIndex(indice)
         if self.al_guardar:
             self.al_guardar()
 
-    def editar_aplicaciones(self) -> None:
+    def eliminar_elemento(self) -> None:
         nombre = self._fila_nombre()
         if not nombre:
-            QMessageBox.information(self, "Cargas", "Elegí una carga de la lista.")
+            QMessageBox.information(self, "Cargas", "Elegí primero un elemento del catálogo.")
+            return
+        datos = cargas.datos_cargas()
+        elemento = (datos.get("elementos", {}) or {}).get(nombre)
+        if not elemento:
+            QMessageBox.warning(self, "Elemento inexistente", "Actualizá la lista e intentá de nuevo.")
+            return
+        carga_id = elemento.get("id")
+        aplicaciones = datos.get("aplicaciones", [])
+        cantidad = sum(1 for aplicacion in aplicaciones if aplicacion.get("carga_id") == carga_id)
+        texto = f"¿Eliminar «{nombre}» del catálogo?"
+        if cantidad:
+            texto += (
+                f"\n\nTambién se quitarán sus {cantidad} aplicación(es) "
+                "de los pórticos."
+            )
+        respuesta = QMessageBox.question(
+            self,
+            "Eliminar elemento de carga",
+            texto,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        self._guardar_datos()
+        datos = cargas.datos_cargas()
+        datos.get("elementos", {}).pop(nombre, None)
+        datos["aplicaciones"] = [
+            aplicacion for aplicacion in datos.get("aplicaciones", [])
+            if aplicacion.get("carga_id") != carga_id
+        ]
+        rutas.guardar_json(rutas.CARGAS, datos)
+        self.recargar()
+        if self.al_guardar:
+            self.al_guardar()
+
+    def quitar_aplicacion_seleccionada(self) -> None:
+        fila = self.tabla_aplicaciones.currentRow()
+        item = self.tabla_aplicaciones.item(fila, 0) if fila >= 0 else None
+        if item is None:
+            QMessageBox.information(
+                self, "Quitar asignación", "Seleccioná primero una aplicación de la tabla."
+            )
+            return
+        indice = item.data(Qt.ItemDataRole.UserRole)
+        datos = cargas.datos_cargas()
+        aplicaciones = datos.get("aplicaciones", [])
+        if not isinstance(indice, int) or indice < 0 or indice >= len(aplicaciones):
+            QMessageBox.warning(
+                self, "Asignación no encontrada", "Actualizá la lista y volvé a seleccionarla."
+            )
+            return
+        aplicacion = aplicaciones[indice]
+        nombre = self.tabla_aplicaciones.item(fila, 1).text()
+        portico = str(aplicacion.get("portico", ""))
+        tramo = str(aplicacion.get("tramo_id", ""))
+        respuesta = QMessageBox.question(
+            self,
+            "Quitar asignación",
+            f"¿Quitar «{nombre}» de {portico} · {tramo}?\n\n"
+            "El elemento seguirá en el catálogo y sus otras aplicaciones no cambiarán.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        self._guardar_datos()
+        datos = cargas.datos_cargas()
+        aplicaciones = datos.get("aplicaciones", [])
+        if indice >= len(aplicaciones):
+            QMessageBox.warning(
+                self, "Asignación modificada", "La lista cambió antes de guardar. Actualizá e intentá de nuevo."
+            )
+            self.recargar()
+            return
+        aplicaciones.pop(indice)
+        rutas.guardar_json(rutas.CARGAS, datos)
+        self.recargar()
+        if self.al_guardar:
+            self.al_guardar()
+
+    def editar_aplicaciones(self, *_args) -> None:
+        nombre = self.selector_aplicaciones.currentData()
+        if not nombre:
+            QMessageBox.information(self, "Aplicar cargas", "Elegí un elemento de carga.")
             return
         self._guardar_datos()
         datos = cargas.datos_cargas()
@@ -850,6 +1567,10 @@ class PaginaCargas(QWidget):
             carga_id, elemento, rutas.cargar_estructura(), datos.get("aplicaciones", []), self,
             portico_inicial=self.portico_actual(),
         )
+        editor.setWindowTitle(
+            f"Aplicaciones · {nombre} · pórtico activo: "
+            f"{self.portico_actual() or 'ninguno'}"
+        )
         if editor.exec() != QDialog.DialogCode.Accepted:
             return
         datos["aplicaciones"] = editor.resultado()
@@ -859,7 +1580,7 @@ class PaginaCargas(QWidget):
             self.al_guardar()
 
     def nueva(self) -> None:
-        tipos = ("losa", "cubierta", "muro", "encadenado")
+        tipos = ("cubierta", "muro", "encadenado")
         tipo, ok = QInputDialog.getItem(self, "Nueva carga", "Tipo de elemento:", tipos, 0, False)
         if not ok:
             return
@@ -937,7 +1658,7 @@ class PaginaCargas(QWidget):
         nombre = self._fila_nombre()
         for fila in range(self.tabla.rowCount()):
             item = self.tabla.item(fila, 0)
-            activo = self.tabla.item(fila, 6)
+            activo = self.tabla.item(fila, 7)
             if item and activo:
                 elementos[item.data(Qt.ItemDataRole.UserRole)]["activo"] = (
                     activo.checkState() == Qt.CheckState.Checked

@@ -50,6 +50,53 @@ def carga_lineal_desde_superficie(q_superficial: float, ancho_tributario: float)
     return q_superficial * ancho_tributario
 
 
+def direccion_portico(datos_portico: dict) -> str:
+    """Dirección longitudinal de planta; estructuras anteriores se consideran X."""
+    referencia = datos_portico.get("referencia_planta", {}) or {}
+    direccion = str(referencia.get("direccion", "x")).strip().lower()
+    return direccion if direccion in ("x", "y") else "x"
+
+
+def ancho_tributario_entre_porticos(estructura: dict, nombre_portico: str) -> float | None:
+    """Suma medias separaciones entre pórticos paralelos del mismo plano."""
+    portico_objetivo = estructura.get(nombre_portico)
+    if not isinstance(portico_objetivo, dict):
+        return None
+    direccion = direccion_portico(portico_objetivo)
+    posiciones = []
+    cantidad_porticos = 0
+    for nombre, datos in estructura.items():
+        if not isinstance(datos, dict) or direccion_portico(datos) != direccion:
+            continue
+        cantidad_porticos += 1
+        try:
+            posicion = float(datos["posicion_planta_m"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        posiciones.append((posicion, str(nombre)))
+    if (
+        not posiciones
+        or len(posiciones) != cantidad_porticos
+        or len({pos for pos, _ in posiciones}) != len(posiciones)
+    ):
+        return None
+    posiciones.sort()
+    indice = next(
+        (i for i, (_, nombre) in enumerate(posiciones) if nombre == nombre_portico),
+        None,
+    )
+    if indice is None:
+        return None
+
+    posicion = posiciones[indice][0]
+    ancho = 0.0
+    if indice > 0:
+        ancho += (posicion - posiciones[indice - 1][0]) / 2
+    if indice + 1 < len(posiciones):
+        ancho += (posiciones[indice + 1][0] - posicion) / 2
+    return ancho if ancho > 0 else None
+
+
 def presion_viento(V: float, rho: float = 1.25) -> float:
     """Presión dinámica del viento en kN/m2 (CIRSOC 102)."""
     return 0.5 * rho * (V**2) / 1000

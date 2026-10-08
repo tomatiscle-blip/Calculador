@@ -54,7 +54,7 @@ class VistaPortico(QWidget):
             len({c.get("aplicacion_id", "") for c in cargas_tramo})
             for cargas_tramo in self.cargas.values()
         ), default=0)
-        self.setMinimumHeight(max(250, 210 + self.capas_carga * 30))
+        self.setMinimumHeight(max(250, 190 + self.capas_carga * 24))
         proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
         configuracion_viento = proyecto.get("viento", {}) or {}
         if configuracion_viento.get("activo"):
@@ -86,7 +86,14 @@ class VistaPortico(QWidget):
         for cid in ids:
             carga = next(c for grupo in self.cargas.values() for c in grupo if c.get("carga_id", "") == cid)
             tipos = ", ".join(dict.fromkeys(c["tipo"] for grupo in self.cargas.values() for c in grupo if c.get("carga_id") == cid))
-            lineas.append(f'<span style="color:{self.colores[cid].name()};font-weight:bold">━━</span> {carga.get("descripcion", cid)} · {tipos}')
+            formas = ", ".join(dict.fromkeys(
+                "puntual" if c.get("tipo_aplicacion") == "puntual" else "lineal"
+                for grupo in self.cargas.values() for c in grupo if c.get("carga_id") == cid
+            ))
+            lineas.append(
+                f'<span style="color:{self.colores[cid].name()};font-weight:bold">━━</span> '
+                f'{carga.get("descripcion", cid)} · {formas} · {tipos}'
+            )
         if self.viento_lineal_kN_m:
             altura_total = max(
                 (float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values()),
@@ -164,7 +171,7 @@ class VistaPortico(QWidget):
             return
         ancho, alto = self.width(), self.height()
         margen_x = 56.0
-        margen_y_superior = max(48.0, 32.0 + self.capas_carga * 30.0)
+        margen_y_superior = max(44.0, 30.0 + self.capas_carga * 24.0)
         margen_y_inferior = 38.0
         xmin, xmax = min(xs), max(xs)
         ymin, ymax = min(ys), max(ys)
@@ -189,7 +196,7 @@ class VistaPortico(QWidget):
             painter.drawEllipse(punto(x, y0), 3.5, 3.5)
 
         font = QFont()
-        font.setPointSize(7)
+        font.setPointSize(8)
         painter.setFont(font)
         for tramo in self.tramos:
             a, b = punto(tramo["x0"], tramo["y"]), punto(tramo["x1"], tramo["y"])
@@ -219,6 +226,42 @@ class VistaPortico(QWidget):
         for (tramo_id, aplicacion_id), cargas_aplicacion in grupos.items():
             geometria = por_id[tramo_id]
             carga_ref = cargas_aplicacion[0]
+            color_linea = self.colores.get(carga_ref.get("carga_id", ""), QColor("#7c3aed"))
+            if carga_ref.get("tipo_aplicacion") == "puntual":
+                x_local = float(carga_ref["x_m"])
+                x_aplicado = (
+                    geometria["x1"] - x_local
+                    if geometria["invertir_carga"]
+                    else geometria["x0"] + x_local
+                )
+                x_aplicado = max(geometria["x0"], min(geometria["x1"], x_aplicado))
+                posicion = punto(x_aplicado, geometria["y"])
+                nivel = niveles_tramo.get(tramo_id, 0)
+                niveles_tramo[tramo_id] = nivel + 1
+                y_inicio = posicion.y() - 16 - nivel * 24
+                valor = float(carga_ref["valor_kN"])
+                sentido = float(carga_ref.get("signo", -1))
+                y_fin = y_inicio + (10 if sentido < 0 else -10)
+                painter.setPen(QPen(color_linea, 1.7))
+                painter.drawLine(QPointF(posicion.x(), y_inicio), QPointF(posicion.x(), y_fin))
+                delta = 4 if sentido < 0 else -4
+                painter.setBrush(color_linea)
+                painter.drawPolygon(QPolygonF([
+                    QPointF(posicion.x(), y_fin),
+                    QPointF(posicion.x() - 3, y_fin - delta),
+                    QPointF(posicion.x() + 3, y_fin - delta),
+                ]))
+                influencia = carga_ref.get("influencia_m")
+                detalle_influencia = (
+                    f" · L/2={float(influencia):.2f} m"
+                    if influencia is not None else ""
+                )
+                etiqueta = f"{carga_ref['tipo']} {valor:.2f} kN{detalle_influencia}"
+                painter.setPen(QColor("#0f172a"))
+                texto_x = min(posicion.x() + 5, ancho - painter.fontMetrics().horizontalAdvance(etiqueta) - 4)
+                painter.drawText(QPointF(max(4.0, texto_x), y_inicio - 2), etiqueta)
+                continue
+
             x0 = float(carga_ref["x_inicio_m"])
             x1 = float(carga_ref["x_fin_m"])
             if geometria["invertir_carga"]:
@@ -233,12 +276,11 @@ class VistaPortico(QWidget):
             niveles_tramo[tramo_id] = nivel + 1
             base = punto(inicio, geometria["y"])
             final = punto(fin, geometria["y"])
-            y_linea = base.y() - 16 - nivel * 30
+            y_linea = base.y() - 14 - nivel * 24
             tipos = {}
             for carga in cargas_aplicacion:
                 tipo = carga["tipo"]
                 tipos[tipo] = tipos.get(tipo, 0.0) + float(carga["valor_kN_m"])
-            color_linea = self.colores.get(carga_ref.get("carga_id", ""), QColor("#7c3aed"))
             painter.setPen(QPen(color_linea, 1.5))
             painter.drawLine(QPointF(base.x(), y_linea), QPointF(final.x(), y_linea))
 

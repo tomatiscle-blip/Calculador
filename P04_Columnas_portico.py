@@ -2,6 +2,8 @@ import math
 import json
 import os
 import csv, os
+import sys
+from calc import rutas
 
 # ==============================
 # Funciones de predimensión
@@ -102,7 +104,9 @@ def cargar_diagrama(nombre):
             return json.load(f)
 
 # Ejemplo de uso
-diagrama = cargar_diagrama("datos/diagramas_interaccion/diagramaI4_fc20_gamma080.json")
+diagrama = cargar_diagrama(str(
+    rutas.DIAGRAMAS_INTERACCION / "diagramaI4_fc20_gamma080.json"
+))
 
 print("Título:", diagrama["title"])
 print("Resumen verificación:", diagrama["verificationSummary"])
@@ -208,10 +212,10 @@ def interp_rho(curves, rho_target):
 def cargar(seccion_tipo, fc, gamma):
     """Carga el diagrama JSON correspondiente a fc y gamma."""
     gamma_str = f"{int(gamma*100):03}"
-    carpeta = "datos/diagramas_interaccion"
-    for archivo in os.listdir(carpeta):
-        if archivo.startswith(f"diagrama{seccion_tipo}") and f"_fc{fc}_" in archivo and f"gamma{gamma_str}" in archivo:
-            with open(os.path.join(carpeta, archivo), encoding="utf-8") as f:
+    carpeta = rutas.DIAGRAMAS_INTERACCION
+    for archivo in carpeta.iterdir():
+        if archivo.name.startswith(f"diagrama{seccion_tipo}") and f"_fc{fc}_" in archivo.name and f"gamma{gamma_str}" in archivo.name:
+            with open(archivo, encoding="utf-8") as f:
                 return json.load(f)
     raise FileNotFoundError(f"No se encontró diagrama para fc={fc}, γ={gamma}")
 
@@ -608,7 +612,11 @@ def guardar_resultados_csv(
 ):
     import os, csv
 
-    archivo = os.path.join(carpeta, "planilla_columnas.csv")
+    archivo = (
+        str(rutas.PLANILLA_COLUMNAS)
+        if carpeta == "salidas/columnas"
+        else os.path.join(carpeta, "planilla_columnas.csv")
+    )
     campos = [
         "Pórtico","Columna","Tipo","Tipo_seccion","Dimensiones",
         "Altura_libre(m)","Recubrimiento(cm)",
@@ -617,7 +625,7 @@ def guardar_resultados_csv(
         "paso_estribo(cm)","cumple_estribo","Nota_diagrama"
     ]
 
-    os.makedirs(carpeta, exist_ok=True)
+    os.makedirs(os.path.dirname(archivo), exist_ok=True)
 
     # Leer contenido existente
     filas = []
@@ -682,15 +690,13 @@ def factor_k(nivel_columna):
     - Planta baja: 1.0
     - Pisos superiores: 0.7
     """
-    if nivel_columna.lower() in ["pb", "planta baja", "0"]:
+    if str(nivel_columna).lower() in ["pb", "planta baja", "0", "0.0"]:
         return 1.0
     else:
         return 0.7
 
 
 from pathlib import Path
-import json
-from calc import rutas
 
 # =========================================================
 # PROGRAMA PRINCIPAL – análisis de COLUMNAS
@@ -706,18 +712,19 @@ porticos = list(estructura.keys())
 for i, nombre in enumerate(porticos, start=1):
     print(f"{i}: {nombre}")
 
-seleccion = input("Ingrese el número o nombre del pórtico a calcular: ")
-
-# 👉 permitir tanto número como nombre
-if seleccion.isdigit():
-    idx = int(seleccion) - 1
-    if idx < 0 or idx >= len(porticos):
-        raise ValueError("⚠️ Número de pórtico inválido")
-    nombre_portico = porticos[idx]
+if len(sys.argv) > 1:
+    nombre_portico = rutas.resolver_portico(sys.argv[1], estructura)
 else:
-    if seleccion not in estructura:
-        raise ValueError("⚠️ Pórtico no encontrado en el archivo JSON")
-    nombre_portico = seleccion
+    seleccion = input("Ingrese el número o nombre del pórtico a calcular: ")
+    if seleccion.isdigit():
+        idx = int(seleccion) - 1
+        if idx < 0 or idx >= len(porticos):
+            raise ValueError("⚠️ Número de pórtico inválido")
+        nombre_portico = porticos[idx]
+    else:
+        if seleccion not in estructura:
+            raise ValueError("⚠️ Pórtico no encontrado en el archivo JSON")
+        nombre_portico = seleccion
 
 memoria_txt = []
 memoria_txt.append(f"\n=== MEMORIA DE CÁLCULO ===\n")
@@ -726,6 +733,9 @@ memoria_txt.append(f"PÓRTICO {nombre_portico}\n")
 
 print(f"Procesando pórtico: {nombre_portico}")
 columnas = estructura[nombre_portico].get("columnas", {})
+archivo_motor = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(nombre_portico)}.json"
+resultado_motor = rutas.leer_json(archivo_motor, {}) or {}
+envolvente_columnas = resultado_motor.get("envolvente", {}).get("columnas", {})
 
 if not columnas:
     print("⚠️  No hay columnas en este pórtico")
@@ -748,12 +758,25 @@ else:
         # -----------------------------
         # Datos básicos de la columna
         # -----------------------------
-        Pu = abs(col["P_kN"])            # carga mayorada
+        solicitacion = envolvente_columnas.get(col_id, {})
+        if solicitacion:
+            if "N" not in solicitacion or "M_inf" not in solicitacion or "M_sup" not in solicitacion:
+                raise ValueError(f"Solicitaciones incompletas del motor para {col_id}.")
+            Pu = abs(solicitacion["N"])
+            Mu_inf = solicitacion["M_inf"]
+            Mu_sup = solicitacion["M_sup"]
+        else:
+            if "P_kN" not in col:
+                raise ValueError(
+                    f"No hay solicitaciones Pynite para {col_id} y la geometría tampoco "
+                    "contiene resultados de un cálculo anterior."
+                )
+            Pu = abs(col["P_kN"])
+            Mu_inf = col.get("Mu_kNm_inf", 0)
+            Mu_sup = col.get("Mu_kNm_sup", 0)
         altura = col["altura_m"]
         fck = definir_fck(col_id, Pu)    # criterio de resistencia
         fy = 420                         # MPa fijo
-        Mu_inf = col.get("Mu_kNm_inf", 0)
-        Mu_sup = col.get("Mu_kNm_sup", 0)
         Mu = max(abs(Mu_inf), abs(Mu_sup))
 
         # -----------------------------

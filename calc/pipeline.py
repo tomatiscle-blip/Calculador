@@ -106,6 +106,37 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
                     f"{tramo_id}: declara {luz_declarada:g} m, pero las columnas separan "
                     f"{luz_real:g} m"
                 )
+    if datos.get("niveles_geometria"):
+        vigas_por_piso = {
+            int(str(viga_id).split("-")[0][1:]): viga
+            for viga_id, viga in datos.get("vigas", {}).items()
+            if str(viga_id).split("-")[0][:1].upper() == "V"
+            and str(viga_id).split("-")[0][1:].isdigit()
+        }
+        for cid, columna in columnas.items():
+            partes = str(cid).split("-", 1)
+            if len(partes) != 2 or not partes[0].startswith("C") or not partes[0][1:].isdigit():
+                continue
+            piso = int(partes[0][1:])
+            if piso == 0:
+                continue
+            viga_inferior = vigas_por_piso.get(piso - 1)
+            x = float(columna.get("x", 0.0))
+            nivel = float(columna.get("nivel", 0.0))
+            intervalos = []
+            if viga_inferior:
+                for tramo in viga_inferior.get("tramos", []):
+                    if abs(float(viga_inferior.get("cota_m", nivel)) - nivel) > 0.01:
+                        continue
+                    if tramo.get("x_inicio") is not None and tramo.get("x_fin") is not None:
+                        intervalos.append(sorted((
+                            float(tramo["x_inicio"]), float(tramo["x_fin"])
+                        )))
+            if not any(a - 0.01 <= x <= b + 0.01 for a, b in intervalos):
+                problemas.append(
+                    f"{cid}: su base en x={x:g} m, cota {nivel:g} m, no cae sobre una "
+                    "viga o voladizo del nivel inferior"
+                )
     resumen = f"{len(estructura)} pórtico(s); {nombre}: {n_columnas} columnas, {n_tramos} tramos"
     if problemas:
         return False, resumen + " · geometría incompleta: " + "; ".join(problemas)
@@ -128,6 +159,21 @@ def _marca_portico(portico: str = "") -> tuple[bool, str]:
     if not n_barras or not combinaciones:
         return False, "el archivo del motor no contiene resultados completos"
     return True, f"{n_barras} barras resueltas; {len(combinaciones)} combinaciones"
+
+
+def _firma_motor_vigente(portico: str) -> bool | None:
+    """Compara la firma de entradas del motor; None indica un resultado legado."""
+    archivo = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(portico)}.json"
+    datos = rutas.leer_json(archivo, {}) or {}
+    firma_guardada = datos.get("_firma_entradas_motor")
+    if not firma_guardada:
+        return None
+    try:
+        from .portico import huella_entrada
+
+        return firma_guardada == huella_entrada(portico)
+    except (OSError, TypeError, ValueError):
+        return False
 
 
 def _marca_vigas(portico: str = "") -> tuple[bool, str]:
@@ -247,7 +293,11 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="5. Vigas de hormigón",
         descripcion="Flexión, corte, flecha, fisuración y planilla de armado.",
         script="P02_Viga_portico.py",
-        entradas=(rutas.ESTRUCTURA, rutas.COEFICIENTES_KD),
+        entradas=(
+            rutas.ESTRUCTURA,
+            rutas.COEFICIENTES_KD,
+            rutas.ruta_salida("solicitaciones", "{portico}.json"),
+        ),
         salidas=(rutas.SAL_VIGAS / "resultados_{portico}_vigas.json",),
         depende_de=("portico",),
         interactiva=True,
@@ -267,7 +317,11 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="7. Columnas",
         descripcion="Esbeltez, cuantías y diagramas de interacción.",
         script="P04_Columnas_portico.py",
-        entradas=(rutas.ESTRUCTURA, rutas.DIAGRAMAS_INTERACCION),
+        entradas=(
+            rutas.ESTRUCTURA,
+            rutas.DIAGRAMAS_INTERACCION,
+            rutas.ruta_salida("solicitaciones", "{portico}.json"),
+        ),
         salidas=(
             rutas.PLANILLA_COLUMNAS,
             rutas.SAL_COLUMNAS / "memoria_{portico}.txt",
@@ -281,7 +335,12 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="8. Bases (zapatas)",
         descripcion="Dimensionado, tensiones del suelo, punzonado y armadura.",
         script="P05_Bases_portico.py",
-        entradas=(rutas.ESTRUCTURA, rutas.PLANILLA_COLUMNAS),
+        entradas=(
+            rutas.ESTRUCTURA,
+            rutas.PLANILLA_COLUMNAS,
+            rutas.TERRENO,
+            rutas.ruta_salida("solicitaciones", "{portico}.json"),
+        ),
         salidas=(
             rutas.SAL_BASES / "bases_{portico}.json",
             rutas.SAL_BASES / "bases_completas_{portico}.txt",
@@ -289,7 +348,7 @@ ETAPAS: tuple[Etapa, ...] = (
         depende_de=("columnas",),
         interactiva=True,
         marca=_marca_bases,
-        nota="A desarrollar: tomar q_adm y profundidad desde datos/terreno.json.",
+        nota="Usa q_adm y profundidad de fundación guardados en datos/terreno.json.",
     ),
     Etapa(
         clave="planos",
@@ -429,11 +488,21 @@ def estado_etapa(clave: str, portico: str = "") -> dict:
             estado = "sin_datos" if clave in ("geometria", "cargas") else "pendiente"
             return {**dato, "estado": estado, "detalle": detalle}
 
+    firma_motor_vigente = (
+        _firma_motor_vigente(portico) if clave == "portico" else None
+    )
+    if firma_motor_vigente is False:
+        return {
+            **dato,
+            "estado": "desactualizada",
+            "detalle": f"{detalle} · cambiaron las entradas mecánicas desde la última resolución".strip(" ·"),
+        }
+
     f_entrada = rutas.fecha_mas_reciente(entradas)
     f_salida = rutas.fecha_mas_reciente(salidas)
     if f_salida is None:
         return {**dato, "estado": "pendiente", "detalle": detalle or "todavía no se calculó"}
-    if f_entrada and f_entrada > f_salida + 1:
+    if f_entrada and f_entrada > f_salida + 1 and firma_motor_vigente is not True:
         aviso = "hay datos más nuevos que este resultado: conviene recalcular"
         return {**dato, "estado": "desactualizada", "detalle": f"{detalle} · {aviso}".strip(" ·")}
     return {**dato, "estado": "ok", "detalle": detalle}
@@ -555,4 +624,3 @@ def _main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_main(sys.argv[1:]))
-

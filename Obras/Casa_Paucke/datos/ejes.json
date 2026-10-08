@@ -1,0 +1,56 @@
+{
+  "x": [
+    {
+      "id": "x:x1",
+      "nombre": "X1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "x:x2",
+      "nombre": "X2",
+      "coordenada_m": 0.8
+    },
+    {
+      "id": "x:x3",
+      "nombre": "X3",
+      "coordenada_m": 5.0
+    },
+    {
+      "id": "x:x4",
+      "nombre": "X4",
+      "coordenada_m": 8.0
+    },
+    {
+      "id": "79380aea-18d8-4e26-9f33-ee51341fc448",
+      "nombre": "X5",
+      "coordenada_m": 12.0
+    }
+  ],
+  "y": [
+    {
+      "id": "y:y1",
+      "nombre": "Y1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "y:y2",
+      "nombre": "Y2",
+      "coordenada_m": 5.0
+    },
+    {
+      "id": "y:y3",
+      "nombre": "Y3",
+      "coordenada_m": 9.0
+    },
+    {
+      "id": "y:y4",
+      "nombre": "Y4",
+      "coordenada_m": 12.0
+    },
+    {
+      "id": "1850098b-6b79-4630-87a7-e72b83257b0a",
+      "nombre": "Y5",
+      "coordenada_m": 13.0
+    }
+  ]
+}

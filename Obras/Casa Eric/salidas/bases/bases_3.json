@@ -1,0 +1,121 @@
+{
+    "B0-a": {
+        "geotecnia": {
+            "lado_m": 0.61,
+            "area_m2": 0.37,
+            "excentricidad_m": 0.159,
+            "q_max_kPa": 219.79,
+            "q_min_kPa": -49.09,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 2.82,
+            "peso_total_kg": 1.1
+        },
+        "tronco": {
+            "lado_m": 0.4,
+            "altura_m": 0.45,
+            "volumen_m3": 0.072
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-b": {
+        "geotecnia": {
+            "lado_m": 0.87,
+            "area_m2": 0.75,
+            "excentricidad_m": 0.0,
+            "q_max_kPa": 85.35,
+            "q_min_kPa": 85.35,
+            "requiere_viga_fundacion": false
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 4,
+            "longitud_total_m": 5.84,
+            "peso_total_kg": 2.3
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-c": {
+        "geotecnia": {
+            "lado_m": 0.61,
+            "area_m2": 0.37,
+            "excentricidad_m": 0.159,
+            "q_max_kPa": 219.79,
+            "q_min_kPa": -49.09,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 2.82,
+            "peso_total_kg": 1.1
+        },
+        "tronco": {
+            "lado_m": 0.4,
+            "altura_m": 0.45,
+            "volumen_m3": 0.072
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "vigas_fundacion": {
+        "B0-a-B0-b": {
+            "longitud_m": 4.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 3.3,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 21,
+                "peso_kg": 10.0
+            }
+        },
+        "B0-b-B0-c": {
+            "longitud_m": 4.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 3.3,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 21,
+                "peso_kg": 10.0
+            }
+        }
+    }
+}

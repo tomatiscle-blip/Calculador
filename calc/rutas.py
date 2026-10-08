@@ -45,17 +45,23 @@ SAL_LOSAS: Path = SALIDAS / "losas"
 SAL_REACCIONES: Path = SALIDAS / "reacciones"
 SAL_SOLICITACIONES: Path = SALIDAS / "solicitaciones"
 
-CARPETAS_SALIDA = (
-    SALIDAS,
-    SAL_ANALISIS_CARGAS,
-    SAL_VIGAS,
-    SAL_COLUMNAS,
-    SAL_BASES,
-    SAL_DXF,
-    SAL_LOSAS,
-    SAL_REACCIONES,
-    SAL_SOLICITACIONES,
+_NOMBRES_CARPETAS_SALIDA = (
+    "analisis_cargas",
+    "vigas",
+    "columnas",
+    "bases",
+    "dxf",
+    "losas",
+    "reacciones",
+    "solicitaciones",
 )
+
+
+def _carpetas_salida(raiz: Path) -> tuple[Path, ...]:
+    return (raiz, *(raiz / nombre for nombre in _NOMBRES_CARPETAS_SALIDA))
+
+
+CARPETAS_SALIDA = _carpetas_salida(SALIDAS)
 
 # ---------------------------------------------------------------------------
 # Archivos de datos (entradas del cálculo)
@@ -67,7 +73,7 @@ PERFILES_METALICOS: Path = DATOS_GLOBAL / "perfiles_metalicos.json"
 COEFICIENTES_KD: Path = DATOS_GLOBAL / "coeficientes_kd.json"
 MOMENTS_INPUT: Path = DATOS / "moments_input.json"
 
-# Datos que la app todavía no tiene (se crean en la Fase D del plan)
+# Datos de entrada propios de cada obra, gestionados desde la app.
 TERRENO: Path = DATOS / "terreno.json"
 CARGAS: Path = DATOS / "cargas.json"
 TIPOS_LOSA: Path = DATOS / "tipos_losa.json"
@@ -116,8 +122,7 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     SAL_LOSAS = SALIDAS / "losas"
     SAL_REACCIONES = SALIDAS / "reacciones"
     SAL_SOLICITACIONES = SALIDAS / "solicitaciones"
-    CARPETAS_SALIDA = (SALIDAS, SAL_ANALISIS_CARGAS, SAL_VIGAS, SAL_COLUMNAS,
-                       SAL_BASES, SAL_DXF, SAL_LOSAS, SAL_REACCIONES, SAL_SOLICITACIONES)
+    CARPETAS_SALIDA = _carpetas_salida(SALIDAS)
     ESTRUCTURA = DATOS / "estructura.json"
     CARGAS = DATOS / "cargas.json"
     TERRENO = DATOS / "terreno.json"
@@ -143,7 +148,8 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
     if carpeta.exists():
         raise FileExistsError(f"Ya existe la obra {limpio}.")
     (carpeta / "datos").mkdir(parents=True)
-    (carpeta / "salidas").mkdir()
+    for directorio in _carpetas_salida(carpeta / "salidas"):
+        directorio.mkdir(parents=True, exist_ok=True)
     if copiar_actual:
         origen_datos = DATOS
         for archivo in ("cargas.json", "estructura.json", "losas.json", "terreno.json",
@@ -179,6 +185,7 @@ def seleccionar_obra(carpeta: Path | str) -> Path:
     if not destino.is_dir():
         raise FileNotFoundError(f"No existe la carpeta de obra: {destino}")
     _actualizar_rutas_obra(destino)
+    asegurar_directorios()
     guardar_json(CONFIG_OBRA_ACTIVA, {"obra": destino.name})
     return destino
 

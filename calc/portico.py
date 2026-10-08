@@ -30,6 +30,8 @@ Uso:
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
+import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -85,12 +87,174 @@ def _piso_de_viga(viga_id: str) -> int | None:
     return None
 
 
+def _aplicaciones_losas_portico(
+    nombre_portico: str, elementos: dict, estructura_completa: dict
+) -> tuple[list[dict], list[str]]:
+    """Convierte reacciones de paños por ejes en cargas lineales sobre sus vigas."""
+    estructura = estructura_completa.get(nombre_portico, {})
+    referencia = estructura.get("referencia_planta", {}) or {}
+    direccion_portico = str(referencia.get("direccion", "x")).lower()
+    losas_asociadas = []
+    for nombre_losa, elemento in elementos.items():
+        panel = elemento.get("panel_ejes")
+        apoyos = elemento.get("apoya_en")
+        if (
+            elemento.get("tipo") != "losa"
+            or not elemento.get("activo", True)
+            or not isinstance(panel, dict)
+            or not isinstance(apoyos, dict)
+            or direccion_portico
+            != ("y" if str(panel.get("direccion_luz", "x")) == "x" else "x")
+            or not any(
+                (apoyos.get(lado) or {}).get("portico") == nombre_portico
+                for lado in ("izq", "der")
+            )
+        ):
+            continue
+        losas_asociadas.append((nombre_losa, elemento, panel, apoyos))
+    if not losas_asociadas:
+        return [], []
+
+    eje_longitudinal_id = str(referencia.get("eje_longitudinal_id", ""))
+    ejes = rutas.leer_json(rutas.DATOS / "ejes.json", {}) or {}
+    eje_longitudinal = next(
+        (
+            eje for eje in ejes.get(direccion_portico, [])
+            if str(eje.get("id", "")) == eje_longitudinal_id
+        ),
+        None,
+    )
+    origen = referencia.get("origen_longitudinal_m")
+    if origen is None and eje_longitudinal is not None:
+        origen = float(eje_longitudinal["coordenada_m"])
+    if origen is None:
+        return [], [
+            f"{nombre_portico}: no se pudo ubicar el origen longitudinal para cargas de losa."
+        ]
+    origen = float(origen)
+    vigas = {
+        str(viga_id): viga
+        for viga_id, viga in (estructura.get("vigas", {}) or {}).items()
+    }
+    aplicaciones: list[dict] = []
+    avisos: list[str] = []
+    for nombre_losa, elemento, panel, apoyos in losas_asociadas:
+        direccion_luz = str(panel.get("direccion_luz", "x"))
+        ejes_apoyo = (panel.get("ejes", {}) or {}).get(direccion_luz, {})
+        inicio_libre = float(panel.get("coordenada_libre_inicio_m", 0.0))
+        fin_libre = float(panel.get("coordenada_libre_fin_m", 0.0))
+        luz = float(elemento.get("luz_transversal_m", 0.0) or 0.0)
+        if luz <= 0 or fin_libre <= inicio_libre:
+            avisos.append(f"{nombre_losa}: geometría de paño inválida; no se aplicó.")
+            continue
+
+        for lado, borde in zip(("izq", "der"), ("inicio", "fin")):
+            destino = apoyos.get(lado) or {}
+            if destino.get("portico") != nombre_portico:
+                continue
+            viga_id = str(destino.get("viga", ""))
+            viga = vigas.get(viga_id)
+            if viga is None:
+                avisos.append(
+                    f"{nombre_losa}: la viga {viga_id or '?'} de apoyo ya no existe en "
+                    f"{nombre_portico}; no se aplicó."
+                )
+                continue
+            cota_apoyo = panel.get("cota_apoyo_m")
+            if cota_apoyo is not None and (
+                viga.get("cota_m") is None
+                or abs(float(viga["cota_m"]) - float(cota_apoyo)) > 1e-4
+            ):
+                avisos.append(
+                    f"{nombre_losa}: la viga {viga_id} de {nombre_portico} ya no está "
+                    "en el nivel elegido; no se aplicó."
+                )
+                continue
+
+            eje_guardado = ejes_apoyo.get(borde, {}) or {}
+            eje_actual_id = str(referencia.get("eje_id", ""))
+            familia_transversal = "y" if direccion_portico == "x" else "x"
+            if (
+                str(eje_guardado.get("id", "")) != eje_actual_id
+                or abs(float(referencia.get("desfase_m", 0.0) or 0.0)) > 1e-8
+            ):
+                avisos.append(
+                    f"{nombre_losa}: el pórtico {nombre_portico} ya no coincide con el "
+                    "eje de apoyo guardado; no se aplicó."
+                )
+                continue
+            eje_actual = next(
+                (
+                    eje for eje in ejes.get(familia_transversal, [])
+                    if str(eje.get("id", "")) == eje_actual_id
+                ),
+                None,
+            )
+            if eje_actual is None or abs(
+                float(eje_actual["coordenada_m"])
+                - float(eje_guardado.get("coordenada_m", 0.0))
+            ) > 1e-4:
+                avisos.append(
+                    f"{nombre_losa}: cambió la posición del eje de apoyo de "
+                    f"{nombre_portico}; revisá la geometría del paño."
+                )
+                continue
+
+            intervalos: list[tuple[float, float]] = []
+            aplicaciones_lado = []
+            for tramo in viga.get("tramos", []):
+                tramo_id = str(tramo.get("id", ""))
+                longitud = float(tramo.get("longitud_m", 0.0))
+                local_inicio = float(tramo.get("x_inicio", 0.0))
+                local_fin = float(tramo.get("x_fin", local_inicio + longitud))
+                global_inicio = origen + min(local_inicio, local_fin)
+                global_fin = origen + max(local_inicio, local_fin)
+                inicio = max(inicio_libre, global_inicio)
+                fin = min(fin_libre, global_fin)
+                if fin <= inicio + 1e-8:
+                    continue
+                if tramo.get("es_voladizo") and "der" in tramo_id.lower():
+                    x_inicio = longitud - (fin - global_inicio)
+                    x_fin = longitud - (inicio - global_inicio)
+                else:
+                    x_inicio = inicio - global_inicio
+                    x_fin = fin - global_inicio
+                intervalos.append((inicio, fin))
+                aplicaciones_lado.append({
+                    "id": f"losa:{elemento.get('id', nombre_losa)}:{lado}:{tramo_id}",
+                    "carga_id": elemento.get("id"),
+                    "portico": nombre_portico,
+                    "tramo_id": tramo_id,
+                    "x_inicio_m": x_inicio,
+                    "x_fin_m": x_fin,
+                    "ancho_modo": "manual",
+                    "ancho_tributario_m": luz / 2.0,
+                    "modo_cargas_previas": "sumar",
+                    "activa": True,
+                })
+            intervalos.sort()
+            cubierto_hasta = inicio_libre
+            for inicio, fin in intervalos:
+                if inicio > cubierto_hasta + 1e-6:
+                    break
+                cubierto_hasta = max(cubierto_hasta, fin)
+            if cubierto_hasta < fin_libre - 1e-6:
+                avisos.append(
+                    f"{nombre_losa}: la viga {viga_id} de {nombre_portico} no cubre "
+                    "todo el borde libre; no se aplicó su reacción."
+                )
+                continue
+            aplicaciones.extend(aplicaciones_lado)
+    return aplicaciones, avisos
+
+
 def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[str]]:
     """Calcula las aplicaciones activas de `datos/cargas.json` para un pórtico."""
     if not nombre_portico:
         return {}, []
     datos = cargas.datos_cargas()
-    estructura = rutas.cargar_estructura().get(nombre_portico, {})
+    estructura_completa = rutas.cargar_estructura()
+    estructura = estructura_completa.get(nombre_portico, {})
     tramos: dict[str, dict] = {}
     for viga in estructura.get("vigas", {}).values():
         for tramo in viga.get("tramos", []):
@@ -104,10 +268,56 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
     }
     biblioteca = None
     resultado: dict[str, list[dict]] = {}
-    avisos: list[str] = []
-    for aplicacion in datos.get("aplicaciones", []):
-        if aplicacion.get("portico") != nombre_portico or not aplicacion.get("activa", True):
+    aplicaciones_losas, avisos = _aplicaciones_losas_portico(
+        nombre_portico, datos.get("elementos", {}), estructura_completa
+    )
+    aplicaciones_existentes = list(datos.get("aplicaciones", []))
+    ids_aplicados_manualmente = {
+        aplicacion.get("carga_id")
+        for aplicacion in aplicaciones_existentes
+        if aplicacion.get("activa", True)
+        and aplicacion.get("portico") == nombre_portico
+        and aplicacion.get("carga_id")
+    }
+    ids_losa_manual = {
+        aplicacion.get("carga_id")
+        for aplicacion in aplicaciones_losas
+        if aplicacion.get("carga_id") in ids_aplicados_manualmente
+    }
+    if ids_losa_manual:
+        nombres_por_id = {
+            elemento.get("id"): nombre
+            for nombre, elemento in datos.get("elementos", {}).items()
+        }
+        for carga_id in sorted(ids_losa_manual, key=str):
+            avisos.append(
+                f"{nombres_por_id.get(carga_id, carga_id)}: ya tiene una aplicación "
+                f"manual en {nombre_portico}; no se sumó además su reacción automática."
+            )
+        aplicaciones_losas = [
+            aplicacion for aplicacion in aplicaciones_losas
+            if aplicacion.get("carga_id") not in ids_losa_manual
+        ]
+    aplicaciones = aplicaciones_existentes + aplicaciones_losas
+    for aplicacion in aplicaciones:
+        if not aplicacion.get("activa", True):
             continue
+        reacciones = aplicacion.get("reacciones", [])
+        if reacciones:
+            apoyo = next(
+                (r for r in reacciones if r.get("portico") == nombre_portico),
+                None,
+            )
+            if apoyo is None:
+                continue
+            tramo_id = apoyo.get("tramo_id", "")
+            x_puntual = float(apoyo.get("x_m", 0.0))
+        else:
+            if aplicacion.get("portico") != nombre_portico:
+                continue
+            apoyo = None
+            tramo_id = aplicacion.get("tramo_id", "")
+
         encontrado = por_id.get(aplicacion.get("carga_id"))
         if not encontrado:
             avisos.append(f"Aplicación {aplicacion.get('id', '?')}: no existe su carga; se ignora")
@@ -115,17 +325,21 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
         nombre, fuente = encontrado
         if not fuente.get("activo", True):
             continue
-        tramo_id = aplicacion.get("tramo_id", "")
         tramo = tramos.get(tramo_id)
         if not tramo:
             avisos.append(f"{aplicacion.get('id', '?')}: no existe el tramo {tramo_id}; se ignora")
             continue
         longitud = float(tramo.get("longitud_m", 0.0))
-        x0 = float(aplicacion.get("x_inicio_m", 0.0))
-        x1 = float(aplicacion.get("x_fin_m", longitud))
-        if longitud <= 0 or x0 < 0 or x1 <= x0 or x1 > longitud + 1e-8:
-            avisos.append(f"{aplicacion.get('id', '?')}: intervalo fuera del tramo {tramo_id}; se ignora")
-            continue
+        if apoyo is not None:
+            if longitud <= 0 or x_puntual < 0 or x_puntual > longitud + 1e-8:
+                avisos.append(f"{aplicacion.get('id', '?')}: punto fuera del tramo {tramo_id}; se ignora")
+                continue
+        else:
+            x0 = float(aplicacion.get("x_inicio_m", 0.0))
+            x1 = float(aplicacion.get("x_fin_m", longitud))
+            if longitud <= 0 or x0 < 0 or x1 <= x0 or x1 > longitud + 1e-8:
+                avisos.append(f"{aplicacion.get('id', '?')}: intervalo fuera del tramo {tramo_id}; se ignora")
+                continue
 
         elemento = deepcopy(fuente)
         ancho = None
@@ -136,6 +350,10 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
                 ancho = luz / 2
             elif modo == "luz_completa":
                 ancho = luz
+            elif modo == "entre_porticos":
+                ancho = cargas.ancho_tributario_entre_porticos(
+                    estructura_completa, nombre_portico
+                )
             else:
                 ancho = aplicacion.get("ancho_tributario_m")
             if ancho is None or float(ancho) <= 0:
@@ -148,6 +366,34 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
             items = cargas.items_de_elemento(f"{fuente.get('id')} · {nombre}", elemento, biblioteca)
         except (KeyError, ValueError) as exc:
             avisos.append(f"{aplicacion.get('id', '?')}: no se pudo calcular {nombre}: {exc}")
+            continue
+
+        if apoyo is not None:
+            influencia = float(apoyo.get("influencia_m", 0.0))
+            if influencia <= 0 or elemento.get("tipo") != "muro":
+                avisos.append(
+                    f"{aplicacion.get('id', '?')}: la reacción transversal requiere muro y ancho positivo; se ignora"
+                )
+                continue
+            x_local = x_puntual
+            if tramo.get("es_voladizo") and "der" in str(tramo_id).lower():
+                x_local = longitud - x_puntual
+            for item in items:
+                if item["tipo"] != "D":
+                    continue
+                resultado.setdefault(tramo_id, []).append({
+                    "aplicacion_id": aplicacion.get("id", ""),
+                    "carga_id": fuente.get("id", ""),
+                    "descripcion": nombre,
+                    "tipo": "D",
+                    "tipo_aplicacion": "puntual",
+                    "valor_kN": float(item["valor"]) * influencia,
+                    "x_m": x_local,
+                    "influencia_m": influencia,
+                    "separacion_m": float(aplicacion.get("separacion_m", influencia * 2)),
+                    "modo_cargas_previas": "sumar",
+                    "signo": -1.0,
+                })
             continue
 
         # Pynite toma las cargas parciales desde el eje local del miembro. En el
@@ -186,15 +432,20 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     fijo fuera de él: DZ, RX y RY bloqueados en todos los nudos). Aplica las
     cargas como casos base D, L, W y P y deja cargadas las combinaciones.
 
-    Devuelve (modelo, mapa_de_barras, avisos). El mapa dice el nombre Pynite de
-    cada barra: mapa['columnas'][cid], mapa['vigas'][tramo], mapa['voladizos'][tramo].
+    Devuelve (modelo, mapa_de_barras, avisos). Columnas conservan un miembro FE
+    por ID; vigas y voladizos exponen listas de segmentos FE bajo el ID lógico
+    original, para que las transferencias y cargas interiores no cambien la API
+    de solicitaciones.
     """
     aplicaciones, avisos = _cargas_asignadas(nombre)
     m = FEModel3D()
     m.add_material("mat", E_MOD, G_MOD, POISSON, 0.0)
     m.add_section("sec", A_SEC, I_SEC, I_SEC, J_SEC)
 
-    mapa: dict[str, dict] = {"columnas": {}, "vigas": {}, "voladizos": {}}
+    mapa: dict[str, dict] = {
+        "columnas": {}, "vigas": {}, "voladizos": {}, "segmentos": {},
+        "nudos_columna_inferior": set(), "nudos_viga": set(),
+    }
     # Solo se informan como aplicadas las cargas de miembros que se pudieron
     # crear en el modelo. Una asignación a un tramo sin apoyos no debe aparecer
     # en el resultado como si hubiera entrado al cálculo.
@@ -222,6 +473,8 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         m.def_support(nt, False, False, True, True, True, False)
         m.add_member(f"C-{cid}", nb, nt, "mat", "sec")
         mapa["columnas"][cid] = f"C-{cid}"
+        if y0 > 1e-6:
+            mapa["nudos_columna_inferior"].add(nb)
 
     # --- Bases (apoyos) ----------------------------------------------------
     for base_id, base in portico.get("bases", {}).items():
@@ -248,30 +501,101 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
 
         for i, tramo in enumerate(viga.get("tramos", [])):
             cargas_tramo = tramo.get("cargas", {})
-            miembro_id = f"V-{tramo['id']}"
-
+            tramo_id = str(tramo["id"])
+            miembro_ids = []
             if tramo.get("es_voladizo"):
                 if "izq" in tramo["id"]:
-                    tip_x, base_x = _k(cols[0]["x"] - tramo["longitud_m"]), _k(cols[0]["x"])
+                    camino_inicio = _k(cols[0]["x"] - tramo["longitud_m"])
+                    camino_fin = _k(cols[0]["x"])
                 else:
-                    tip_x, base_x = _k(cols[-1]["x"] + tramo["longitud_m"]), _k(cols[-1]["x"])
-                n_tip, n_base = _nodo(tip_x, y_viga), _nodo(base_x, y_viga)
-                if n_tip not in m.nodes:
-                    m.add_node(n_tip, tip_x, y_viga, 0.0)
-                    m.def_support(n_tip, False, False, True, True, True, False)
-                # del extremo libre hacia la columna: mismo orden que usó anaStruct
-                m.add_member(miembro_id, n_tip, n_base, "mat", "sec")
-                mapa["voladizos"][tramo["id"]] = miembro_id
+                    camino_inicio = _k(cols[-1]["x"] + tramo["longitud_m"])
+                    camino_fin = _k(cols[-1]["x"])
             else:
                 if i >= len(cols) - 1:
                     avisos.append(f"{tramo['id']}: faltan columnas para el tramo; se ignora")
                     continue
-                m.add_member(miembro_id, _nodo(cols[i]["x"], y_viga), _nodo(cols[i + 1]["x"], y_viga), "mat", "sec")
-                mapa["vigas"][tramo["id"]] = miembro_id
+                camino_inicio = _k(tramo.get("x_inicio", cols[i]["x"]))
+                camino_fin = _k(tramo.get("x_fin", cols[i + 1]["x"]))
+            if abs(camino_fin - camino_inicio) <= 1e-8:
+                avisos.append(f"{tramo_id}: longitud nula; se ignora")
+                continue
+            signo_x = 1.0 if camino_fin > camino_inicio else -1.0
+            longitud_camino = abs(camino_fin - camino_inicio)
+            puntos_nativos = tramo.get("cargas_puntuales", [])
+            puntos_aplicados = [
+                carga for carga in aplicaciones.get(tramo_id, [])
+                if carga.get("tipo_aplicacion") == "puntual"
+            ]
+            estaciones_carga = []
+            for cp in puntos_nativos:
+                coordenadas = cp.get("coordenadas", {})
+                x_cp = _k(coordenadas.get("x", camino_inicio))
+                y_cp = _k(coordenadas.get("y", y_viga))
+                estacion = (x_cp - camino_inicio) * signo_x
+                if estacion < -1e-6 or estacion > longitud_camino + 1e-6 or abs(y_cp - y_viga) > 1e-4:
+                    avisos.append(f"{tramo_id}: carga puntual fuera de la viga; se ignora")
+                    continue
+                estaciones_carga.append((
+                    max(0.0, min(longitud_camino, estacion)), x_cp, cp, "nativa"
+                ))
+            for carga in puntos_aplicados:
+                estacion = float(carga["x_m"])
+                if estacion < -1e-6 or estacion > longitud_camino + 1e-6:
+                    avisos.append(f"{tramo_id}: carga puntual aplicada fuera de la viga; se ignora")
+                    continue
+                estacion = max(0.0, min(longitud_camino, estacion))
+                x_cp = _k(camino_inicio + signo_x * estacion)
+                estaciones_carga.append((estacion, x_cp, carga, "aplicacion"))
 
-            cargas_nuevas = aplicaciones.get(tramo["id"], [])
+            estaciones_nodos = [0.0, longitud_camino]
+            estaciones_nodos.extend(
+                (float(c["x"]) - camino_inicio) * signo_x
+                for c in columnas.values()
+                if abs(_k(c.get("nivel", 0.0)) - y_viga) <= 1e-4
+                and -1e-6 < (float(c["x"]) - camino_inicio) * signo_x < longitud_camino - 1e-6
+            )
+            estaciones_nodos.extend(
+                carga_nodal[0] for carga_nodal in estaciones_carga
+                if 1e-6 < carga_nodal[0] < longitud_camino - 1e-6
+            )
+            estaciones_nodos = sorted({
+                round(max(0.0, min(longitud_camino, estacion)), 6)
+                for estacion in estaciones_nodos
+            })
+            nodos_camino = []
+            for estacion in estaciones_nodos:
+                x_nodo = _k(camino_inicio + signo_x * estacion)
+                n_nodo = _nodo(x_nodo, y_viga)
+                if n_nodo not in m.nodes:
+                    m.add_node(n_nodo, x_nodo, y_viga, 0.0)
+                    m.def_support(n_nodo, False, False, True, True, True, False)
+                nodos_camino.append((estacion, n_nodo))
+                mapa["nudos_viga"].add(n_nodo)
+
+            # Cada apoyo superior y cada carga puntual crea un nudo compartido;
+            # se divide la barra FE, pero se conserva el ID lógico del tramo.
+            for indice_segmento, (
+                (estacion_i, nodo_i), (estacion_j, nodo_j)
+            ) in enumerate(zip(nodos_camino, nodos_camino[1:]), 1):
+                miembro_id = f"V-{tramo_id}__s{indice_segmento}"
+                m.add_member(miembro_id, nodo_i, nodo_j, "mat", "sec")
+                miembro_ids.append(miembro_id)
+                mapa["segmentos"].setdefault(tramo_id, []).append({
+                    "miembro_id": miembro_id,
+                    "estacion_inicio_m": estacion_i,
+                    "estacion_fin_m": estacion_j,
+                })
+            if not miembro_ids:
+                avisos.append(f"{tramo_id}: no se pudo generar ningún segmento FE; se ignora")
+                continue
+            if tramo.get("es_voladizo"):
+                mapa["voladizos"][tramo_id] = miembro_ids
+            else:
+                mapa["vigas"][tramo_id] = miembro_ids
+
+            cargas_nuevas = aplicaciones.get(tramo_id, [])
             mapa["cargas_aplicadas"].extend(
-                dict(carga, tramo_id=tramo["id"]) for carga in cargas_nuevas
+                dict(carga, tramo_id=tramo_id) for carga in cargas_nuevas
             )
             reemplaza_anteriores = any(
                 c.get("modo_cargas_previas") == "reemplazar" for c in cargas_nuevas
@@ -280,27 +604,52 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             # cuando así se indicó; las cargas puntuales se conservan.
             wD = float(cargas_tramo.get("D_total", 0.0))
             wL = float(cargas_tramo.get("L_total", 0.0))
-            if not reemplaza_anteriores and abs(wD) > 1e-9:
-                m.add_member_dist_load(miembro_id, "FY", -wD, -wD, case="D")
-            if not reemplaza_anteriores and abs(wL) > 1e-9:
-                m.add_member_dist_load(miembro_id, "FY", -wL, -wL, case="L")
-            for carga_aplicada in cargas_nuevas:
-                m.add_member_dist_load(
-                    miembro_id, "FY",
-                    carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
-                    carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
-                    x1=carga_aplicada["x_inicio_m"],
-                    x2=carga_aplicada["x_fin_m"],
-                    case=carga_aplicada["tipo"],
-                )
-
-            # cargas puntuales (caso P, entero en toda combinación)
-            for cp in tramo.get("cargas_puntuales", []):
-                n_cp = _nodo(cp["coordenadas"]["x"], cp["coordenadas"]["y"])
-                if n_cp in m.nodes:
-                    m.add_node_load(n_cp, "FY", -float(cp["valor_kN"]), case="P")
+            for indice_segmento, segmento in enumerate(mapa["segmentos"][tramo_id]):
+                miembro_id = segmento["miembro_id"]
+                estacion_i = segmento["estacion_inicio_m"]
+                estacion_j = segmento["estacion_fin_m"]
+                if not reemplaza_anteriores and abs(wD) > 1e-9:
+                    m.add_member_dist_load(miembro_id, "FY", -wD, -wD, case="D")
+                if not reemplaza_anteriores and abs(wL) > 1e-9:
+                    m.add_member_dist_load(miembro_id, "FY", -wL, -wL, case="L")
+                for carga_aplicada in cargas_nuevas:
+                    if carga_aplicada.get("tipo_aplicacion") == "puntual":
+                        continue
+                    inicio = max(estacion_i, float(carga_aplicada["x_inicio_m"]))
+                    fin = min(estacion_j, float(carga_aplicada["x_fin_m"]))
+                    if fin - inicio <= 1e-8:
+                        continue
+                    x_local_inicio = inicio - estacion_i
+                    x_local_fin = fin - estacion_i
+                    m.add_member_dist_load(
+                        miembro_id, "FY",
+                        carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
+                        carga_aplicada["signo"] * carga_aplicada["valor_kN_m"],
+                        x1=x_local_inicio, x2=x_local_fin,
+                        case=carga_aplicada["tipo"],
+                    )
+            for carga_nodal in estaciones_carga:
+                x_cp, carga_puntual, origen = carga_nodal[1], carga_nodal[2], carga_nodal[3]
+                n_cp = _nodo(x_cp, y_viga)
+                if origen == "nativa":
+                    valor = -float(carga_puntual["valor_kN"])
+                    caso = "P"
                 else:
-                    avisos.append(f"{tramo['id']}: carga puntual fuera de nudo ({n_cp}); se ignora")
+                    valor = (
+                        float(carga_puntual["signo"])
+                        * float(carga_puntual["valor_kN"])
+                    )
+                    caso = str(carga_puntual["tipo"])
+                m.add_node_load(n_cp, "FY", valor, case=caso)
+
+    nudos_viga = mapa["nudos_viga"]
+    nudos_sin_apoyo = mapa["nudos_columna_inferior"] - nudos_viga
+    if nudos_sin_apoyo:
+        ids = ", ".join(sorted(nudos_sin_apoyo))
+        raise ValueError(
+            "Hay columnas de niveles superiores sin viga o voladizo inferior en su base: "
+            f"{ids}. No se resuelve un modelo con transferencias desconectadas."
+        )
 
     # --- Viento (caso W): fuerza horizontal en la punta de cada columna ----
     for viga_id, viga in portico.get("vigas", {}).items():
@@ -365,6 +714,20 @@ def _acumular(bolsa: dict, clave: str, valores: dict) -> None:
             actual[campo] = v
 
 
+def _resultados_segmentos(
+    modelo: FEModel3D, miembro_ids: list[str], combinacion: str,
+) -> dict:
+    miembros = [modelo.members[miembro_id] for miembro_id in miembro_ids]
+    primero, ultimo = miembros[0], miembros[-1]
+    return {
+        "M_izq": float(primero.moment("Mz", 0.0, combinacion)),
+        "M_der": float(ultimo.moment("Mz", ultimo.L(), combinacion)),
+        "M_campo": min(float(miembro.min_moment("Mz", combinacion)) for miembro in miembros),
+        "V_izq": float(primero.shear("Fy", 0.0, combinacion)),
+        "V_der": float(ultimo.shear("Fy", ultimo.L(), combinacion)),
+    }
+
+
 def calcular(portico: dict, nombre: str = "") -> dict:
     """
     Resuelve el pórtico y devuelve las solicitaciones, reacciones y
@@ -399,15 +762,8 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             _acumular(envolvente["columnas"], cid, datos)
 
         for grupo in ("vigas", "voladizos"):
-            for clave, miembro_id in mapa[grupo].items():
-                mem = m.members[miembro_id]
-                datos = {
-                    "M_izq": float(mem.moment("Mz", 0.0, combo)),
-                    "M_der": float(mem.moment("Mz", mem.L(), combo)),
-                    "M_campo": float(mem.min_moment("Mz", combo)),
-                    "V_izq": float(mem.shear("Fy", 0.0, combo)),
-                    "V_der": float(mem.shear("Fy", mem.L(), combo)),
-                }
+            for clave, miembro_ids in mapa[grupo].items():
+                datos = _resultados_segmentos(m, miembro_ids, combo)
                 bloque[grupo][clave] = datos
                 _acumular(envolvente[grupo], clave, datos)
 
@@ -521,7 +877,38 @@ def guardar(resultado: dict) -> Path:
     rutas.SAL_SOLICITACIONES.mkdir(parents=True, exist_ok=True)
     nombre = rutas.nombre_seguro(resultado["portico"]) or "portico"
     archivo = rutas.SAL_SOLICITACIONES / f"{nombre}.json"
+    resultado["_firma_entradas_motor"] = huella_entrada(resultado["portico"])
     return rutas.guardar_json(archivo, resultado)
+
+
+def huella_entrada(nombre_portico: str) -> str:
+    """Firma las entradas mecánicas, excluyendo datos de dimensionado de vigas."""
+    estructura = rutas.cargar_estructura()
+    if nombre_portico not in estructura:
+        raise ValueError(f"No existe {nombre_portico} en datos/estructura.json")
+
+    return _huella_entradas(
+        estructura[nombre_portico],
+        rutas.leer_json(rutas.CARGAS, {}) or {},
+        rutas.leer_json(rutas.MATERIALES, {}) or {},
+    )
+
+
+def _huella_entradas(datos_portico: dict, cargas: dict, materiales: dict) -> str:
+    datos_portico = deepcopy(datos_portico)
+    for viga in datos_portico.get("vigas", {}).values():
+        for clave in ("b_cm", "h_cm", "recubrimiento_cm", "fc_MPa", "fy_MPa"):
+            viga.pop(clave, None)
+
+    entradas = {
+        "portico": datos_portico,
+        "cargas": cargas,
+        "materiales": materiales,
+    }
+    contenido = json.dumps(
+        entradas, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return hashlib.sha256(contenido).hexdigest()
 
 
 # ---------------------------------------------------------------------------

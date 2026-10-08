@@ -44,13 +44,13 @@
   "flexion": [
     {
       "tramo": "V0-1 T1",
-      "As_req_cm2": 0.94,
+      "As_req_cm2": 0.7,
       "As_adop_cm2": 2.0106192982974678,
       "cumple": true
     },
     {
       "tramo": "V0-1 T2",
-      "As_req_cm2": 0.72,
+      "As_req_cm2": 0.47,
       "As_adop_cm2": 2.0106192982974678,
       "cumple": true
     }
@@ -171,19 +171,19 @@
     {
       "tramo": "V0-1.V0-1 T1",
       "Ig_cm4": 54613.33333333334,
-      "Ief_cm4": 57533.79252472191,
-      "ratio_Ief_Ig": 1.053475204920445,
-      "Mcr_tramo_kNm": 10.14394797615809,
-      "c_usado_cm": 6.428390859500459,
+      "Ief_cm4": 54613.33333333334,
+      "ratio_Ief_Ig": 1.0,
+      "Mcr_tramo_kNm": 9.464232250367113,
+      "c_usado_cm": 6.428390859500458,
       "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
     },
     {
       "tramo": "V0-1.V0-1 T2",
       "Ig_cm4": 54613.33333333334,
-      "Ief_cm4": 57533.79252472191,
-      "ratio_Ief_Ig": 1.053475204920445,
-      "Mcr_tramo_kNm": 10.14394797615809,
-      "c_usado_cm": 6.428390859500459,
+      "Ief_cm4": 54613.33333333334,
+      "ratio_Ief_Ig": 1.0,
+      "Mcr_tramo_kNm": 9.464232250367113,
+      "c_usado_cm": 6.428390859500458,
       "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
     }
   ],
@@ -193,13 +193,15 @@
       "tramo": "V0-1 T1",
       "tipo_tramo": "interior",
       "L_m": 4.0,
-      "q_serv_kN_m": 0.0,
-      "delta_mm": 0.0,
-      "lim_L360_mm": 0.011111111111111112,
-      "cumple_L360": true,
-      "Ie_tramo_cm4": 56970.709820194425,
-      "Ie_apoyo_izq_cm4": 58096.87522924941,
-      "Ie_apoyo_der_cm4": 58096.87522924941,
+      "q_serv_kN_m": 2.52,
+      "delta_mm": 0.670778578481408,
+      "limite_divisor": 360,
+      "limite_mm": 11.11111111111111,
+      "tipo_flecha": "piso",
+      "cumple": true,
+      "Ie_tramo_cm4": 54613.33333333334,
+      "Ie_apoyo_izq_cm4": 54613.33333333334,
+      "Ie_apoyo_der_cm4": 54613.33333333334,
       "criterio": "Carga virtual – rigidez variable"
     },
     {
@@ -207,27 +209,29 @@
       "tramo": "V0-1 T2",
       "tipo_tramo": "interior",
       "L_m": 4.0,
-      "q_serv_kN_m": 0.0,
-      "delta_mm": 0.0,
-      "lim_L360_mm": 0.011111111111111112,
-      "cumple_L360": true,
-      "Ie_tramo_cm4": 56970.709820194425,
-      "Ie_apoyo_izq_cm4": 58096.87522924941,
-      "Ie_apoyo_der_cm4": 58096.87522924941,
+      "q_serv_kN_m": 2.52,
+      "delta_mm": 0.670778578481408,
+      "limite_divisor": 360,
+      "limite_mm": 11.11111111111111,
+      "tipo_flecha": "piso",
+      "cumple": true,
+      "Ie_tramo_cm4": 54613.33333333334,
+      "Ie_apoyo_izq_cm4": 54613.33333333334,
+      "Ie_apoyo_der_cm4": 54613.33333333334,
       "criterio": "Carga virtual – rigidez variable"
     }
   ],
   "corte": [
     {
       "tramo": "V0-1.V0-1 T1",
-      "V_izq_kN": 4.132584610462379,
-      "V_der_kN": 4.132584610462379,
+      "V_izq_kN": 6.9948740890131536,
+      "V_der_kN": 10.232978248451102,
       "cumple": true
     },
     {
       "tramo": "V0-1.V0-1 T2",
-      "V_izq_kN": 4.132584610462379,
-      "V_der_kN": 4.132584610462379,
+      "V_izq_kN": 7.117125910986841,
+      "V_der_kN": 10.128190972473654,
       "cumple": true
     }
   ],
@@ -240,8 +244,8 @@
       "A_barra_mm2": 50.2654824574367,
       "w_um": 50.161237260690875,
       "w_mm": 0.050161237260690876,
-      "w_lim_mm": 0.1,
-      "cumple": true
+      "cumple": null,
+      "criterio": "estimación de abertura; separación normativa pendiente"
     },
     {
       "tramo": "V0-1.V0-1 T2",
@@ -251,8 +255,8 @@
       "A_barra_mm2": 50.2654824574367,
       "w_um": 50.161237260690875,
       "w_mm": 0.050161237260690876,
-      "w_lim_mm": 0.1,
-      "cumple": true
+      "cumple": null,
+      "criterio": "estimación de abertura; separación normativa pendiente"
     }
   ],
   "estado": [

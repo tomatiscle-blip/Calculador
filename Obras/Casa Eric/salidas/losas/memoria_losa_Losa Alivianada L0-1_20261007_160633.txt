@@ -1,0 +1,56 @@
+MEMORIA DE CÁLCULO - LOSA ALIVIANADA
+=================================
+
+Losa: Losa Alivianada L0-1
+Carga del proyecto: Carga 0-1
+Luz libre: 5.50 m
+Luz de cálculo (con tolerancia): 5.60 m
+
+Materiales seleccionados:
+ - Pisos: Porcelanato 10mm + pegamento → 0.200 kN/m²
+ - Morteros_Revoques: Mortero de cemento y arena → 0.630 kN/m²
+ - Hormigon: Contrapiso de cascotes y cal → 1.360 kN/m²
+ - Cielorrasos: Yeso Suspendido → 0.330 kN/m²
+Subtotal cargas accesorias (D2): 2.520 kN/m²
+Total cargas permanentes (D1+D2): 4.330 kN/m²
+
+Cargas consideradas:
+ - D1 (peso propio): 1.810 kN/m²
+ - D1 se toma del forjado base configurado; no se recalibra automáticamente con la vigueta elegida.
+ - D2 (accesoria): 2.520 kN/m²
+ - D total: 4.330 kN/m²
+ - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
+ - Combinación crítica: 1.2D + 1.6L → 8.396 kN/m²
+
+Selección de vigueta:
+ - Serie de vigueta: D
+ - Tipo de vigueta seleccionada: vigueta_doble
+ - Combinación bovedilla/losa: bovedilla_10_losa_15
+ - Momento requerido (sin φ): 3356.07 kg·m
+ - Momento requerido para búsqueda (con φ aplicado): 3728.97 kg·m
+ - Momento disponible de la vigueta seleccionada: 3871.00 kg·m
+ - Momento reducido aplicado φ=0.9: 3483.90 kg·m (34.17 kN·m)
+ - Referencia de capacidad: Tabla 4 – Tensolite
+
+Cómputo de materiales:
+ - Área de losa: 56.00 m²
+ - Viguetas: 32 unidades de 5.60 m
+ - Bovedillas: 89 unidades EPS n°10
+ - Hormigón: 3.696 m³ (capa de compresión)
+
+Malla electrosoldada SIMA Q-131 / R-131:
+ - Paño comercial: 2.40x6 m (solape 0.20 m)
+ - Área losa: 56.00 m²
+ - Área efectiva de paño: 12.76 m²
+ - Cantidad adoptada: 4 unidad(es)
+ - Nota: Área remanente de malla a completar con barras Ø6 según criterio habitual de obra.
+
+Nervios de refuerzo:
+ - Tramo máximo: 1.80 m
+ - Nervios requeridos: 3 unidades
+ - Especificación por nervio: 2 barras Ø8 de 10.00 m
+ - Total barras: 6 unidades
+ - Longitud total de barras: 60.00 m
+
+=================================
+Fin de la memoria de cálculo

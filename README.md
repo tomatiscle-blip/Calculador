@@ -7,22 +7,50 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **06/10/2026**
-- Último trabajo: primera reorganización de **Inicio como carátula y navegación** (06/10):
+- Última actualización: **07/10/2026**
+- Trabajo actual: **ejes X/Y, niveles Z y referencias de pórticos por obra**. Desde Inicio se
+  pueden definir líneas de ejes no uniformes en `datos/ejes.json`, cotas nombradas en
+  `datos/niveles.json`. Al crear un pórtico nuevo se elige su dirección y el eje transversal
+  exacto, y se seleccionan los cruces de ejes donde nace una columna para cada tramo entre niveles.
+  Las alturas se obtienen de las cotas Z reales; los cruces omitidos no agregan columnas. Se
+  pueden editar las coordenadas acumuladas individualmente para columnas de niveles superiores.
+  Los pórticos existentes se ven en gris y ocupan su eje transversal. Se pregunta por voladizos
+  y cargas puntuales en cada nivel de viga. Una columna superior que cae entre columnas inferiores
+  divide la viga en nudos FE conectados; si cae fuera de la viga/voladizo, se impide crear la geometría.
+  El análisis sigue siendo 2D por pórtico: esto no convierte el modelo en una estructura espacial.
+  No se admiten desfases entre un pórtico y su eje de aplicación.
+- Último trabajo: **columnas y bases accesibles desde la app** (07/10). Las dos pestañas
+  tienen botones de dimensionado y formularios de entrada. Columnas toma N y M de la
+  envolvente de Pynite; bases toma reacciones de servicio y los parámetros de terreno
+  ingresados se guardan en `datos/terreno.json`. Se conservan los dimensionadores P04/P05;
+  sus criterios y limitaciones siguen siendo los de esos scripts.
+- Trabajo anterior: primera reorganización de **Inicio como carátula y navegación** (06/10):
   el selector quedó en el bloque de Pórticos, y hay accesos a Cargas y Losas. La ficha
   muestra la ubicación del proyecto, derivada de la configuración de viento.
   - **Obras:** la app ahora guarda cada obra en `Obras/<nombre>/datos` y
-    `Obras/<nombre>/salidas`. La obra activa se recuerda al volver a abrir el calculador;
-    **Nueva obra** crea una carpeta vacía. En el primer arranque se copian los datos fuente;
-    las salidas anteriores se guardan aparte en `archivo_migracion/salidas`.
+    `Obras/<nombre>/salidas`. Al crear o seleccionar una obra se preparan las subcarpetas
+    de resultados (`vigas`, `columnas`, `bases` y las demás etapas), aunque todavía no
+    haya cálculos. La obra activa se recuerda al volver a abrir el calculador; en el primer
+    arranque se copian los datos fuente y las salidas anteriores se guardan aparte en
+    `archivo_migracion/salidas`.
   - **Alcance:** cargas, estructura, losas, terreno y resultados son propios de cada obra.
     `moments_input.json` solo se copia al migrar datos existentes; una obra nueva no recibe
     los datos de ejemplo. Materiales y tablas de diseño siguen siendo compartidos. La viga
     aislada aún no tiene recorrido integrado en la app.
-  - **Losas en Cargas:** cada losa conserva su composición y muestra D/L en kN/m² aunque
-    todavía no esté aplicada a un pórtico. Se guarda la luz y el ancho del paño; la misma
-    composición alimenta el cálculo de viguetas para losas alivianadas. Macizas y casetonadas
-    quedan disponibles como cargas, sin dimensionado estructural propio todavía.
+  - **Losas desde ejes:** desde Inicio o Cargas se delimita el paño seleccionando dos ejes X
+    y dos Y; luego se define la dirección de luz, el nivel y las dos vigas de apoyo existentes
+    sobre los ejes correspondientes. La composición y las cargas se editan después. Las losas
+    unidireccionales transfieren automáticamente D/L como cargas lineales a las vigas de apoyo,
+    con ancho tributario igual a la mitad de la luz. No hay que asignarlas manualmente además.
+    En Cargas, la columna «Transferencia a apoyos» indica si la losa activa está aplicada
+    automáticamente a ambas vigas; Inicio también informa cuántos paños llegan al pórtico elegido.
+    Los apoyos deben coincidir exactamente con pórticos/vigas existentes; los bordes libres sí
+    pueden desplazarse dentro del alcance común de ambas vigas. Mientras una losa use sus ejes,
+    no se pueden mover ni borrar esos ejes: primero hay que editar o quitar el paño.
+  - **Composición y cálculo:** cada losa conserva su composición y muestra D/L en kN/m².
+    La composición alimenta el cálculo existente de viguetas para losas alivianadas y las
+    solicitaciones de losas macizas. La tipología casetonada está disponible para definir
+    cargas, pero todavía no tiene motor de cálculo; su peso debe incluirse en la composición.
 - Trabajo anterior: conexión inicial de **P02 con el motor y la app** (05/10). El motor de
   `calc/portico.py` entrega los esfuerzos por combinación; `calc/diseno_vigas.py` adapta
   esos resultados al dimensionador conservado en `P02_Viga_portico.py`. Desde la pestaña
@@ -45,7 +73,7 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   - **Validado contra anaStruct fresco por combinación**: coinciden las 5 combinaciones
     (reacciones, M, V y N; el momento de campo difiere ≤ 0,05 kN·m por la malla de 50).
     Antes ya se había validado Pynite contra anaStruct en <0,1 % (`tools/comparar_motores.py`).
-   - Las vigas ya leen esos esfuerzos mediante el adaptador P02; faltan columnas y bases.
+   - Vigas, columnas y bases ya leen los esfuerzos de ese resultado desde la app.
 - Último commit: `cee9b34` — *"se implementa de apoco pynite"*.
 
 ---
@@ -64,16 +92,45 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
 | Comparar los dos motores (anaStruct vs Pynite) | `py tools\comparar_motores.py` |
 
-La ventana tiene 7 pestañas: **Inicio** (las dos piezas resueltas: **cargas** y el
-**motor de solicitaciones del pórtico**, con su estado, un botón para resolver y la
-**envolvente** del pórtico elegido), **1 · Estado y etapas** (el semáforo en colores),
-**2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias),
-**6 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.).
+La ventana tiene 8 pestañas: **Inicio** (estado del proyecto y solicitaciones),
+**Cargas**, **1 · Estado y etapas** (el semáforo en colores), **2 · Vigas**,
+**3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias) y **6 · Archivos**
+(doble clic abre el archivo con Excel, el visor de DXF, etc.). Columnas requiere
+solicitaciones vigentes; bases requiere además columnas calculadas. Los parámetros
+geotécnicos se ingresan en su formulario y quedan guardados en `datos/terreno.json`.
+
+Para crear un pórtico nuevo, definí primero ejes X/Y y al menos dos niveles Z desde **Inicio**.
+El asistente permite elegir el eje transversal (sin desfase), los ejes de columna en cada
+entrepiso, ver la ubicación en planta y distinguir pórticos existentes en gris. En niveles
+superiores, cada columna seleccionada tiene su propia coordenada acumulada editable. También
+permite definir voladizos en cada nivel de viga e ingresar cargas puntuales con su coordenada local X.
+Si una columna de planta alta apoya entre columnas inferiores, la viga se subdivide en el
+modelo FE para compartir ese nudo; no se acepta una base de columna que quede fuera de una
+viga o voladizo inferior. Desde Inicio se puede eliminar un pórtico: se quitan sus aplicaciones
+de carga, se conserva el catálogo y los resultados previos quedan como históricos. Si una losa
+guardada lo referencia, primero hay que reasignar su destino.
 
 En **Cargas**, las losas y cubiertas muestran sus cargas superficiales D/L sin exigir que
 estén aplicadas a una viga. Al seleccionar una losa alivianada con luz, ancho y la capa
 `Losa_alivianada`, el botón **Calcular viguetas de la losa** genera la memoria y el cómputo
 en las salidas de la obra. Aplicarla a tramos sigue siendo opcional.
+
+La pantalla **Inicio** tiene accesos separados a **Definir cargas del proyecto** (crear o
+editar la composición de muros, losas, cubiertas y otros elementos) y **Aplicar / revisar
+cargas en barras** (asignar cada elemento a uno o más tramos y consultar los intervalos y
+anchos tributarios guardados para el pórtico seleccionado). Desde esta última vista se
+puede editar la composición del elemento elegido, quitar una aplicación concreta sin
+borrar el elemento del catálogo, o eliminar el elemento completo junto con sus aplicaciones.
+Las aplicaciones nuevas se suman por defecto a las cargas distribuidas previas de P00.
+Los muros pueden aplicarse como carga lineal sobre un tramo o perpendicularmente entre
+dos pórticos adyacentes: se ingresan sus dos barras receptoras y posiciones, y el motor
+modela el paño simplemente apoyado y aplica en cada una la reacción puntual `q·L/2`.
+Para este modo y para el ancho tributario automático de losas/cubiertas, asociá los pórticos
+a sus ejes transversales desde **Asociar pórticos a ejes…**; no se pueden asociar dos pórticos
+paralelos al mismo plano. Sus coordenadas acumuladas definen las separaciones. El ancho tributario
+automático suma medias separaciones hacia los pórticos vecinos: supone carga continua sobre el
+pórtico y no identifica un módulo/paño individual. Las losas y cubiertas mantienen también las
+opciones de media luz, luz completa y ancho tributario personalizado.
 
 ---
 
@@ -113,11 +170,10 @@ un script y la losa lo repite por su cuenta (ver el punto 4).
   en esa estimación. Los esfuerzos de diseño se toman de las combinaciones del motor.
 - **Contraste de campos corregido** en el diálogo de diseño de vigas para que el texto sea
   legible con el tema de Windows.
-- **Pendiente principal:** el formulario de Inicio crea geometría básica con las luces
-  entre columnas ingresadas como lista y voladizos opcionales en ambos extremos; todos
-  los niveles repiten esa geometría y tienen altura uniforme. Faltan edición posterior,
-  cargas puntuales en el asistente y gestión de varias obras independientes en una misma
-  instalación.
+- **Pendiente de esta etapa:** edición posterior de la geometría multinivel desde la app,
+  cargas de losas/muros aplicadas por paño y análisis espacial 3D. El asistente actual ya
+  crea los pórticos por nivel, conserva las cargas puntuales en posiciones arbitrarias y
+  conecta columnas desalineadas sobre vigas/voladizos inferiores en el modelo 2D.
 
 ### Dirección de interfaz acordada — carátula y navegación
 
@@ -223,7 +279,7 @@ campos hasta que un flujo los necesite.
   y se rompían si el programa arrancaba desde otra carpeta).
 - `calc/pipeline.py` — las 10 etapas en orden, con entradas, salidas y **semáforo**.
 - `tools/regresion.py` — la red de seguridad (congela resultados y avisa si cambian).
-- `app/` — la ventana (PySide6, 6 pestañas) + `calculador.bat`; `estado.bat`,
+- `app/` — la ventana (PySide6, 8 pestañas) + `calculador.bat`; `estado.bat`,
   `ver_cambios.bat`; `requirements.txt` y `.gitignore`.
 
 ### Sin guardar en git (quedó a medias el 28/09)
@@ -491,5 +547,3 @@ Calculador\
 - [ ] Separar `salidas\` por obra → resuelve el `[OJO!]` cruzado del semáforo
 - [ ] Datos por obra (`obras\Casa Mercedes\datos\...`): cada obra con su `estructura.json`,
       así un cambio en un pórtico no marca a los otros como "a recalcular"
-
-

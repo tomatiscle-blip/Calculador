@@ -109,17 +109,24 @@ def dimensionar_desde_app(parent, portico: str):
         if h_cm is not None:
             secciones[viga_id]["h_cm"] = h_cm
 
+    secciones_modificadas = False
+    for viga_id, seccion in secciones.items():
+        for clave in ("b_cm", "fc_MPa"):
+            if vigas[viga_id].get(clave) != seccion[clave]:
+                vigas[viga_id][clave] = seccion[clave]
+                secciones_modificadas = True
+        if "h_cm" in seccion:
+            if vigas[viga_id].get("h_cm") != seccion["h_cm"]:
+                vigas[viga_id]["h_cm"] = seccion["h_cm"]
+                secciones_modificadas = True
+
     try:
+        if secciones_modificadas:
+            rutas.guardar_json(rutas.ESTRUCTURA, estructura)
         salida, avisos = diseno_vigas.dimensionar(portico, secciones, tipo_flecha.currentData())
     except Exception as exc:
         QMessageBox.critical(parent, "No se pudo dimensionar", str(exc))
         return None
-    for viga_id, seccion in secciones.items():
-        vigas[viga_id]["b_cm"] = seccion["b_cm"]
-        vigas[viga_id]["fc_MPa"] = seccion["fc_MPa"]
-        if "h_cm" in seccion:
-            vigas[viga_id]["h_cm"] = seccion["h_cm"]
-    rutas.guardar_json(rutas.ESTRUCTURA, estructura)
     QMessageBox.information(
         parent,
         "Dimensionado de vigas",

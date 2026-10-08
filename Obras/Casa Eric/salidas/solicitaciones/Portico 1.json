@@ -1,6 +1,6 @@
 {
   "portico": "Portico 1",
-  "generado": "2026-10-07 10:16",
+  "generado": "2026-10-07 15:50",
   "rigidez": {
     "EA": 15000.0,
     "EI": 5000.0
@@ -368,5 +368,6 @@
         "Mz": 25.98025749305511
       }
     }
-  }
+  },
+  "_firma_entradas_motor": "f8c71fee967a14faf475d90d6bb3b17e5239c0b42c009fbe62b12ee3041ae011"
 }

@@ -2,14 +2,16 @@ import os
 import json
 import math
 import csv
+import sys
+from calc import rutas
 
 # ============================================================
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-OUTPUT_DIR = "salidas/bases"
-CSV_COLUMNAS = "salidas/columnas/planilla_columnas.csv"
-JSON_ESTRUCTURA = "datos/estructura.json"
+OUTPUT_DIR = str(rutas.SAL_BASES)
+CSV_COLUMNAS = str(rutas.PLANILLA_COLUMNAS)
+JSON_ESTRUCTURA = str(rutas.ESTRUCTURA)
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -22,14 +24,19 @@ fy = 420  # acero ADN 420 MPa
 
 prof = float(input("Ingrese profundidad fundación [m] (0.8 / 1.3): "))
 
-if abs(prof - 0.8) < 0.05:
-    q_adm_kgcm2 = 0.87
-elif abs(prof - 1.3) < 0.05:
-    q_adm_kgcm2 = 1.36
+terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
+if "q_adm_kPa" in terreno:
+    q_adm_kPa = float(terreno["q_adm_kPa"])
 else:
-    q_adm_kgcm2 = float(input("Ingrese q_adm [kg/cm²]: "))
-
-q_adm_kPa = q_adm_kgcm2 * 98.1
+    if abs(prof - 0.8) < 0.05:
+        q_adm_kgcm2 = 0.87
+    elif abs(prof - 1.3) < 0.05:
+        q_adm_kgcm2 = 1.36
+    else:
+        q_adm_kgcm2 = float(input("Ingrese q_adm [kg/cm²]: "))
+    q_adm_kPa = q_adm_kgcm2 * 98.1
+if q_adm_kPa <= 0:
+    raise ValueError("La tensión admisible del suelo debe ser mayor que cero.")
 print(f"\nq_adm adoptado = {q_adm_kPa:.2f} kPa")
 
 # ============================================================
@@ -57,9 +64,11 @@ def leer_columnas_csv(portico):
 
 def dimensionar_base_geotecnia(Fy, M, q_adm):
     N = abs(Fy)
+    if N <= 0:
+        raise ValueError("La reacción vertical de la base debe ser distinta de cero.")
     area = N / q_adm
     L = math.sqrt(area)
-    e = M / N if N > 0 else 0.0
+    e = abs(M) / N
 
     q_med = N / area
     q_max = q_med * (1 + 6 * e / L)
@@ -256,10 +265,49 @@ porticos = list(estructura.keys())
 for i, p in enumerate(porticos, 1):
     print(f"{i}. {p}")
 
-portico = porticos[int(input("Seleccione pórtico: ")) - 1]
+if len(sys.argv) > 1:
+    portico = rutas.resolver_portico(sys.argv[1], estructura)
+else:
+    seleccion = input("Seleccione pórtico (número o nombre): ").strip()
+    if seleccion.isdigit():
+        indice = int(seleccion) - 1
+        if indice < 0 or indice >= len(porticos):
+            raise ValueError("Número de pórtico inválido.")
+        portico = porticos[indice]
+    elif seleccion in estructura:
+        portico = seleccion
+    else:
+        raise ValueError(f"No existe el pórtico {seleccion}.")
 
 columnas = leer_columnas_csv(portico)
-bases = estructura[portico]["bases"]
+bases = {
+    nombre: dict(base)
+    for nombre, base in estructura[portico]["bases"].items()
+}
+archivo_motor = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(portico)}.json"
+resultado_motor = rutas.leer_json(archivo_motor, {}) or {}
+reacciones_servicio = (
+    resultado_motor.get("solicitaciones", {}).get("servicio", {}).get("bases", {})
+)
+if reacciones_servicio:
+    for base_id, base in bases.items():
+        reaccion = reacciones_servicio.get(base_id)
+        if not reaccion:
+            raise ValueError(
+                f"El motor no guardó reacciones de servicio para la base {base_id}."
+            )
+        base["Fy_kN"] = reaccion.get("Fy", 0.0)
+        base["Tz_kNm"] = reaccion.get("Mz", 0.0)
+else:
+    faltan = [
+        nombre for nombre, base in bases.items()
+        if "Fy_kN" not in base or "Tz_kNm" not in base
+    ]
+    if faltan:
+        raise ValueError(
+            "No hay reacciones de servicio del motor ni reacciones anteriores "
+            f"para estas bases: {', '.join(faltan)}."
+        )
 
 # ============================================================
 # CÁLCULO GENERAL
@@ -314,7 +362,7 @@ resultados["vigas_fundacion"] = vigas
 # GUARDAR
 # ============================================================
 
-out = os.path.join(OUTPUT_DIR, f"bases_{portico}.json")
+out = os.path.join(OUTPUT_DIR, f"bases_{rutas.nombre_seguro(portico)}.json")
 with open(out, "w", encoding="utf-8") as f:
     json.dump(resultados, f, indent=4, ensure_ascii=False)
 
@@ -324,7 +372,7 @@ print(f"\n✔ Resultados guardados en {out}")
 # GUARDAR TXT GENERAL
 # ============================================================
 
-txt_out = os.path.join(OUTPUT_DIR, f"bases_completas_{portico}.txt")
+txt_out = os.path.join(OUTPUT_DIR, f"bases_completas_{rutas.nombre_seguro(portico)}.txt")
 
 with open(txt_out, "w", encoding="utf-8") as f:
     f.write(f"Informe Bases - Pórtico {portico}\n")
