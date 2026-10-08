@@ -209,7 +209,9 @@
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
-        "voladizos_m": {}
+        "voladizos_m": {},
+        "b_cm": 20.0,
+        "fc_MPa": 20
       },
       "V1-1": {
         "tramos": [
@@ -232,7 +234,9 @@
         ],
         "nivel_nombre": "N2",
         "cota_m": 6.0,
-        "voladizos_m": {}
+        "voladizos_m": {},
+        "b_cm": 20.0,
+        "fc_MPa": 20
       }
     },
     "columnas": {

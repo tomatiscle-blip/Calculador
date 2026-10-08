@@ -1,0 +1,133 @@
+Informe Bases - Pórtico 1
+==================================================
+
+Base B0-a
+----------------------------------------
+Geotecnia:
+  Lado zapata: 0.7 m
+  Área: 0.49 m²
+  Excentricidad: 0.183 m
+  q_max: 219.03 kPa
+  q_min: -48.33 kPa
+  Requiere viga: True
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 3
+  Longitud total: 3.36 m
+  Peso total: 1.3 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+Base B0-b
+----------------------------------------
+Geotecnia:
+  Lado zapata: 0.83 m
+  Área: 0.68 m²
+  Excentricidad: 0.05 m
+  q_max: 116.15 kPa
+  q_min: 54.55 kPa
+  Requiere viga: False
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 4
+  Longitud total: 5.52 m
+  Peso total: 2.2 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+Base B0-c
+----------------------------------------
+Geotecnia:
+  Lado zapata: 0.68 m
+  Área: 0.46 m²
+  Excentricidad: 0.046 m
+  q_max: 119.84 kPa
+  q_min: 50.86 kPa
+  Requiere viga: False
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 3
+  Longitud total: 3.24 m
+  Peso total: 1.3 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+Base B0-d
+----------------------------------------
+Geotecnia:
+  Lado zapata: 0.19 m
+  Área: 0.04 m²
+  Excentricidad: 0.217 m
+  q_max: 679.52 kPa
+  q_min: -508.82 kPa
+  Requiere viga: True
+Espesor zapata: 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 1
+  Longitud total: 0.1 m
+  Peso total: 0.0 kg
+Tronco (pedestal):
+  Lado: 0.45 m
+  Altura: 0.45 m
+  Volumen: 0.091 m³
+Pelos columna:
+  Cantidad barras: 4
+  Diametro: 1.6 cm
+  Anclaje: 0.48 m
+  Empalme: 0.8 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.73 m
+
+==================================================
+Vigas de fundación:
+B0-a-B0-b:
+  Longitud: 5.0 m
+  Sección: 20x40
+  Armadura longitudinal: 2Ø12
+  As requerida: 4.0 mm²
+  Estribos: 26 uds ØØ8 cada 20 cm
+  Peso estribos: 12.3 kg
+
+B0-c-B0-d:
+  Longitud: 4.0 m
+  Sección: 20x40
+  Armadura longitudinal: 2Ø12
+  As requerida: 1.2 mm²
+  Estribos: 21 uds ØØ8 cada 20 cm
+  Peso estribos: 10.0 kg
+

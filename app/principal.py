@@ -548,7 +548,12 @@ class VentanaPrincipal(QMainWindow):
         self.boton_eliminar_portico.setEnabled(False)
         self.boton_definir_ejes = QPushButton("Definir ejes X/Y…")
         self.boton_definir_niveles = QPushButton("Definir niveles Z…")
-        self.boton_asociar_porticos = QPushButton("Asociar pórticos a ejes…")
+        self.boton_asociar_porticos = QPushButton("Asociar ejes…")
+        self.boton_definir_ejes.setToolTip("Definir las coordenadas de los ejes X e Y.")
+        self.boton_definir_niveles.setToolTip("Definir cotas de niveles y entrepisos.")
+        self.boton_asociar_porticos.setToolTip(
+            "Vincular cada pórtico existente con sus ejes de planta."
+        )
         self.resumen_ejes_inicio = QLabel()
         self.resumen_ejes_inicio.setWordWrap(True)
         self.resumen_niveles_inicio = QLabel()
@@ -559,34 +564,16 @@ class VentanaPrincipal(QMainWindow):
         self.boton_inicio_aplicaciones = QPushButton("Aplicar / revisar cargas en barras")
         self.boton_inicio_losas = QPushButton("Nueva losa en ejes…")
         self.vista_portico = VistaPortico()
-        self.leyenda_cargas_visual = QLabel()
-        self.leyenda_cargas_visual.setWordWrap(True)
-        self.leyenda_cargas_visual.setTextFormat(Qt.TextFormat.RichText)
-        self.leyenda_cargas_visual.setStyleSheet(
-            "QLabel { color: #64748b; background: transparent; padding: 2px 4px; font-size: 8pt; }"
+        self.boton_referencias_cargas = QPushButton("Referencias de cargas…")
+        self.boton_referencias_cargas.setToolTip(
+            "Abrir en otra ventana los nombres, tipos y categorías de las cargas representadas."
         )
         self.scroll_vista_portico = QScrollArea()
         self.scroll_vista_portico.setWidgetResizable(True)
         self.scroll_vista_portico.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_vista_portico.setMinimumHeight(340)
         self.scroll_vista_portico.setWidget(self.vista_portico)
-        self.scroll_leyenda_cargas = QScrollArea()
-        self.scroll_leyenda_cargas.setWidgetResizable(True)
-        self.scroll_leyenda_cargas.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_leyenda_cargas.setMaximumHeight(42)
-        self.scroll_leyenda_cargas.setWidget(self.leyenda_cargas_visual)
-        self.indicacion_visual_cargas = QLabel(
-            "Solo se dibujan cargas aplicadas al pórtico seleccionado."
-        )
-        self.indicacion_visual_cargas.setToolTip(
-            "Para ver una carga: en Cargas > Aplicar y revisar en barras, seleccioná el elemento "
-            "y su tramo, agregá la aplicación y guardala. Volvé a Inicio y elegí el pórtico receptor. "
-            "Una carga definida en el catálogo, pero no aplicada, no aparece en el esquema."
-        )
-        self.indicacion_visual_cargas.setMaximumHeight(24)
-        self.indicacion_visual_cargas.setStyleSheet(
-            "QLabel { color: #94a3b8; padding: 1px 4px; font-size: 8pt; }"
-        )
+        self.boton_referencias_cargas.setMaximumHeight(30)
         self.lbl_cargas = QLabel()
         self.lbl_cargas.setWordWrap(True)
         self.lbl_motor = QLabel()
@@ -794,6 +781,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_inicio_cargas.clicked.connect(self._ir_a_definir_cargas)
         self.boton_inicio_aplicaciones.clicked.connect(self._ir_a_aplicaciones_cargas)
         self.boton_inicio_losas.clicked.connect(self._nueva_losa_desde_inicio)
+        self.boton_referencias_cargas.clicked.connect(self._mostrar_referencias_cargas)
         self.boton_ver_cargas.clicked.connect(self._abrir_ultimo_analisis)
         self.boton_resolver_motor.clicked.connect(self._resolver_motor)
         self.boton_dimensionar_vigas.clicked.connect(self._dimensionar_vigas)
@@ -953,33 +941,21 @@ class VentanaPrincipal(QMainWindow):
         self.etiqueta_inicio.setStyleSheet("font-size: 11pt;")
 
         grupo_porticos = QGroupBox("Pórticos de esta obra")
-        caja_porticos = QHBoxLayout(grupo_porticos)
+        caja_porticos = QVBoxLayout(grupo_porticos)
         caja_porticos.addWidget(QLabel("Pórtico activo:"))
-        caja_porticos.addWidget(self.combo_portico, 1)
-        caja_porticos.addWidget(self.boton_crear_portico)
-        caja_porticos.addWidget(self.boton_eliminar_portico)
+        caja_porticos.addWidget(self.combo_portico)
         for boton in (self.boton_crear_portico, self.boton_eliminar_portico):
-            boton.setMinimumHeight(40)
-            boton.setStyleSheet("QPushButton { padding: 8px 12px; font-weight: 600; }")
-        caja.addWidget(self.resumen_ejes_inicio)
-        caja.addWidget(self.resumen_niveles_inicio)
-        referencias = QHBoxLayout()
-        referencias.addWidget(self.boton_definir_ejes)
-        referencias.addWidget(self.boton_definir_niveles)
-        referencias.addWidget(self.boton_asociar_porticos)
-        referencias.addStretch(1)
-        caja.addLayout(referencias)
-        caja.addWidget(grupo_porticos)
-        caja.addWidget(self.referencia_portico_inicio)
+            boton.setMinimumHeight(34)
+            boton.setStyleSheet("QPushButton { padding: 5px 9px; font-weight: 600; }")
+            caja_porticos.addWidget(boton)
 
-        fila_accesos = QHBoxLayout()
-        fila_accesos.setSpacing(10)
-        fila_accesos.addWidget(self.boton_inicio_cargas, 1)
-        fila_accesos.addWidget(self.boton_inicio_aplicaciones, 1)
-        fila_accesos.addWidget(self.boton_inicio_losas, 1)
+        fila_accesos = QVBoxLayout()
+        fila_accesos.setSpacing(4)
+        fila_accesos.addWidget(self.boton_inicio_cargas)
+        fila_accesos.addWidget(self.boton_inicio_aplicaciones)
+        fila_accesos.addWidget(self.boton_inicio_losas)
         grupo_accesos = QGroupBox("Accesos rápidos")
         grupo_accesos.setLayout(fila_accesos)
-        caja.addWidget(grupo_accesos)
 
         grupo_cargas = QGroupBox("Cargas del proyecto")
         caja_cargas = QVBoxLayout(grupo_cargas)
@@ -1001,8 +977,24 @@ class VentanaPrincipal(QMainWindow):
         panel_lateral.setMinimumWidth(300)
         estados = QVBoxLayout(panel_lateral)
         estados.setContentsMargins(0, 0, 0, 0)
-        estados.setSpacing(6)
+        estados.setSpacing(5)
         estados.addWidget(self.etiqueta_inicio)
+        estados.addWidget(grupo_porticos)
+        estados.addWidget(self.resumen_ejes_inicio)
+        estados.addWidget(self.resumen_niveles_inicio)
+        referencias = QVBoxLayout()
+        referencias.setSpacing(4)
+        for boton in (
+            self.boton_definir_ejes,
+            self.boton_definir_niveles,
+            self.boton_asociar_porticos,
+        ):
+            boton.setMinimumHeight(32)
+            boton.setStyleSheet("QPushButton { padding: 4px 8px; }")
+            referencias.addWidget(boton)
+        estados.addLayout(referencias)
+        estados.addWidget(self.referencia_portico_inicio)
+        estados.addWidget(grupo_accesos)
         estados.addWidget(grupo_cargas)
         estados.addWidget(grupo_motor)
         estados.addStretch(1)
@@ -1019,7 +1011,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_inicio_cargas.setToolTip("Definir o editar las cargas del proyecto.")
         self.boton_inicio_aplicaciones.setText("Aplicar cargas")
         self.boton_inicio_aplicaciones.setToolTip("Aplicar y revisar cargas sobre las barras.")
-        self.boton_inicio_losas.setText("Nueva losa en ejes…")
+        self.boton_inicio_losas.setText("Losa desde ejes…")
         self.boton_inicio_losas.setToolTip(
             "Delimitar un paño por ejes, elegir las vigas de apoyo y definir sus cargas."
         )
@@ -1028,30 +1020,36 @@ class VentanaPrincipal(QMainWindow):
             self.boton_inicio_aplicaciones,
             self.boton_inicio_losas,
         ):
-            boton.setMinimumHeight(40)
-            boton.setStyleSheet("QPushButton { padding: 9px 12px; font-weight: 600; }")
+            boton.setMinimumHeight(34)
+            boton.setStyleSheet("QPushButton { padding: 5px 8px; font-weight: 600; }")
 
-        grupo_vista = QGroupBox("Esquema del pórtico y cargas asignadas")
-        caja_vista = QVBoxLayout(grupo_vista)
+        self.grupo_esquema_inicio = QGroupBox("Esquema del pórtico seleccionado")
+        caja_vista = QVBoxLayout(self.grupo_esquema_inicio)
+        caja_vista.addWidget(
+            self.boton_referencias_cargas, 0, Qt.AlignmentFlag.AlignRight
+        )
         caja_vista.addWidget(self.scroll_vista_portico, 1)
-        caja_vista.addWidget(self.scroll_leyenda_cargas)
-        caja_vista.addWidget(self.indicacion_visual_cargas)
         self.division_inicio = QSplitter(Qt.Orientation.Horizontal)
-        self.division_inicio.addWidget(grupo_vista)
+        self.division_inicio.addWidget(self.grupo_esquema_inicio)
         self.division_inicio.addWidget(panel_lateral_scroll)
         self.division_inicio.setStretchFactor(0, 3)
         self.division_inicio.setStretchFactor(1, 1)
         self.division_inicio.setSizes([900, 360])
         self.division_inicio.setChildrenCollapsible(False)
-        caja.addWidget(self.division_inicio, 3)
+        self.division_inicio.setMinimumHeight(340)
+        caja.addWidget(self.division_inicio, 5)
 
         caja.addWidget(QLabel("Envolvente del pórtico elegido (máximos en módulo, según el motor):"))
-        caja.addWidget(self.tabla_inicio, 2)
+        caja.addWidget(self.tabla_inicio, 1)
         return pagina
 
     def _cargar_inicio(self, portico: str) -> None:
         import html
 
+        self.grupo_esquema_inicio.setTitle(
+            f"Esquema del pórtico — {portico}" if portico
+            else "Esquema del pórtico seleccionado"
+        )
         ejes = cargar_ejes()
         self.resumen_ejes_inicio.setText(resumen_ejes(ejes))
         self.resumen_niveles_inicio.setText(resumen_niveles(cargar_niveles()))
@@ -1076,7 +1074,6 @@ class VentanaPrincipal(QMainWindow):
         self.responsable_proyecto.setText(str(ficha.get("responsable", "")))
         self.notas_proyecto.setPlainText(str(proyecto.get("notas", "")))
         self.vista_portico.actualizar(portico)
-        self.leyenda_cargas_visual.setText(self.vista_portico.leyenda)
         estructura_completa = rutas.cargar_estructura()
         estructura = estructura_completa.get(portico, {}) if portico else {}
         referencia = estructura.get("referencia_planta", {}) or {}
@@ -1657,6 +1654,37 @@ class VentanaPrincipal(QMainWindow):
         if pestanias is not None:
             pestanias.setCurrentWidget(self.pagina_cargas)
             self.pagina_cargas.ir_a_aplicaciones()
+
+    def _mostrar_referencias_cargas(self) -> None:
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle(
+            f"Referencias de cargas — {self._portico() or 'sin pórtico seleccionado'}"
+        )
+        dialogo.resize(620, 360)
+        caja = QVBoxLayout(dialogo)
+        indicacion = QLabel(
+            "Solo se representan aquí las cargas aplicadas al pórtico seleccionado. "
+            "Las cargas definidas en el catálogo pero aún no asignadas no aparecen en el esquema."
+        )
+        indicacion.setWordWrap(True)
+        caja.addWidget(indicacion)
+
+        contenido = QLabel(self.vista_portico.leyenda)
+        contenido.setTextFormat(Qt.TextFormat.RichText)
+        contenido.setWordWrap(True)
+        contenido.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        contenido.setStyleSheet(
+            "QLabel { color: #334155; background: #f8fafc; padding: 10px; }"
+        )
+        desplazamiento = QScrollArea()
+        desplazamiento.setWidgetResizable(True)
+        desplazamiento.setWidget(contenido)
+        caja.addWidget(desplazamiento, 1)
+
+        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        botones.rejected.connect(dialogo.reject)
+        caja.addWidget(botones)
+        dialogo.exec()
 
     def _abrir_json_motor(self) -> None:
         archivo = buscar_archivo(rutas.SAL_SOLICITACIONES, "{portico}.json", self._portico())

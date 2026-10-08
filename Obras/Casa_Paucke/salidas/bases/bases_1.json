@@ -1,0 +1,152 @@
+{
+    "B0-a": {
+        "geotecnia": {
+            "lado_m": 0.7,
+            "area_m2": 0.49,
+            "excentricidad_m": 0.183,
+            "q_max_kPa": 219.03,
+            "q_min_kPa": -48.33,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 3.36,
+            "peso_total_kg": 1.3
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-b": {
+        "geotecnia": {
+            "lado_m": 0.83,
+            "area_m2": 0.68,
+            "excentricidad_m": 0.05,
+            "q_max_kPa": 116.15,
+            "q_min_kPa": 54.55,
+            "requiere_viga_fundacion": false
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 4,
+            "longitud_total_m": 5.52,
+            "peso_total_kg": 2.2
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-c": {
+        "geotecnia": {
+            "lado_m": 0.68,
+            "area_m2": 0.46,
+            "excentricidad_m": 0.046,
+            "q_max_kPa": 119.84,
+            "q_min_kPa": 50.86,
+            "requiere_viga_fundacion": false
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 3.24,
+            "peso_total_kg": 1.3
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-d": {
+        "geotecnia": {
+            "lado_m": 0.19,
+            "area_m2": 0.04,
+            "excentricidad_m": 0.217,
+            "q_max_kPa": 679.52,
+            "q_min_kPa": -508.82,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 1,
+            "longitud_total_m": 0.1,
+            "peso_total_kg": 0.0
+        },
+        "tronco": {
+            "lado_m": 0.45,
+            "altura_m": 0.45,
+            "volumen_m3": 0.091
+        },
+        "pelos_columna": {
+            "cantidad": 4,
+            "diametro_cm": 1.6,
+            "anclaje_m": 0.48,
+            "empalme_m": 0.8,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.73
+        }
+    },
+    "vigas_fundacion": {
+        "B0-a-B0-b": {
+            "longitud_m": 5.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 4.0,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 26,
+                "peso_kg": 12.3
+            }
+        },
+        "B0-c-B0-d": {
+            "longitud_m": 4.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 1.2,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 21,
+                "peso_kg": 10.0
+            }
+        }
+    }
+}
