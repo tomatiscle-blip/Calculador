@@ -64,10 +64,10 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
    resultados (no recalculados).
 
 **Estado de la interfaz:** Inicio permite crear geometría básica de un pórtico; se
-ingresan las luces entre columnas y voladizos opcionales en cada extremo. Todos los
-niveles repiten esas luces y comparten una altura uniforme. Todavía no incluye edición
-posterior ni cargas puntuales. `datos/crear_estructura.py` sigue disponible por consola;
-el selector de pórticos quedó dentro del bloque correspondiente en Inicio.
+seleccionan las columnas en cada tramo entre niveles y se puede indicar hasta qué nivel
+llega el pórtico, aunque la obra tenga niveles superiores definidos. Todavía no incluye
+edición posterior ni cargas puntuales. `datos/crear_estructura.py` sigue disponible por
+consola; el selector de pórticos quedó dentro del bloque correspondiente en Inicio.
 
 ---
 
@@ -224,8 +224,17 @@ a la obra seleccionada. Materiales, viguetas, perfiles, coeficientes y viento qu
   visualización de la geometría y las cargas. Desde ahí se pueden resolver las
   solicitaciones del motor Pynite.
 - **Cargas:** crear/editar composiciones y asignarlas a un pórtico y tramo, con intervalo
-  `x_inicio`–`x_fin`, ancho tributario y opción de reemplazar cargas previas. La carga
-  permanente `D` y la sobrecarga `L` se conservan separadas para combinarlas una sola vez.
+  `x_inicio`–`x_fin`, ancho tributario y opción de reemplazar cargas previas. La definición
+  y la asignación manual están en una sola página; las losas asociadas a ejes transfieren
+  sus cargas automáticamente. La carga permanente `D` y la sobrecarga `L` se conservan
+  separadas para combinarlas una sola vez.
+- **Pórticos:** al crear uno se ingresa solamente su número acumulativo. La app genera
+  `Pórtico N`, columnas `C<nivel>-<columna global>`, bases `B0-<columna global>` y vigas
+  `V<nivel>-N T<tramo>`. La secuencia de columnas es única en la obra y se repite en cada
+  nivel para la misma posición ordinal del pórtico; en las claves de nivel, `0` es planta
+  baja y `1` el primer nivel.
+- **Solicitaciones:** Inicio conserva la tabla de envolventes y permite abrir el diagrama
+  de momentos de la combinación que gobierna el mayor `|M|` del pórtico.
 - **Vigas:** tras resolver el motor, el botón **Dimensionar vigas** pide `b` y `fc` por
   viga. `app/diseno_vigas.py` guarda esos datos en `estructura.json`; `calc/diseno_vigas.py`
   construye la entrada para P02 a partir de `estructura.json`, las aplicaciones de carga
@@ -243,14 +252,10 @@ a la obra seleccionada. Materiales, viguetas, perfiles, coeficientes y viento qu
   las cargas puntuales no se incluyen en esa comprobación de flecha.
 - Los valores de ubicación de viento CIRSOC 102-25 se guardan como referencia en el
   proyecto; la configuración todavía indica que el motor usa el cálculo de viento previo.
-- La creación de geometría no está en la GUI. `datos/crear_estructura.py` sigue siendo el
-  ingreso por consola; no se debe confundir el selector de pórtico con un editor.
+- La geometría inicial se crea desde Inicio por niveles y ejes; todavía no hay un editor
+  gráfico para modificar pórticos existentes.
 
-### Próximo paso acordado
+### Próximo paso
 
-Crear una pantalla inicial para crear y editar uno o varios pórticos: nombre, cantidad de
-pisos, luces de tramos, alturas, columnas/apoyos y voladizos. Debe guardar en el formato
-actual de `datos/estructura.json`, evitar pisar nombres existentes y mostrar una vista
-previa clara. Luego revisar con el usuario el flujo y la geometría antes de conectar más
-dimensionadores. Mantener los scripts legacy disponibles durante esa transición.
-
+Incorporar edición gráfica de pórticos existentes y continuar la migración de los
+dimensionadores, manteniendo los scripts legacy disponibles durante esa transición.

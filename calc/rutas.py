@@ -210,7 +210,7 @@ def inicializar_obras() -> Path:
 
 
 def numero_portico(nombre: str, estructura: dict | None = None) -> int:
-    """Obtiene el número del nombre o propone el siguiente número libre."""
+    """Obtiene el número del nombre o propone el siguiente número acumulativo."""
     usados = set()
     for portico_id, datos in (estructura or {}).items():
         m = re.search(r"(\d+)\s*$", str(portico_id))
@@ -237,10 +237,32 @@ def numero_portico(nombre: str, estructura: dict | None = None) -> int:
                     break
             raise ValueError(f"El número de pórtico {numero} ya está usado por {otro}.")
         return numero
-    numero = 1
-    while numero in usados:
-        numero += 1
-    return numero
+    return max(usados, default=0) + 1
+
+
+def siguiente_numero_columna(estructura: dict | None = None) -> int:
+    """Devuelve el próximo número de columna libre en toda la obra."""
+    mayor = 0
+    cantidad_columnas_existentes = 0
+    for datos in (estructura or {}).values():
+        por_nivel: dict[str, set[str]] = {}
+        for columna_id in (datos.get("columnas", {}) or {}):
+            identificador = str(columna_id)
+            coincidencia = re.fullmatch(
+                r"C(\d+)-(.+)", identificador, re.IGNORECASE
+            )
+            if not coincidencia:
+                continue
+            nivel, sufijo = coincidencia.groups()
+            por_nivel.setdefault(nivel, set()).add(sufijo)
+            numero = re.fullmatch(r"(?:\d+-)?(\d+)", sufijo)
+            if numero:
+                mayor = max(mayor, int(numero.group(1)))
+        cantidad_columnas_existentes += max(
+            (len(columnas) for columnas in por_nivel.values()),
+            default=0,
+        )
+    return max(mayor, cantidad_columnas_existentes) + 1
 
 
 def resolver_portico(nombre: str, estructura: dict | None = None) -> str:

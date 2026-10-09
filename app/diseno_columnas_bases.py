@@ -23,8 +23,21 @@ def respuestas_columnas(parent, portico: str, columnas: dict) -> str | None:
     caja = QVBoxLayout(dialogo)
     caja.addWidget(QLabel(
         "Elegí el tipo de armadura y, para columnas con estribos, "
-        "la disposición de las barras longitudinales."
+        "la disposición de las barras longitudinales. En 2 caras se colocan "
+        "barras en dos caras opuestas; en 4 caras se distribuyen alrededor "
+        "del perímetro, con barras en las esquinas."
     ))
+    explicacion_rango = (
+        "La disposición en 4 caras puede cambiar la armadura necesaria, pero "
+        "no corrige una sección fuera del rango de los diagramas."
+    )
+    if "C1-8" in columnas:
+        explicacion_rango += (
+            " En este pórtico, C1-8 quedó fuera porque γ = 0,96 supera el máximo "
+            "disponible de 0,90; hay que revisar sus dimensiones o ampliar/verificar "
+            "los diagramas."
+        )
+    caja.addWidget(QLabel(explicacion_rango))
     formulario = QFormLayout()
     controles = {}
     for columna_id in columnas:
@@ -68,8 +81,9 @@ def datos_bases(parent) -> dict | None:
     dialogo.setWindowTitle("Datos de fundación")
     caja = QVBoxLayout(dialogo)
     caja.addWidget(QLabel(
-        "Ingresá los parámetros del terreno según el estudio geotécnico. "
-        "Los valores iniciales son solo referencias del cálculo anterior; verificá antes de continuar."
+        "Ingresá los datos del estudio geotécnico. Los valores que aparecen "
+        "inicialmente son solo referencias: verificá y reemplazalos por los "
+        "del informe antes de calcular."
     ))
     formulario = QFormLayout()
     profundidad = QDoubleSpinBox()
@@ -77,14 +91,25 @@ def datos_bases(parent) -> dict | None:
     profundidad.setDecimals(2)
     profundidad.setSuffix(" m")
     profundidad.setValue(float(guardados.get("profundidad_fundacion_m", 0.8)))
+    profundidad.setToolTip(
+        "Distancia vertical desde el nivel del terreno hasta el fondo de la zapata."
+    )
     q_adm = QDoubleSpinBox()
     q_adm.setRange(1.0, 10000.0)
     q_adm.setDecimals(2)
     q_adm.setSuffix(" kPa")
     q_adm.setValue(float(guardados.get("q_adm_kPa", 0.87 * 98.1)))
-    formulario.addRow("Profundidad de fundación:", profundidad)
-    formulario.addRow("Tensión admisible del suelo:", q_adm)
+    q_adm.setToolTip(
+        "Presión admisible del suelo indicada por el estudio geotécnico, en kPa."
+    )
+    formulario.addRow("Profundidad hasta el fondo de zapata:", profundidad)
+    formulario.addRow("Presión admisible del suelo (q_adm):", q_adm)
     caja.addLayout(formulario)
+    caja.addWidget(QLabel(
+        "Alcance actual: predimensiona la zapata por presión del suelo y propone "
+        "armadura mínima. No verifica resistencia del hormigón, flexión ni "
+        "punzonado; por eso todavía no solicita f'c."
+    ))
     botones = QDialogButtonBox(
         QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
     )

@@ -1,0 +1,93 @@
+Informe Bases - Pórtico 2
+==================================================
+
+Base B0-a
+----------------------------------------
+Geotecnia:
+  Lado de la zapata cuadrada: 1.19 m
+  Área de apoyo sobre el suelo: 1.43 m²
+  Excentricidad de la reacción: 0.081 m
+  Presión admisible adoptada (q_adm): 85.35 kPa
+  Presión máxima del suelo (q_max): 119.99 kPa
+  Presión mínima del suelo (q_min): 50.71 kPa
+  Criterio de viga de fundación: q_min < 0 implica tracción teórica del suelo y activa esta alerta; requiere viga = False
+Espesor preliminar de zapata (mínimo 0,35 m o lado/10; sin verificación estructural): 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 6
+  Longitud total: 12.6 m
+  Peso total: 5.0 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 4
+  Diametro: 1.6 cm
+  Anclaje: 0.48 m
+  Empalme: 0.8 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.73 m
+
+Base B0-b
+----------------------------------------
+Geotecnia:
+  Lado de la zapata cuadrada: 1.13 m
+  Área de apoyo sobre el suelo: 1.29 m²
+  Excentricidad de la reacción: 0.013 m
+  Presión admisible adoptada (q_adm): 85.35 kPa
+  Presión máxima del suelo (q_max): 91.13 kPa
+  Presión mínima del suelo (q_min): 79.57 kPa
+  Criterio de viga de fundación: q_min < 0 implica tracción teórica del suelo y activa esta alerta; requiere viga = False
+Espesor preliminar de zapata (mínimo 0,35 m o lado/10; sin verificación estructural): 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 5
+  Longitud total: 9.9 m
+  Peso total: 3.9 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+Base B0-c
+----------------------------------------
+Geotecnia:
+  Lado de la zapata cuadrada: 0.93 m
+  Área de apoyo sobre el suelo: 0.87 m²
+  Excentricidad de la reacción: 0.045 m
+  Presión admisible adoptada (q_adm): 85.35 kPa
+  Presión máxima del suelo (q_max): 110.22 kPa
+  Presión mínima del suelo (q_min): 60.48 kPa
+  Criterio de viga de fundación: q_min < 0 implica tracción teórica del suelo y activa esta alerta; requiere viga = False
+Espesor preliminar de zapata (mínimo 0,35 m o lado/10; sin verificación estructural): 0.35 m
+Armadura zapata:
+  Diametro: Ø8
+  Paso: 20 cm
+  Barras por sentido: 4
+  Longitud total: 6.32 m
+  Peso total: 2.5 kg
+Tronco (pedestal):
+  Lado: 0.35 m
+  Altura: 0.45 m
+  Volumen: 0.055 m³
+Pelos columna:
+  Cantidad barras: 6
+  Diametro: 1.2 cm
+  Anclaje: 0.36 m
+  Empalme: 0.6 m
+  Altura tronco: 0.45 m
+  Longitud total: 1.41 m
+
+ALCANCE Y LIMITACIONES
+Este informe predimensiona la zapata por presión admisible del suelo y propone armadura mínima. No verifica resistencia del hormigón, flexión ni punzonado; para esas comprobaciones se deberá completar el diseño estructural de la fundación.
+

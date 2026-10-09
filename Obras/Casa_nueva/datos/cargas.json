@@ -1,0 +1,102 @@
+{
+  "obra": "Casa_nueva",
+  "id_proyecto": "casa_nueva",
+  "notas": "",
+  "viento": {
+    "activo": 0,
+    "ancho_tributario_m": 3.0,
+    "referencia_cirsoc_102_25": {
+      "ubicacion": {
+        "pais": "Argentina",
+        "provincia": "Santa Fe",
+        "ciudad": "Santa Fe"
+      },
+      "categoria_riesgo": "I",
+      "V_basica_ms": 58.3,
+      "fuente": "CIRSOC 102-25, Figura 1.5-1D"
+    }
+  },
+  "elementos": {
+    "L0-1": {
+      "id": "Carga 0-1",
+      "tipo": "losa",
+      "activo": true,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "porcelanato",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 5.7,
+      "ancho_losa_m": 4.8,
+      "apoya_en": {
+        "izq": {
+          "portico": "Pórtico 1",
+          "viga": "V0-1"
+        },
+        "der": {
+          "portico": "Pórtico 2",
+          "viga": "V0-2"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "x",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+              "nombre": "X1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "30dad11f-09ae-4327-89df-4823d9241b66",
+              "nombre": "X2",
+              "coordenada_m": 5.7
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "fb9237bd-1ca2-41c8-b2fb-784fd84e7c31",
+              "nombre": "Y1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "6c9c4587-f143-4730-8fa2-ad3fd9340274",
+              "nombre": "Y3",
+              "coordenada_m": 4.85
+            }
+          }
+        },
+        "desfase_inicio_m": -0.05,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 0.05,
+        "coordenada_libre_fin_m": 4.85
+      }
+    }
+  },
+  "aplicaciones": []
+}

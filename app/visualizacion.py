@@ -2,12 +2,296 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, QRect, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import QWidget
 
 from calc import cargas, materiales, rutas
 
+
+class VistaDiagramaMomentos(QWidget):
+    """Dibuja la geometría del pórtico y sus diagramas de momento y corte."""
+
+    solicitacion_seleccionada = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(620, 360)
+        self.diagrama: dict | None = None
+        self.tipo_diagrama = "momento"
+        self.setMouseTracking(True)
+        self.setToolTip("Hacé clic sobre una curva para consultar el valor en esa estación.")
+        self._puntos_seleccionables: list[tuple[QPointF, str, float, float]] = []
+        self._seleccion: tuple[str, float, float] | None = None
+
+    def establecer_diagrama(self, diagrama: dict | None) -> None:
+        self.diagrama = diagrama
+        self.update()
+
+    def establecer_tipo_diagrama(self, tipo: str) -> None:
+        if tipo not in ("momento", "corte"):
+            raise ValueError(f"Tipo de diagrama no válido: {tipo}")
+        self.tipo_diagrama = tipo
+        self._seleccion = None
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QColor("#f8fafc"))
+        painter.setPen(QPen(QColor("#dbe4f0"), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 10, 10)
+        self._puntos_seleccionables = []
+        barras = (self.diagrama or {}).get("barras", [])
+        if not barras:
+            painter.setPen(QColor("#64748b"))
+            painter.drawText(
+                self.rect(),
+                Qt.AlignmentFlag.AlignCenter,
+                "No hay datos de momentos para representar.",
+            )
+            return
+
+        puntos_extremos = [
+            extremo
+            for barra in barras
+            for extremo in (barra["inicio"], barra["fin"])
+        ]
+        xs = [float(punto["x"]) for punto in puntos_extremos]
+        ys = [float(punto["y"]) for punto in puntos_extremos]
+        xmin, xmax = min(xs), max(xs)
+        ymin, ymax = min(ys), max(ys)
+        rango_x, rango_y = max(xmax - xmin, 1.0), max(ymax - ymin, 1.0)
+        margen_x, margen_y = 64.0, 42.0
+        escala = min(
+            (self.width() - 2 * margen_x) / rango_x,
+            (self.height() - 2 * margen_y) / rango_y,
+        )
+        ancho_dibujo, alto_dibujo = rango_x * escala, rango_y * escala
+        origen_x = (self.width() - ancho_dibujo) / 2
+        origen_y = self.height() - (self.height() - alto_dibujo) / 2
+
+        def punto(x: float, y: float) -> QPointF:
+            return QPointF(
+                origen_x + (x - xmin) * escala,
+                origen_y - (y - ymin) * escala,
+            )
+
+        clave_valores = "M_kNm" if self.tipo_diagrama == "momento" else "V_kN"
+        clave_maximo = (
+            "max_abs_kNm" if self.tipo_diagrama == "momento" else "max_abs_kN"
+        )
+        maximo = float((self.diagrama or {}).get(clave_maximo, 0.0))
+        if maximo <= 0:
+            maximo = max((
+                abs(float(valor))
+                for barra in barras
+                for valor in barra.get(clave_valores, [])
+            ), default=0.0)
+        amplitud_px = min(self.width() - 2 * margen_x, self.height() - 2 * margen_y) * 0.16
+        etiquetas = []
+        painter.setPen(QPen(QColor("#475569"), 2))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
+        for barra in barras:
+            inicio, fin = barra["inicio"], barra["fin"]
+            a = punto(float(inicio["x"]), float(inicio["y"]))
+            b = punto(float(fin["x"]), float(fin["y"]))
+            estaciones = barra.get("x_m", [])
+            valores = barra.get(clave_valores, [])
+            longitud = float(estaciones[-1]) if estaciones else 0.0
+            if not estaciones or len(estaciones) != len(valores) or longitud <= 0:
+                continue
+
+            dx, dy = b.x() - a.x(), b.y() - a.y()
+            largo_pantalla = (dx * dx + dy * dy) ** 0.5
+            if largo_pantalla <= 0:
+                continue
+            normal_x, normal_y = -dy / largo_pantalla, dx / largo_pantalla
+            curva = []
+            for x_local, valor in zip(estaciones, valores):
+                fraccion = min(1.0, max(0.0, float(x_local) / longitud))
+                base_x = a.x() + dx * fraccion
+                base_y = a.y() + dy * fraccion
+                desfase = (
+                    -float(valor) / maximo * amplitud_px if maximo > 0 else 0.0
+                )
+                punto_curva = QPointF(
+                    base_x + normal_x * desfase,
+                    base_y + normal_y * desfase,
+                )
+                curva.append(punto_curva)
+                self._puntos_seleccionables.append((
+                    punto_curva,
+                    str(barra["id"]),
+                    float(x_local),
+                    -float(valor),
+                ))
+            area = QPolygonF([a, *curva, b])
+            painter.setPen(Qt.PenStyle.NoPen)
+            color_area = QColor("#60a5fa")
+            color_area.setAlpha(72)
+            painter.setBrush(color_area)
+            painter.drawPolygon(area)
+            painter.setPen(QPen(QColor("#1d4ed8"), 2))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawPolyline(QPolygonF(curva))
+            painter.setPen(QPen(QColor("#475569"), 2))
+            painter.drawLine(a, b)
+
+            punto_medio = QPointF((a.x() + b.x()) / 2, (a.y() + b.y()) / 2)
+            etiquetas.append((punto_medio, str(barra["id"]), QColor("#1e3a8a")))
+
+        if self.tipo_diagrama == "corte" and not any(
+            barra.get("V_kN") for barra in barras
+        ):
+            painter.setPen(QColor("#64748b"))
+            painter.drawText(
+                self.rect(),
+                Qt.AlignmentFlag.AlignCenter,
+                "No hay datos de corte. Recalculá las solicitaciones para generarlos.",
+            )
+            return
+
+        for apoyo in (self.diagrama or {}).get("apoyos", []):
+            base = punto(float(apoyo["x"]), float(apoyo.get("y", 0.0)))
+            painter.setPen(QPen(QColor("#334155"), 1.5))
+            painter.setBrush(QColor("#f8fafc"))
+            if apoyo.get("tipo") == "articulado":
+                painter.drawPolygon(QPolygonF([
+                    QPointF(base.x(), base.y() + 1),
+                    QPointF(base.x() - 8, base.y() + 12),
+                    QPointF(base.x() + 8, base.y() + 12),
+                ]))
+                painter.drawLine(
+                    QPointF(base.x() - 11, base.y() + 13),
+                    QPointF(base.x() + 11, base.y() + 13),
+                )
+            else:
+                painter.drawLine(
+                    QPointF(base.x() - 10, base.y() + 5),
+                    QPointF(base.x() + 10, base.y() + 5),
+                )
+                for desplazamiento in (-7, 0, 7):
+                    painter.drawLine(
+                        QPointF(base.x() + desplazamiento, base.y() + 5),
+                        QPointF(base.x() + desplazamiento - 5, base.y() + 11),
+                    )
+
+        painter.setFont(QFont(self.font().family(), 9, QFont.Weight.DemiBold))
+        metricas = QFontMetricsF(painter.font())
+        area_segura = QRectF(self.rect()).adjusted(10, 10, -10, -10)
+        ocupadas: list[QRectF] = []
+        for ancla, texto, color in etiquetas:
+            ancho = metricas.horizontalAdvance(texto) + 18
+            alto = metricas.height() + 8
+            posiciones = []
+            for radio in (10, 34, 58, 82, 106):
+                posiciones.extend((
+                    (ancla.x() + radio, ancla.y() - alto / 2),
+                    (ancla.x() - ancho - radio, ancla.y() - alto / 2),
+                    (ancla.x() - ancho / 2, ancla.y() - alto - radio),
+                    (ancla.x() - ancho / 2, ancla.y() + radio),
+                    (ancla.x() + radio, ancla.y() - alto - radio),
+                    (ancla.x() + radio, ancla.y() + radio),
+                    (ancla.x() - ancho - radio, ancla.y() - alto - radio),
+                    (ancla.x() - ancho - radio, ancla.y() + radio),
+                ))
+            rectangulo = next((
+                QRectF(x, y, ancho, alto)
+                for x, y in posiciones
+                if area_segura.contains(QRectF(x, y, ancho, alto))
+                and not any(
+                    QRectF(x, y, ancho, alto).adjusted(-3, -2, 3, 2).intersects(otra)
+                    for otra in ocupadas
+                )
+            ), None)
+            if rectangulo is None:
+                candidatos = [
+                    QRectF(x, y, ancho, alto)
+                    for y in range(
+                        int(area_segura.top()),
+                        int(area_segura.bottom() - alto),
+                        int(alto + 5),
+                    )
+                    for x in range(
+                        int(area_segura.left()),
+                        int(area_segura.right() - ancho),
+                        int(ancho + 5),
+                    )
+                ]
+                rectangulo = next((
+                    rect for rect in sorted(
+                        candidatos,
+                        key=lambda r: (r.center().x() - ancla.x()) ** 2
+                        + (r.center().y() - ancla.y()) ** 2,
+                    )
+                    if not any(
+                        rect.adjusted(-3, -2, 3, 2).intersects(otra)
+                        for otra in ocupadas
+                    )
+                ), None)
+            if rectangulo is None:
+                continue
+
+            objetivo = QPointF(
+                min(max(ancla.x(), rectangulo.left()), rectangulo.right()),
+                min(max(ancla.y(), rectangulo.top()), rectangulo.bottom()),
+            )
+            painter.setPen(QPen(QColor(color.red(), color.green(), color.blue(), 170), 1))
+            painter.drawLine(ancla, objetivo)
+            fondo = QColor("#ffffff")
+            fondo.setAlpha(242)
+            painter.setBrush(fondo)
+            painter.setPen(QPen(color, 1.3))
+            painter.drawRoundedRect(rectangulo, 7, 7)
+            painter.setPen(QColor("#172554"))
+            painter.drawText(rectangulo, Qt.AlignmentFlag.AlignCenter, texto)
+            ocupadas.append(rectangulo.adjusted(-3, -2, 3, 2))
+
+        if self._seleccion:
+            barra_seleccionada, estacion_seleccionada, _ = self._seleccion
+            candidatos = [
+                (punto, estacion, momento)
+                for punto, barra_id, estacion, momento in self._puntos_seleccionables
+                if barra_id == barra_seleccionada
+            ]
+            if candidatos:
+                punto, _, _ = min(
+                    candidatos,
+                    key=lambda candidato: abs(candidato[1] - estacion_seleccionada),
+                )
+                painter.setPen(QPen(QColor("#ffffff"), 2))
+                painter.setBrush(QColor("#dc2626"))
+                painter.drawEllipse(punto, 6, 6)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self._puntos_seleccionables:
+            posicion = event.position()
+            punto, barra_id, estacion, momento = min(
+                self._puntos_seleccionables,
+                key=lambda muestra: (
+                    (muestra[0].x() - posicion.x()) ** 2
+                    + (muestra[0].y() - posicion.y()) ** 2
+                ),
+            )
+            distancia = (
+                (punto.x() - posicion.x()) ** 2
+                + (punto.y() - posicion.y()) ** 2
+            ) ** 0.5
+            if distancia <= 24:
+                self._seleccion = (barra_id, estacion, momento)
+                texto = (
+                    f"{barra_id} · x = {estacion:.2f} m · "
+                    f"{'M' if self.tipo_diagrama == 'momento' else 'V'} = "
+                    f"{momento:+.2f} "
+                    f"{'kN·m' if self.tipo_diagrama == 'momento' else 'kN'}"
+                )
+                self.solicitacion_seleccionada.emit(texto)
+                self.update()
+        super().mousePressEvent(event)
 
 class VistaPortico(QWidget):
     """Dibuja el pórtico seleccionado y los intervalos de carga del proyecto."""
@@ -256,7 +540,10 @@ class VistaPortico(QWidget):
                     f" · L/2={float(influencia):.2f} m"
                     if influencia is not None else ""
                 )
-                etiqueta = f"{carga_ref['tipo']} {valor:.2f} kN{detalle_influencia}"
+                if abs(geometria["x1"] - geometria["x0"]) < 2.0:
+                    etiqueta = f"{carga_ref['tipo']} {valor:.1f} kN"
+                else:
+                    etiqueta = f"{carga_ref['tipo']} {valor:.2f} kN{detalle_influencia}"
                 painter.setPen(QColor("#0f172a"))
                 texto_x = min(posicion.x() + 5, ancho - painter.fontMetrics().horizontalAdvance(etiqueta) - 4)
                 painter.drawText(QPointF(max(4.0, texto_x), y_inicio - 2), etiqueta)
@@ -304,8 +591,16 @@ class VistaPortico(QWidget):
                 ]))
 
             painter.setPen(QColor("#0f172a") if geometria["apoyado"] else QColor("#b91c1c"))
-            valores = " / ".join(f"{t} {v:.2f}" for t, v in tipos.items())
-            sin_apoyo = " · voladizo" if not geometria["apoyado"] else ""
+            longitud_tramo = abs(geometria["x1"] - geometria["x0"])
+            decimales = 1 if longitud_tramo < 2.0 else 2
+            valores = " / ".join(
+                f"{t} {v:.{decimales}f}" for t, v in tipos.items()
+            )
+            sin_apoyo = (
+                " · voladizo"
+                if not geometria["apoyado"] and longitud_tramo >= 2.0
+                else ""
+            )
             etiqueta = f"{valores} kN/m{sin_apoyo}"
             ancho_texto = painter.fontMetrics().horizontalAdvance(etiqueta)
             x_texto = max(4.0, min((base.x() + final.x() - ancho_texto) / 2, ancho - ancho_texto - 4))

@@ -23,7 +23,10 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QFormLayout,
+    QGroupBox,
     QLineEdit,
+    QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -892,8 +895,8 @@ class PaginaCargas(QWidget):
         caja_elementos.addLayout(acciones)
         self.pestanias_cargas.addTab(pagina_elementos, "Definir elementos")
 
-        pagina_aplicaciones = QWidget()
-        caja_aplicaciones = QVBoxLayout(pagina_aplicaciones)
+        self.grupo_aplicaciones = QGroupBox("Aplicar y revisar cargas en barras")
+        caja_aplicaciones = QVBoxLayout(self.grupo_aplicaciones)
         caja_aplicaciones.addWidget(QLabel(
             "Elegí un elemento del catálogo para asignarlo a una o varias barras. "
             "Los muros pueden aplicarse sobre una viga o perpendicularmente entre pórticos; "
@@ -914,7 +917,16 @@ class PaginaCargas(QWidget):
         acciones_aplicaciones.addWidget(self.boton_quitar_aplicacion)
         acciones_aplicaciones.addStretch(1)
         caja_aplicaciones.addLayout(acciones_aplicaciones)
-        self.pestanias_cargas.addTab(pagina_aplicaciones, "Aplicar y revisar en barras")
+        caja_elementos.addWidget(self.grupo_aplicaciones)
+
+        self.scroll_cargas = QScrollArea()
+        self.scroll_cargas.setWidgetResizable(True)
+        self.scroll_cargas.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        pagina_elementos.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum
+        )
+        self.scroll_cargas.setWidget(pagina_elementos)
+        self.pestanias_cargas.addTab(self.scroll_cargas, "Elementos y asignaciones")
 
         caja = QVBoxLayout(self)
         caja.addWidget(self.pestanias_cargas)
@@ -944,7 +956,8 @@ class PaginaCargas(QWidget):
         self.pestanias_cargas.setCurrentIndex(0)
 
     def ir_a_aplicaciones(self) -> None:
-        self.pestanias_cargas.setCurrentIndex(1)
+        self.pestanias_cargas.setCurrentIndex(0)
+        self.scroll_cargas.ensureWidgetVisible(self.grupo_aplicaciones, 0, 0)
 
     def _actualizar_boton_aplicaciones(self, *_args) -> None:
         nombre = self.selector_aplicaciones.currentData()

@@ -583,14 +583,22 @@ class EditorPorticoPorNiveles(QDialog):
         self.setWindowTitle("Geometría del pórtico por niveles")
         self.ejes = ejes
         self.estructura_existente = estructura_existente or {}
-        self.niveles = sorted(
+        self.niveles_disponibles = sorted(
             (dict(nivel) for nivel in niveles),
             key=lambda nivel: float(nivel["cota_m"]),
         )
+        self.niveles = list(self.niveles_disponibles)
         self.direccion = QComboBox()
         self.direccion.addItem("Paralelo a X", "x")
         self.direccion.addItem("Paralelo a Y", "y")
         self.eje_transversal = QComboBox()
+        self.nivel_final = QComboBox()
+        for indice, nivel in enumerate(self.niveles_disponibles[1:], start=1):
+            self.nivel_final.addItem(
+                f"{nivel['nombre']} ({float(nivel['cota_m']):g} m)", indice
+            )
+        if self.nivel_final.count():
+            self.nivel_final.setCurrentIndex(self.nivel_final.count() - 1)
 
         self.pestanas = QTabWidget()
         self.tablas: list[QTableWidget] = []
@@ -609,6 +617,15 @@ class EditorPorticoPorNiveles(QDialog):
         formulario = QFormLayout()
         formulario.addRow("Dirección del pórtico:", self.direccion)
         formulario.addRow("Eje transversal del pórtico:", self.eje_transversal)
+        if self.niveles_disponibles:
+            formulario.addRow(
+                "Nivel inferior:",
+                QLabel(
+                    f"{self.niveles_disponibles[0]['nombre']} "
+                    f"({float(self.niveles_disponibles[0]['cota_m']):g} m)"
+                ),
+            )
+        formulario.addRow("El pórtico llega hasta:", self.nivel_final)
         botones = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -618,6 +635,7 @@ class EditorPorticoPorNiveles(QDialog):
         self.direccion.currentIndexChanged.connect(self._cambio_direccion)
         self.eje_transversal.currentIndexChanged.connect(self._actualizar_vista)
         self.pestanas.currentChanged.connect(self._actualizar_vista)
+        self.nivel_final.currentIndexChanged.connect(self._cambio_nivel_final)
 
         caja = QVBoxLayout(self)
         caja.addWidget(instrucciones)
@@ -702,7 +720,7 @@ class EditorPorticoPorNiveles(QDialog):
             key=lambda eje: float(eje["coordenada_m"]),
         )
         for indice, (inferior, superior) in enumerate(
-            zip(self.niveles, self.niveles[1:])
+            zip(self.niveles_disponibles, self.niveles_disponibles[1:])
         ):
             nombre_inferior = str(inferior.get("nombre", f"Nivel {indice}"))
             nombre_superior = str(superior.get("nombre", f"Nivel {indice + 1}"))
@@ -755,6 +773,25 @@ class EditorPorticoPorNiveles(QDialog):
             self.pestanas.addTab(
                 tabla, f"{nombre_inferior} → {nombre_superior}  (Δz = {dz:g} m)"
             )
+        self._sincronizar_pestanas_visibles()
+
+    def _cambio_nivel_final(self) -> None:
+        indice_nivel = self.nivel_final.currentData()
+        if indice_nivel is None:
+            self.niveles = []
+            self._sincronizar_pestanas_visibles()
+            self._actualizar_vista()
+            return
+        self.niveles = self.niveles_disponibles[: int(indice_nivel) + 1]
+        self._sincronizar_pestanas_visibles()
+        self._actualizar_vista()
+
+    def _sincronizar_pestanas_visibles(self) -> None:
+        cantidad_visible = max(0, len(self.niveles) - 1)
+        for indice in range(self.pestanas.count()):
+            self.pestanas.setTabVisible(indice, indice < cantidad_visible)
+        if cantidad_visible and self.pestanas.currentIndex() >= cantidad_visible:
+            self.pestanas.setCurrentIndex(cantidad_visible - 1)
 
     def _cambio_direccion(self) -> None:
         self._actualizar_ejes_transversales()
@@ -821,7 +858,7 @@ class EditorPorticoPorNiveles(QDialog):
             "direccion": str(self.direccion.currentData()),
             "eje_id": eje_id,
             "desfase_m": 0.0,
-            "eje_longitudinal_id": seleccionados[0]["id"] if seleccionados else None,
+            "eje_longitudinal_id": ejes_base[0]["id"] if ejes_base else None,
             "desfase_longitudinal_m": 0.0,
         }
         asociaciones = {

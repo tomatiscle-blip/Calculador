@@ -16,6 +16,7 @@ app avise "ojo, cambiaste la geometría: hay que recalcular vigas y columnas".
 
 from __future__ import annotations
 
+import csv
 import os
 import subprocess
 import sys
@@ -190,18 +191,30 @@ def _marca_vigas(portico: str = "") -> tuple[bool, str]:
 def _marca_columnas(portico: str = "") -> tuple[bool, str]:
     """
     Lee salidas/columnas/planilla_columnas.csv (separado por ';').
-    Cuenta las columnas del pórtico elegido y avisa si alguna quedó con el
-    estribo fuera de norma (columna 'cumple_estribo' en False).
+    Verifica que estén todas las columnas de la geometría y avisa si alguna
+    quedó con el estribo fuera de norma (columna 'cumple_estribo' en False).
     """
     texto = rutas.leer_texto(rutas.PLANILLA_COLUMNAS)
     if not texto:
         return False, "falta salidas/columnas/planilla_columnas.csv"
-    lineas = [l for l in texto.splitlines()[1:] if l.strip()]
-    propias = [l for l in lineas if l.split(";")[0].strip() == portico]
+    columnas = rutas.cargar_estructura().get(portico, {}).get("columnas", {})
+    if not columnas:
+        return False, f"el pórtico {portico} no tiene columnas en la geometría"
+    propias = [
+        fila for fila in csv.DictReader(texto.splitlines(), delimiter=";")
+        if (fila.get("Pórtico") or "").strip() == portico
+    ]
     if not propias:
         return False, f"el pórtico {portico} todavía no tiene columnas calculadas"
-    revisar = [l for l in propias if len(l.split(";")) > 17 and l.split(";")[17].strip() == "False"]
-    detalle = f"{len(propias)} columnas de {portico}"
+    calculadas = {(fila.get("Columna") or "").strip() for fila in propias}
+    faltantes = sorted(set(columnas) - calculadas)
+    detalle = f"{len(calculadas & set(columnas))} de {len(columnas)} columnas de {portico}"
+    if faltantes:
+        return False, f"{detalle} · faltan: {', '.join(faltantes)}"
+    revisar = [
+        fila for fila in propias
+        if (fila.get("cumple_estribo") or "").strip().casefold() == "false"
+    ]
     if revisar:
         detalle += f" · OJO: {len(revisar)} con estribo fuera de norma"
     memoria = rutas.SAL_COLUMNAS / f"memoria_{rutas.nombre_seguro(portico)}.txt"

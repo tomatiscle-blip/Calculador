@@ -1,8 +1,11 @@
 # README – Script columnas.py
 
 ## Descripción
-El script `columnas.py` permite calcular y registrar resultados de columnas de hormigón armado (axiales, flexocompresión, cortas o esbeltas) en una planilla CSV compacta y auditable.  
-Incluye la propuesta de armadura longitudinal y de confinamiento (estribos o sunchos), junto con parámetros normativos y notas técnicas.
+El script `columnas.py` permite calcular y registrar resultados de columnas de 
+hormigón armado (axiales, flexocompresión, cortas o esbeltas) 
+en una planilla CSV compacta y auditable.  
+Incluye la propuesta de armadura longitudinal y de confinamiento 
+(estribos o sunchos), junto con parámetros normativos y notas técnicas.
 
 ## Funcionalidad principal
 - Entrada de datos:
@@ -46,4 +49,6 @@ C0-4;481.0;31.05;20;30.0;30.0;43.63;ESBELTA;9.00;8Ø12;Ø10 c/8.2cm (cumple=Fals
 ## Notas
 - El CSV se guarda en UTF‑8 para soportar símbolos técnicos (Ø, λ, γ, ρg).
 - El campo *Estribos/Sunchos* se adapta según el tipo de columna.
+- En secciones rectangulares, el diagrama I dispone barras en dos caras opuestas; el diagrama II distribuye barras en las cuatro caras. Esta opción cambia el modelo de armadura, no las dimensiones de la sección.
+- Los diagramas disponibles llegan hasta γ = 0,90. Elegir barras en cuatro caras no resuelve una sección cuya geometría quede fuera de ese rango; hay que revisar sus dimensiones o completar los diagramas.
 - La planilla es compacta y auditable, sin bloques de texto largos.

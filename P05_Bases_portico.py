@@ -19,10 +19,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ENTRADAS GENERALES
 # ============================================================
 
-fck = float(input("Ingrese fck [MPa] (ej: 20): "))
-fy = 420  # acero ADN 420 MPa
-
-prof = float(input("Ingrese profundidad fundación [m] (0.8 / 1.3): "))
+prof = float(input(
+    "Ingrese profundidad desde el nivel del terreno hasta el fondo de la zapata [m]: "
+))
 
 terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
 if "q_adm_kPa" in terreno:
@@ -78,6 +77,7 @@ def dimensionar_base_geotecnia(Fy, M, q_adm):
         "lado_m": round(L, 2),
         "area_m2": round(area, 2),
         "excentricidad_m": round(e, 3),
+        "q_adm_kPa": round(q_adm, 2),
         "q_max_kPa": round(q_max, 2),
         "q_min_kPa": round(q_min, 2),
         "requiere_viga_fundacion": q_min < 0
@@ -388,15 +388,23 @@ with open(txt_out, "w", encoding="utf-8") as f:
         # Geotecnia
         geo = res["geotecnia"]
         f.write("Geotecnia:\n")
-        f.write(f"  Lado zapata: {geo['lado_m']} m\n")
-        f.write(f"  Área: {geo['area_m2']} m²\n")
-        f.write(f"  Excentricidad: {geo['excentricidad_m']} m\n")
-        f.write(f"  q_max: {geo['q_max_kPa']} kPa\n")
-        f.write(f"  q_min: {geo['q_min_kPa']} kPa\n")
-        f.write(f"  Requiere viga: {geo['requiere_viga_fundacion']}\n")
+        f.write(f"  Lado de la zapata cuadrada: {geo['lado_m']} m\n")
+        f.write(f"  Área de apoyo sobre el suelo: {geo['area_m2']} m²\n")
+        f.write(f"  Excentricidad de la reacción: {geo['excentricidad_m']} m\n")
+        f.write(f"  Presión admisible adoptada (q_adm): {geo['q_adm_kPa']} kPa\n")
+        f.write(f"  Presión máxima del suelo (q_max): {geo['q_max_kPa']} kPa\n")
+        f.write(f"  Presión mínima del suelo (q_min): {geo['q_min_kPa']} kPa\n")
+        f.write(
+            "  Criterio de viga de fundación: q_min < 0 implica tracción "
+            "teórica del suelo y activa esta alerta; "
+            f"requiere viga = {geo['requiere_viga_fundacion']}\n"
+        )
 
         # Espesor
-        f.write(f"Espesor zapata: {res['espesor_m']} m\n")
+        f.write(
+            "Espesor preliminar de zapata (mínimo 0,35 m o lado/10; "
+            f"sin verificación estructural): {res['espesor_m']} m\n"
+        )
 
         # Armadura zapata
         arm = res["armadura_zapata"]
@@ -427,6 +435,14 @@ with open(txt_out, "w", encoding="utf-8") as f:
             f.write(f"  Longitud total: {pelos['longitud_total_m']} m\n")
 
         f.write("\n")
+
+    f.write(
+            "ALCANCE Y LIMITACIONES\n"
+            "Este informe predimensiona la zapata por presión admisible del suelo y "
+            "propone armadura mínima. No verifica resistencia del hormigón, flexión "
+            "ni punzonado; para esas comprobaciones se deberá completar el diseño "
+            "estructural de la fundación.\n\n"
+    )
 
     # Vigas de fundación
     vigas = resultados.get("vigas_fundacion")

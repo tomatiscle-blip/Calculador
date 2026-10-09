@@ -729,6 +729,7 @@ else:
 memoria_txt = []
 memoria_txt.append(f"\n=== MEMORIA DE CÁLCULO ===\n")
 memoria_txt.append(f"PÓRTICO {nombre_portico}\n")
+fallas_columnas = []
 
 
 print(f"Procesando pórtico: {nombre_portico}")
@@ -860,7 +861,20 @@ else:
             x_obj = calcular_x_normalizado(Pu, Mu, b, h)
 
         y_obj = calcular_y_normalizado(Pu, b, h)
-        diagrama = cargar_diagrama_interpolado(seccion_tipo, fck, gamma, x_obj, y_obj)
+        try:
+            diagrama = cargar_diagrama_interpolado(
+                seccion_tipo, fck, gamma, x_obj, y_obj
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            mensaje = f"{col_id}: no se pudo dimensionar con los diagramas disponibles: {exc}"
+            print(f"ERROR: {mensaje}")
+            memoria_txt.append(f"\nERROR DE DIMENSIONADO\n{mensaje}\n")
+            fallas_columnas.append(col_id)
+            SALIDA = rutas.SAL_COLUMNAS
+            SALIDA.mkdir(parents=True, exist_ok=True)
+            with open(SALIDA / f"memoria_{nombre_portico}.txt", "w", encoding="utf-8") as f:
+                f.writelines(memoria_txt)
+            continue
         rho_g = diagrama["rho_calc"]
         Ast_adoptado = rho_g * Ag
 
@@ -1048,3 +1062,10 @@ else:
             f.writelines(memoria_txt)
 
         print(f"✅ Memoria y despiece guardados en {SALIDA}/memoria_{nombre_portico}.txt")
+
+if fallas_columnas:
+    print(
+        "Dimensionado incompleto. Revisá las columnas sin resultado: "
+        + ", ".join(fallas_columnas)
+    )
+    sys.exit(1)

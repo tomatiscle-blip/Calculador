@@ -3,19 +3,20 @@ PLANILLA DE DOBLADO – V1-1 – TRAMO INTERIOR – TRAMO V1-1 T1
 ================================================================================
 Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
-1    | 6     | 6    | Sup. apoyo izq        | 0.81    | 1.08      
+1    | 5     | 8    | Sup. apoyo izq        | 0.89    | 1.76      
 2    | 3     | 6    | Inf. tramo            | 2.80    | 1.87      
 3    | 3     | 6    | Inf. tramo completo   | 3.94    | 2.63      
 4    | 6     | 6    | Sup. apoyo der        | 0.81    | 1.08      
 5    | 2     | 8    | Auxiliar superior     | 4.04    | 3.19      
-6    | 32    | 6    | Estribo central       | 0.86    | 6.11       | c/12cm (Ø6)
+6    | 2     | 6    | Estribo apoyo_izq     | 0.86    | 0.38       | c/12cm (Ø6)
+7    | 31    | 6    | Estribo central       | 0.86    | 5.92       | c/12cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 15.95 kg
+TOTAL PESO                                            | 16.82 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 0.62 cm²
+   As requerida       = 1.46 cm²
    As mínima          = 1.67 cm²
    As máxima          = 7.59 cm²
    As adoptada        = 1.70 cm²
@@ -35,8 +36,8 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 45000 cm⁴
-- Inercia efectiva global Ief   = 43450 cm⁴
-- Relación Ief / Ig             = 0.966  (sección poco fisurada)
+- Inercia efectiva global Ief   = 20283 cm⁴
+- Relación Ief / Ig             = 0.451  (fisuración elevada – revisar flechas)
 - Momento de fisuración Mcr     = 8.32 kNm (tramo)
 - c (eje neutro)                = 5.72 cm
 
@@ -49,25 +50,25 @@ NOTAS TÉCNICAS
    PI derecho   = 3.23 m
 
 7 ARMADURAS (As calculadas)
-   As apoyo izq = 1.70 cm²
+   As apoyo izq = 2.51 cm²
    As tramo     = 1.70 cm²
    As apoyo der = 1.70 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 32 unidades (s_teor≈7809.9 mm → s_final=12 cm)
-   Cantidad total Ø8 = 32 unidades (s_teor≈13884.3 mm → s_final=12 cm)
-   Zonificación   = central=0.00-3.80 m
+   Cantidad total Ø6 = 33 unidades (s_teor≈1978.5 mm → s_final=12 cm)
+   Cantidad total Ø8 = 33 unidades (s_teor≈3517.4 mm → s_final=12 cm)
+   Zonificación   = apoyo_izq=0.00-0.15 m | central=0.15-3.80 m
 
 9 FLECHA DE SERVICIO
    Método: estimación elástica para viga con carga distribuida equivalente
-   δmax = 0.00 mm
+   δmax = 8.14 mm
    Caso: piso · carga variable sin mayorar
-   Límite: δ ≤ ℓ/360 = 10.56 mm | q variable = 0.00 kN/m → ✅ Cumple
-   Inercia equivalente usada = 4.704e-04 m⁴
+   Límite: δ ≤ ℓ/360 = 10.56 mm | q variable = 10.04 kN/m → ✅ Cumple
+   Inercia equivalente usada = 1.593e-04 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 4.500e-04 m⁴
-   Ie apoyo izq   = 3.880e-04 m⁴
+   Ie tramo       = 9.977e-05 m⁴
+   Ie apoyo izq   = 1.618e-04 m⁴
    Ie apoyo der   = 4.500e-04 m⁴
    c (eje neutro) = 5.72 cm | d = 25.00 cm
 

@@ -4,15 +4,15 @@
   "notas": "",
   "viento": {
     "activo": 0,
-    "ancho_tributario_m": 0.0,
+    "ancho_tributario_m": 5.0,
     "referencia_cirsoc_102_25": {
       "ubicacion": {
         "pais": "Argentina",
         "provincia": "Santa Fe",
         "ciudad": "Santa Fe"
       },
-      "categoria_riesgo": null,
-      "V_basica_ms": null,
+      "categoria_riesgo": "I",
+      "V_basica_ms": 58.3,
       "fuente": "CIRSOC 102-25, Figura 1.5-1D"
     }
   },
@@ -20,7 +20,7 @@
     "L0-1": {
       "id": "Carga 0-1",
       "tipo": "losa",
-      "activo": 1,
+      "activo": true,
       "ancho_tributario_m": 1.0,
       "componentes": [
         {
@@ -95,6 +95,162 @@
         "desfase_fin_m": -3.0,
         "coordenada_libre_inicio_m": 0.0,
         "coordenada_libre_fin_m": 9.0
+      }
+    },
+    "L1-1": {
+      "id": "Carga 0-2",
+      "tipo": "losa",
+      "activo": true,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "alivianado_eps_250",
+          "espesor_m": 0.1,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "cubierta_acceso_poco_frecuente",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 5.0,
+      "ancho_losa_m": 5.0,
+      "apoya_en": {
+        "izq": {
+          "portico": "1",
+          "viga": "V1-1"
+        },
+        "der": {
+          "portico": "2",
+          "viga": "V1-2"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "y",
+        "nivel_apoyo_nombre": "N2",
+        "cota_apoyo_m": 6.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "x:x1",
+              "nombre": "X1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "x:x3",
+              "nombre": "X3",
+              "coordenada_m": 5.0
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "y:y1",
+              "nombre": "Y1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "y:y2",
+              "nombre": "Y2",
+              "coordenada_m": 5.0
+            }
+          }
+        },
+        "desfase_inicio_m": -0.4,
+        "desfase_fin_m": 0.4,
+        "coordenada_libre_inicio_m": 0.4,
+        "coordenada_libre_fin_m": 5.4
+      }
+    },
+    "L0-2": {
+      "id": "Carga 0-3",
+      "tipo": "losa",
+      "activo": 1,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.1,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "ceramica",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 4.0,
+      "ancho_losa_m": 8.0,
+      "apoya_en": {
+        "izq": {
+          "portico": "2",
+          "viga": "V0-2"
+        },
+        "der": {
+          "portico": "Pórtico 3",
+          "viga": "V0-3"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "y",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "x:x1",
+              "nombre": "X1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "x:x4",
+              "nombre": "X4",
+              "coordenada_m": 8.0
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "y:y2",
+              "nombre": "Y2",
+              "coordenada_m": 5.0
+            },
+            "fin": {
+              "id": "y:y3",
+              "nombre": "Y3",
+              "coordenada_m": 9.0
+            }
+          }
+        },
+        "desfase_inicio_m": 0.0,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 0.0,
+        "coordenada_libre_fin_m": 8.0
       }
     }
   },

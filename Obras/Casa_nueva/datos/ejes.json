@@ -1,0 +1,51 @@
+{
+  "x": [
+    {
+      "id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "nombre": "X1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "30dad11f-09ae-4327-89df-4823d9241b66",
+      "nombre": "X2",
+      "coordenada_m": 5.7
+    },
+    {
+      "id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+      "nombre": "X3",
+      "coordenada_m": 7.9
+    },
+    {
+      "id": "927c5424-9dab-4e86-bd21-896711752460",
+      "nombre": "X4",
+      "coordenada_m": 11.65
+    }
+  ],
+  "y": [
+    {
+      "id": "fb9237bd-1ca2-41c8-b2fb-784fd84e7c31",
+      "nombre": "Y1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "7a4cf2c9-3a92-4c9c-b097-54c42ffc751d",
+      "nombre": "Y2",
+      "coordenada_m": 0.85
+    },
+    {
+      "id": "6c9c4587-f143-4730-8fa2-ad3fd9340274",
+      "nombre": "Y3",
+      "coordenada_m": 4.85
+    },
+    {
+      "id": "552db56f-d372-4746-ac79-0842fabc6eb9",
+      "nombre": "Y4",
+      "coordenada_m": 11.0
+    },
+    {
+      "id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
+      "nombre": "Y5",
+      "coordenada_m": 22.0
+    }
+  ]
+}

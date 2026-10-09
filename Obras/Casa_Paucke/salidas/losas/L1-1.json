@@ -1,0 +1,96 @@
+{
+  "nombre": "L1-1",
+  "luz_libre_m": 5.0,
+  "luz_calculo_m": 5.1,
+  "ancho_losa_m": 5.0,
+  "serie": "C",
+  "tipo_vigueta": "vigueta_simple",
+  "combo": "bovedilla_10_losa_15",
+  "bovedilla_altura": "10",
+  "imagen": "imagenes/vigueta_simple_bovedilla_10.png",
+  "D1": 1.81,
+  "D2": 1.205,
+  "D": 3.015,
+  "L": 1.0,
+  "Q": 5.218,
+  "combo_critico": "1.2D + 1.6L",
+  "uso_sobrecarga": "Cubierta de acceso poco frecuente",
+  "momento_req_kgm": 1729.923344325,
+  "momento_busqueda_kgm": 1922.13704925,
+  "momento_disponible_kgm": 2377,
+  "phi": 0.9,
+  "momento_reducido_kgm": 2139.3,
+  "momento_reducido_kNm": 20.97969991173875,
+  "area_losa_m2": 25.5,
+  "n_viguetas": 10,
+  "n_bloques": 51,
+  "vol_hormigon_m3": 1.479,
+  "seleccion": [
+    {
+      "categoria": "Hormigon",
+      "nombre": "Hormigón alivianado (EPS 250 kg/m³)",
+      "espesor_m": 0.1
+    },
+    {
+      "categoria": "Morteros_Revoques",
+      "nombre": "Mortero de cemento y arena",
+      "espesor_m": 0.03
+    },
+    {
+      "categoria": "Cielorrasos",
+      "nombre": "Yeso Suspendido"
+    }
+  ],
+  "malla": {
+    "modelo": "Malla electrosoldada Q-131 / R-131 (SIMA)",
+    "tamanio_pano": "2.40x6",
+    "solape_m": 0.2,
+    "area_losa_m2": 25.5,
+    "area_pano_efectiva_m2": 12.76,
+    "cantidad_mallas": 2,
+    "area_total_mallas_m2": 28.8,
+    "criterio": "Cómputo por área (m²)",
+    "nota": null
+  },
+  "nervios": {
+    "n_nervios": 2,
+    "barras_por_nervio": 2,
+    "diametro_mm": 8,
+    "largo_por_nervio_m": 5.0,
+    "barras_total": 4,
+    "longitud_total_barras_m": 20.0
+  },
+  "reacciones": [
+    {
+      "apoyo": "izq",
+      "apoya_en": null,
+      "cargas": {
+        "D": 7.68825,
+        "L": 2.55,
+        "W": 0.0
+      },
+      "combinaciones": {
+        "1.4D": 10.763549999999999,
+        "1.2D+1.6L": 13.3059,
+        "1.2D+0.5L+1.6W": 10.5009,
+        "0.9D+1.6W": 6.919425
+      }
+    },
+    {
+      "apoyo": "der",
+      "apoya_en": null,
+      "cargas": {
+        "D": 7.68825,
+        "L": 2.55,
+        "W": 0.0
+      },
+      "combinaciones": {
+        "1.4D": 10.763549999999999,
+        "1.2D+1.6L": 13.3059,
+        "1.2D+0.5L+1.6W": 10.5009,
+        "0.9D+1.6W": 6.919425
+      }
+    }
+  ],
+  "carga_id": "Carga 0-2"
+}

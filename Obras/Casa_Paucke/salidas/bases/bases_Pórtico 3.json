@@ -1,0 +1,164 @@
+{
+    "B0-8": {
+        "geotecnia": {
+            "lado_m": 0.66,
+            "area_m2": 0.43,
+            "excentricidad_m": 0.197,
+            "q_max_kPa": 238.98,
+            "q_min_kPa": -68.28,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 3.12,
+            "peso_total_kg": 1.2
+        },
+        "tronco": {
+            "lado_m": 0.4,
+            "altura_m": 0.45,
+            "volumen_m3": 0.072
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-9": {
+        "geotecnia": {
+            "lado_m": 0.82,
+            "area_m2": 0.68,
+            "excentricidad_m": 0.035,
+            "q_max_kPa": 106.98,
+            "q_min_kPa": 63.72,
+            "requiere_viga_fundacion": false
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 4,
+            "longitud_total_m": 5.44,
+            "peso_total_kg": 2.1
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-10": {
+        "geotecnia": {
+            "lado_m": 0.56,
+            "area_m2": 0.32,
+            "excentricidad_m": 0.178,
+            "q_max_kPa": 246.75,
+            "q_min_kPa": -76.05,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 3,
+            "longitud_total_m": 2.52,
+            "peso_total_kg": 1.0
+        },
+        "tronco": {
+            "lado_m": 0.4,
+            "altura_m": 0.45,
+            "volumen_m3": 0.072
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "B0-11": {
+        "geotecnia": {
+            "lado_m": 0.13,
+            "area_m2": 0.02,
+            "excentricidad_m": 0.246,
+            "q_max_kPa": 1043.92,
+            "q_min_kPa": -873.22,
+            "requiere_viga_fundacion": true
+        },
+        "espesor_m": 0.35,
+        "armadura_zapata": {
+            "diametro": "Ø8",
+            "paso_cm": 20,
+            "barras_por_sentido": 1,
+            "longitud_total_m": -0.02,
+            "peso_total_kg": -0.0
+        },
+        "tronco": {
+            "lado_m": 0.35,
+            "altura_m": 0.45,
+            "volumen_m3": 0.055
+        },
+        "pelos_columna": {
+            "cantidad": 6,
+            "diametro_cm": 1.2,
+            "anclaje_m": 0.36,
+            "empalme_m": 0.6,
+            "altura_tronco_m": 0.45,
+            "longitud_total_m": 1.41
+        }
+    },
+    "vigas_fundacion": {
+        "B0-8-B0-9": {
+            "longitud_m": 5.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 3.8,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 26,
+                "peso_kg": 12.3
+            }
+        },
+        "B0-9-B0-10": {
+            "longitud_m": 3.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 4.2,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 16,
+                "peso_kg": 7.6
+            }
+        },
+        "B0-10-B0-11": {
+            "longitud_m": 4.0,
+            "seccion_cm": "20x40",
+            "armadura_longitudinal": "2Ø12",
+            "As_requerida_mm2": 3.2,
+            "estribos": {
+                "diam": "Ø8",
+                "paso_cm": 20,
+                "cantidad": 21,
+                "peso_kg": 10.0
+            }
+        }
+    }
+}

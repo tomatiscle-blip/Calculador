@@ -15,7 +15,7 @@ TOTAL PESO                                            | 15.95 kg
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 0.96 cm²
+   As requerida       = 1.38 cm²
    As mínima          = 1.67 cm²
    As máxima          = 7.59 cm²
    As adoptada        = 1.70 cm²
@@ -35,8 +35,8 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 45000 cm⁴
-- Inercia efectiva global Ief   = 26260 cm⁴
-- Relación Ief / Ig             = 0.584  (fisuración elevada – revisar flechas)
+- Inercia efectiva global Ief   = 14091 cm⁴
+- Relación Ief / Ig             = 0.313  (fisuración elevada – revisar flechas)
 - Momento de fisuración Mcr     = 8.32 kNm (tramo)
 - c (eje neutro)                = 5.72 cm
 
@@ -60,15 +60,15 @@ NOTAS TÉCNICAS
 
 9 FLECHA DE SERVICIO
    Método: estimación elástica para viga con carga distribuida equivalente
-   δmax = 0.00 mm
+   δmax = 2.79 mm
    Caso: piso · carga variable sin mayorar
-   Límite: δ ≤ ℓ/360 = 10.56 mm | q variable = 0.00 kN/m → ✅ Cumple
-   Inercia equivalente usada = 2.544e-04 m⁴
+   Límite: δ ≤ ℓ/360 = 10.56 mm | q variable = 3.17 kN/m → ✅ Cumple
+   Inercia equivalente usada = 1.466e-04 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 1.757e-04 m⁴
-   Ie apoyo izq   = 2.490e-04 m⁴
-   Ie apoyo der   = 4.500e-04 m⁴
+   Ie tramo       = 1.046e-04 m⁴
+   Ie apoyo izq   = 1.900e-04 m⁴
+   Ie apoyo der   = 1.644e-04 m⁴
    c (eje neutro) = 5.72 cm | d = 25.00 cm
 
 10 ABERTURA DE FISURAS

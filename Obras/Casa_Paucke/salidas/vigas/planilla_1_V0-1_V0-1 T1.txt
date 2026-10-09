@@ -6,18 +6,18 @@ Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg)
 1    | 3     | 10   | Sup. apoyo izq        | 1.15    | 2.13      
 2    | 1     | 10   | Inf. tramo            | 3.74    | 2.31      
 3    | 2     | 10   | Inf. tramo completo   | 5.24    | 6.47      
-4    | 3     | 10   | Sup. apoyo der        | 1.15    | 2.13      
+4    | 6     | 8    | Sup. apoyo der        | 1.07    | 2.54      
 5    | 2     | 8    | Auxiliar superior     | 5.24    | 4.14      
-6    | 5     | 6    | Estribo apoyo_izq     | 1.06    | 1.18       | c/16cm (Ø6)
-7    | 23    | 6    | Estribo central       | 1.06    | 5.41       | c/18cm (Ø6)
-8    | 2     | 6    | Estribo apoyo_der     | 1.06    | 0.47       | c/16cm (Ø6)
+6    | 16    | 6    | Estribo apoyo_izq     | 1.06    | 3.77       | c/14cm (Ø6)
+7    | 7     | 6    | Estribo central       | 1.06    | 1.65       | c/18cm (Ø6)
+8    | 11    | 6    | Estribo apoyo_der     | 1.06    | 2.59       | c/16cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 24.23 kg
+TOTAL PESO                                            | 25.58 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 1.73 cm²
+   As requerida       = 1.98 cm²
    As mínima          = 2.33 cm²
    As máxima          = 10.62 cm²
    As adoptada        = 2.36 cm²
@@ -37,8 +37,8 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 106667 cm⁴
-- Inercia efectiva global Ief   = 32685 cm⁴
-- Relación Ief / Ig             = 0.306  (fisuración elevada – revisar flechas)
+- Inercia efectiva global Ief   = 30149 cm⁴
+- Relación Ief / Ig             = 0.283  (fisuración elevada – revisar flechas)
 - Momento de fisuración Mcr     = 14.79 kNm (tramo)
 - c (eje neutro)                = 7.98 cm
 
@@ -53,24 +53,24 @@ NOTAS TÉCNICAS
 7 ARMADURAS (As calculadas)
    As apoyo izq = 2.36 cm²
    As tramo     = 2.36 cm²
-   As apoyo der = 2.36 cm²
+   As apoyo der = 3.02 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 30 unidades (s_teor≈401.4 mm → s_final=16 cm)
-   Cantidad total Ø8 = 30 unidades (s_teor≈713.5 mm → s_final=16 cm)
-   Zonificación   = apoyo_izq=0.00-0.74 m | central=0.74-4.72 m | apoyo_der=4.72-5.00 m
+   Cantidad total Ø6 = 34 unidades (s_teor≈140.7 mm → s_final=14 cm)
+   Cantidad total Ø8 = 32 unidades (s_teor≈250.1 mm → s_final=16 cm)
+   Zonificación   = apoyo_izq=0.00-2.17 m | central=2.17-3.28 m | apoyo_der=3.28-5.00 m
 
 9 FLECHA DE SERVICIO
    Método: estimación elástica para viga con carga distribuida equivalente
-   δmax = 17.29 mm
+   δmax = 18.74 mm
    Caso: piso · carga variable sin mayorar
    Límite: δ ≤ ℓ/360 = 13.89 mm | q variable = 15.82 kN/m → ❌ No cumple
-   Inercia equivalente usada = 3.543e-04 m⁴
+   Inercia equivalente usada = 3.269e-04 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 2.853e-04 m⁴
-   Ie apoyo izq   = 3.905e-04 m⁴
-   Ie apoyo der   = 3.462e-04 m⁴
+   Ie tramo       = 2.617e-04 m⁴
+   Ie apoyo izq   = 3.280e-04 m⁴
+   Ie apoyo der   = 3.545e-04 m⁴
    c (eje neutro) = 7.98 cm | d = 35.00 cm
 
 10 ABERTURA DE FISURAS

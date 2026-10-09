@@ -15,7 +15,7 @@ TOTAL PESO                                            | 19.57 kg
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 0.42 cm²
+   As requerida       = 0.36 cm²
    As mínima          = 2.33 cm²
    As máxima          = 10.62 cm²
    As adoptada        = 2.36 cm²

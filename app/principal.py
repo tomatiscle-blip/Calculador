@@ -74,7 +74,7 @@ from app.ejes import (  # noqa: E402
     resumen_ejes,
     resumen_niveles,
 )
-from app.visualizacion import VistaPortico  # noqa: E402
+from app.visualizacion import VistaDiagramaMomentos, VistaPortico  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Colores del semáforo: (fondo, texto)
@@ -561,7 +561,7 @@ class VentanaPrincipal(QMainWindow):
         self.referencia_portico_inicio = QLabel()
         self.referencia_portico_inicio.setWordWrap(True)
         self.boton_inicio_cargas = QPushButton("Definir cargas del proyecto")
-        self.boton_inicio_aplicaciones = QPushButton("Aplicar / revisar cargas en barras")
+        self.boton_inicio_aplicaciones = QPushButton("Asignar cargas a barras")
         self.boton_inicio_losas = QPushButton("Nueva losa en ejes…")
         self.vista_portico = VistaPortico()
         self.boton_referencias_cargas = QPushButton("Referencias de cargas…")
@@ -581,6 +581,8 @@ class VentanaPrincipal(QMainWindow):
         self.boton_ver_cargas = QPushButton("Abrir el último análisis")
         self.boton_resolver_motor = QPushButton("Resolver solicitaciones del pórtico")
         self.boton_ver_motor = QPushButton("Abrir el JSON del motor")
+        self.boton_diagrama_momentos = QPushButton("Ver diagrama de momentos")
+        self.boton_diagrama_momentos.setEnabled(False)
         self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
         self.ultimo_analisis: Path | None = None
         for boton in (
@@ -788,6 +790,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_dimensionar_columnas.clicked.connect(self._dimensionar_columnas)
         self.boton_dimensionar_bases.clicked.connect(self._dimensionar_bases)
         self.boton_ver_motor.clicked.connect(self._abrir_json_motor)
+        self.boton_diagrama_momentos.clicked.connect(self._mostrar_diagrama_momentos)
         self.combo_portico.currentTextChanged.connect(lambda _: self.refrescar())
         self.combo_portico.currentTextChanged.connect(self.pagina_cargas.actualizar_portico)
         self.tabla_etapas.itemSelectionChanged.connect(self._al_elegir_etapa)
@@ -972,6 +975,7 @@ class VentanaPrincipal(QMainWindow):
         fila_motor.addWidget(self.boton_ver_motor)
         fila_motor.addStretch(1)
         caja_motor.addLayout(fila_motor)
+        caja_motor.addWidget(self.boton_diagrama_momentos)
         panel_lateral = QWidget()
         panel_lateral.setMaximumWidth(420)
         panel_lateral.setMinimumWidth(300)
@@ -1009,8 +1013,10 @@ class VentanaPrincipal(QMainWindow):
 
         self.boton_inicio_cargas.setText("Cargas")
         self.boton_inicio_cargas.setToolTip("Definir o editar las cargas del proyecto.")
-        self.boton_inicio_aplicaciones.setText("Aplicar cargas")
-        self.boton_inicio_aplicaciones.setToolTip("Aplicar y revisar cargas sobre las barras.")
+        self.boton_inicio_aplicaciones.setText("Asignar cargas a barras")
+        self.boton_inicio_aplicaciones.setToolTip(
+            "Ir a las aplicaciones manuales de cargas dentro de Cargas."
+        )
         self.boton_inicio_losas.setText("Losa desde ejes…")
         self.boton_inicio_losas.setToolTip(
             "Delimitar un paño por ejes, elegir las vigas de apoyo y definir sus cargas."
@@ -1192,6 +1198,9 @@ class VentanaPrincipal(QMainWindow):
         self.boton_ver_cargas.setEnabled(self.ultimo_analisis is not None)
 
         archivo, datos, filas = datos_solicitaciones(portico)
+        diagrama_momentos = (datos or {}).get("diagrama_momentos")
+        hay_diagrama = bool(diagrama_momentos and diagrama_momentos.get("barras"))
+        self.boton_diagrama_momentos.setEnabled(hay_diagrama)
         estado_motor_txt = (
             f"{iconos.get(estado_motor['estado'], '')} "
             f"{nombres_estado.get(estado_motor['estado'], estado_motor['estado'])} \u00b7 "
@@ -1218,10 +1227,18 @@ class VentanaPrincipal(QMainWindow):
         # no una entrada necesaria para resolver el pórtico.
         requisitos_motor = geometria["estado"] == "ok"
         motor_al_dia = estado_motor["estado"] == "ok"
-        self.boton_resolver_motor.setEnabled(bool(portico) and bool(estructura) and requisitos_motor and not motor_al_dia)
-        if motor_al_dia:
+        self.boton_resolver_motor.setEnabled(
+            bool(portico) and bool(estructura) and requisitos_motor
+            and (not motor_al_dia or not hay_diagrama)
+        )
+        if motor_al_dia and hay_diagrama:
             self.boton_resolver_motor.setText("Solicitaciones al día")
             self.boton_resolver_motor.setToolTip("El resultado vigente está guardado; podés abrirlo con el botón de al lado.")
+        elif motor_al_dia:
+            self.boton_resolver_motor.setText("Actualizar para ver diagrama")
+            self.boton_resolver_motor.setToolTip(
+                "Este resultado anterior no incluye el muestreo necesario para dibujar momentos."
+            )
         elif not requisitos_motor:
             faltan = []
             if geometria["estado"] != "ok":
@@ -1295,19 +1312,24 @@ class VentanaPrincipal(QMainWindow):
 
     def _crear_portico(self) -> None:
         """Crea geometría básica desde Inicio, dentro de la obra actual."""
-        nombre, ok = QInputDialog.getText(self, "Nuevo pórtico", "Nombre del pórtico:")
+        estructura = rutas.cargar_estructura()
+        siguiente_numero = rutas.numero_portico("", estructura)
+        numero_ingresado, ok = QInputDialog.getInt(
+            self,
+            "Nuevo pórtico",
+            "Número acumulativo del pórtico:",
+            siguiente_numero,
+            1,
+            2147483647,
+        )
         if not ok:
             return
-        nombre = nombre.strip()
-        if not nombre:
-            QMessageBox.warning(self, "Nombre requerido", "Ingresá un nombre para el pórtico.")
-            return
-        estructura = rutas.cargar_estructura()
+        nombre = f"Pórtico {numero_ingresado}"
         if nombre in estructura:
             QMessageBox.warning(self, "Nombre existente", f"Ya existe el pórtico {nombre}.")
             return
         try:
-            numero_portico = rutas.numero_portico(nombre, estructura)
+            numero_portico = rutas.numero_portico(str(numero_ingresado), estructura)
         except ValueError as exc:
             QMessageBox.warning(self, "Número de pórtico repetido", str(exc))
             return
@@ -1321,6 +1343,7 @@ class VentanaPrincipal(QMainWindow):
             "posicion_planta_m": ubicacion["posicion_planta_m"],
             "niveles_geometria": ubicacion["niveles"],
         }
+        primer_numero_columna = rutas.siguiente_numero_columna(estructura)
         conteo_transferencias = 0
         for piso, tramo_nivel in enumerate(ubicacion["tramos_nivel"]):
             columnas_nivel = tramo_nivel["ejes_columna"]
@@ -1329,15 +1352,17 @@ class VentanaPrincipal(QMainWindow):
             cota_superior = float(tramo_nivel["cota_superior_m"])
             altura = cota_superior - y
             for indice, (eje_columna, x) in enumerate(zip(columnas_nivel, coordenadas)):
-                letra = chr(97 + indice) if indice < 26 else str(indice + 1)
-                datos["columnas"][f"C{piso}-{letra}"] = {
+                numero_columna = primer_numero_columna + indice
+                datos["columnas"][f"C{piso}-{numero_columna}"] = {
                     "x": x, "altura_m": altura, "nivel": y,
                     "eje_id": eje_columna["id"],
                     "eje_nombre": eje_columna["nombre"],
                     "nivel_inicio": tramo_nivel["nivel_inferior"],
                 }
                 if piso == 0:
-                    datos["bases"][f"B0-{letra}"] = {"x": x, "tipo": "empotramiento"}
+                    datos["bases"][f"B0-{numero_columna}"] = {
+                        "x": x, "tipo": "empotramiento"
+                    }
             nombre_nivel_viga = tramo_nivel["nivel_superior"]
             viga_id = f"V{piso}-{numero_portico}"
             tramos = []
@@ -1695,6 +1720,75 @@ class VentanaPrincipal(QMainWindow):
         if error:
             self._aviso("No se pudo abrir", error)
 
+    def _mostrar_diagrama_momentos(self) -> None:
+        portico = self._portico()
+        _, datos, _ = datos_solicitaciones(portico)
+        diagrama = (datos or {}).get("diagrama_momentos")
+        if not diagrama or not diagrama.get("barras"):
+            self._aviso(
+                "Sin diagrama de momentos",
+                "Recalculá las solicitaciones para generar los diagramas de momento.",
+            )
+            return
+        estado = pipeline.estado_etapa("portico", portico)
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle(f"Diagrama de momentos — {portico}")
+        dialogo.resize(980, 660)
+        caja = QVBoxLayout(dialogo)
+        referencia_apoyos = (
+            "▲ Apoyo articulado · rayado: empotramiento."
+            if diagrama.get("apoyos")
+            else "Recalculá las solicitaciones para mostrar los apoyos."
+        )
+        detalle = QLabel(
+            f"Combinación más solicitante: {diagrama['combinacion']}. "
+            "Hacé clic en una curva para consultar su valor."
+            f"\n{referencia_apoyos} "
+            "Escala normalizada; el signo mostrado se invierte respecto de Pynite."
+        )
+        detalle.setWordWrap(True)
+        caja.addWidget(detalle)
+        if estado["estado"] != "ok":
+            aviso = QLabel(
+                "El resultado guardado puede estar desactualizado respecto de la geometría o las cargas."
+            )
+            aviso.setWordWrap(True)
+            caja.addWidget(aviso)
+        vista = VistaDiagramaMomentos()
+        vista.establecer_diagrama(diagrama)
+        selector = QComboBox()
+        selector.addItem("Momento", "momento")
+        selector.addItem("Corte", "corte")
+        hay_corte = all(barra.get("V_kN") for barra in diagrama["barras"])
+        if not hay_corte:
+            selector.setItemData(
+                1,
+                "Recalculá las solicitaciones para generar el diagrama de corte.",
+                Qt.ItemDataRole.ToolTipRole,
+            )
+        seleccion = QLabel("Hacé clic sobre una curva para consultar su momento.")
+        seleccion.setWordWrap(True)
+        seleccion.setStyleSheet(
+            "QLabel { color: #1e3a8a; background: #eff6ff; padding: 8px; }"
+        )
+        vista.solicitacion_seleccionada.connect(seleccion.setText)
+        selector.currentIndexChanged.connect(
+            lambda indice: (
+                vista.establecer_tipo_diagrama(selector.itemData(indice)),
+                seleccion.setText(
+                    "Hacé clic sobre una curva para consultar su "
+                    f"{'momento' if selector.itemData(indice) == 'momento' else 'corte'}."
+                ),
+            )
+        )
+        caja.addWidget(selector)
+        caja.addWidget(seleccion)
+        caja.addWidget(vista, 1)
+        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        botones.rejected.connect(dialogo.reject)
+        caja.addWidget(botones)
+        dialogo.exec()
+
     def _resolver_motor(self) -> None:
         portico = self._portico()
         if not portico:
@@ -1708,7 +1802,12 @@ class VentanaPrincipal(QMainWindow):
             )
             return
         estado_motor = pipeline.estado_etapa("portico", portico)
-        if estado_motor["estado"] == "ok":
+        _, resultado_guardado, _ = datos_solicitaciones(portico)
+        diagrama_guardado = (resultado_guardado or {}).get("diagrama_momentos") or {}
+        tiene_diagrama = bool(
+            diagrama_guardado.get("barras")
+        )
+        if estado_motor["estado"] == "ok" and tiene_diagrama:
             self._aviso(
                 "Resultado vigente",
                 "Las solicitaciones de este pórtico ya están calculadas. Abrí el resultado guardado; "
@@ -1720,6 +1819,12 @@ class VentanaPrincipal(QMainWindow):
             f'    py -m calc.portico "{portico}" --guardar\n\n'
             f"Escribe salidas/solicitaciones/{rutas.nombre_seguro(portico)}.json"
         )
+        if estado_motor["estado"] == "ok":
+            texto = (
+                "El resultado vigente es anterior al visor de momentos. Se volverá a resolver "
+                "el pórtico para guardar los datos del diagrama; no se modifican la geometría "
+                "ni las cargas.\n\n" + texto
+            )
         if QMessageBox.question(
             self, "Resolver solicitaciones", texto,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -2037,7 +2142,7 @@ class VentanaPrincipal(QMainWindow):
             return
         if terreno is None:
             return
-        respuestas = f"20\n{terreno['profundidad_fundacion_m']}\n"
+        respuestas = f"{terreno['profundidad_fundacion_m']}\n"
         resultado = self._ejecutar_dimensionado("bases", portico, respuestas)
         if resultado is not None:
             self._mostrar_resultado("Bases", resultado)

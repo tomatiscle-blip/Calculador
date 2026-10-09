@@ -51,6 +51,8 @@ A_SEC = EA / E_MOD
 I_SEC = EI / E_MOD
 J_SEC = EI / E_MOD
 POISSON = 0.3
+PESO_ESPECIFICO_HORMIGON_KN_M3 = 25.0
+VERSION_MOTOR = 2
 
 
 def combinaciones() -> dict[str, tuple[float, float, float, float]]:
@@ -85,6 +87,37 @@ def _piso_de_viga(viga_id: str) -> int | None:
     if cabeza[:1].upper() == "V" and cabeza[1:].isdigit():
         return int(cabeza[1:])
     return None
+
+
+def _peso_propio_viga_kN_m(viga: dict) -> tuple[float, float, bool]:
+    """Devuelve q propio, peralte usado y si el peralte se predimensionó."""
+    try:
+        ancho_cm = float(viga["b_cm"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("falta un ancho b_cm válido para calcular su peso propio") from exc
+    if ancho_cm <= 0:
+        raise ValueError("el ancho b_cm debe ser mayor que cero para calcular su peso propio")
+
+    peralte = viga.get("h_cm")
+    peralte_predimensionado = peralte is None
+    if peralte_predimensionado:
+        longitudes = [
+            float(tramo.get("longitud_m", 0.0))
+            for tramo in viga.get("tramos", [])
+        ]
+        luz_maxima = max(longitudes, default=0.0)
+        if luz_maxima <= 0:
+            raise ValueError("no hay una luz válida para predimensionar el peralte")
+        peralte = round(luz_maxima * 100 / 12.5)
+    try:
+        peralte_cm = float(peralte)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("el peralte h_cm debe ser un número válido") from exc
+    if peralte_cm <= 0:
+        raise ValueError("el peralte h_cm debe ser mayor que cero")
+
+    area_m2 = ancho_cm * peralte_cm / 10000
+    return area_m2 * PESO_ESPECIFICO_HORMIGON_KN_M3, peralte_cm, peralte_predimensionado
 
 
 def _aplicaciones_losas_portico(
@@ -430,7 +463,8 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     """
     Arma el modelo Pynite del pórtico como PÓRTICO PLANO (libre en el plano,
     fijo fuera de él: DZ, RX y RY bloqueados en todos los nudos). Aplica las
-    cargas como casos base D, L, W y P y deja cargadas las combinaciones.
+    cargas como casos base D, L, W y P, incluido el peso propio de las vigas,
+    y deja cargadas las combinaciones.
 
     Devuelve (modelo, mapa_de_barras, avisos). Columnas conservan un miembro FE
     por ID; vigas y voladizos exponen listas de segmentos FE bajo el ID lógico
@@ -444,7 +478,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
 
     mapa: dict[str, dict] = {
         "columnas": {}, "vigas": {}, "voladizos": {}, "segmentos": {},
-        "nudos_columna_inferior": set(), "nudos_viga": set(),
+        "nudos_columna_inferior": set(), "nudos_viga": set(), "apoyos": [],
     }
     # Solo se informan como aplicadas las cargas de miembros que se pudieron
     # crear en el modelo. Una asignación a un tramo sin apoyos no debe aparecer
@@ -486,9 +520,21 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             m.def_support(nodo, True, True, True, False, False, False)
         else:  # empotramiento (por defecto)
             m.def_support(nodo, True, True, True, True, True, True)
+        mapa["apoyos"].append({
+            "x": float(base["x"]),
+            "y": 0.0,
+            "tipo": "articulado" if base.get("tipo") == "articulado" else "empotramiento",
+        })
 
     # --- Vigas (por piso), voladizos y sus cargas --------------------------
     for viga_id, viga in portico.get("vigas", {}).items():
+        try:
+            peso_propio_kN_m, peralte_cm, peralte_predimensionado = (
+                _peso_propio_viga_kN_m(viga)
+            )
+        except ValueError as exc:
+            peso_propio_kN_m = None
+            avisos.append(f"{viga_id}: {exc}; no se incorpora el peso propio.")
         piso = _piso_de_viga(viga_id)
         cols = sorted(
             (c for cid, c in columnas.items() if piso is not None and cid.startswith(f"C{piso}-")),
@@ -612,6 +658,11 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                     m.add_member_dist_load(miembro_id, "FY", -wD, -wD, case="D")
                 if not reemplaza_anteriores and abs(wL) > 1e-9:
                     m.add_member_dist_load(miembro_id, "FY", -wL, -wL, case="L")
+                if peso_propio_kN_m is not None:
+                    m.add_member_dist_load(
+                        miembro_id, "FY", -peso_propio_kN_m, -peso_propio_kN_m,
+                        case="D",
+                    )
                 for carga_aplicada in cargas_nuevas:
                     if carga_aplicada.get("tipo_aplicacion") == "puntual":
                         continue
@@ -628,6 +679,24 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                         x1=x_local_inicio, x2=x_local_fin,
                         case=carga_aplicada["tipo"],
                     )
+            if peso_propio_kN_m is not None:
+                mapa["cargas_aplicadas"].append({
+                    "aplicacion_id": f"peso-propio:{tramo_id}",
+                    "carga_id": f"peso-propio:{viga_id}",
+                    "descripcion": (
+                        f"Peso propio {viga_id} · "
+                        f"{float(viga['b_cm']):g}×{peralte_cm:g} cm"
+                        + (" · h predimensionado L/12,5" if peralte_predimensionado else "")
+                    ),
+                    "tipo": "D",
+                    "valor_kN_m": peso_propio_kN_m,
+                    "x_inicio_m": 0.0,
+                    "x_fin_m": longitud_camino,
+                    "ancho_tributario_m": None,
+                    "modo_cargas_previas": "sumar",
+                    "signo": -1.0,
+                    "tramo_id": tramo_id,
+                })
             for carga_nodal in estaciones_carga:
                 x_cp, carga_puntual, origen = carga_nodal[1], carga_nodal[2], carga_nodal[3]
                 n_cp = _nodo(x_cp, y_viga)
@@ -728,6 +797,65 @@ def _resultados_segmentos(
     }
 
 
+def _diagrama_momento(modelo: FEModel3D, mapa: dict, combinacion: str) -> dict:
+    """Muestrea momento y corte de todas las barras para una combinación."""
+    barras = []
+    grupos = (
+        ("columna", mapa["columnas"].items()),
+        ("viga", mapa["vigas"].items()),
+        ("voladizo", mapa["voladizos"].items()),
+    )
+    maximo = 0.0
+    maximo_corte = 0.0
+    for tipo, elementos in grupos:
+        for identificador, valor in elementos:
+            miembro_ids = [valor] if tipo == "columna" else valor
+            for indice, miembro_id in enumerate(miembro_ids, start=1):
+                miembro = modelo.members[miembro_id]
+                estaciones, momentos = miembro.moment_array("Mz", 31, combinacion)
+                estaciones_corte, cortes = miembro.shear_array("Fy", 31, combinacion)
+                estaciones_m = [float(x) for x in estaciones]
+                momentos_kNm = [float(m) for m in momentos]
+                estaciones_corte_m = [float(x) for x in estaciones_corte]
+                cortes_kN = [float(v) for v in cortes]
+                if (
+                    len(estaciones_m) != len(momentos_kNm)
+                    or not estaciones_m
+                    or len(estaciones_corte_m) != len(estaciones_m)
+                    or len(cortes_kN) != len(estaciones_m)
+                ):
+                    raise ValueError(
+                        f"Pynite devolvió diagramas inválidos para {identificador}."
+                    )
+                maximo = max(maximo, *(abs(m) for m in momentos_kNm))
+                maximo_corte = max(maximo_corte, *(abs(v) for v in cortes_kN))
+                etiqueta = str(identificador)
+                if len(miembro_ids) > 1:
+                    etiqueta = f"{etiqueta} · segmento {indice}"
+                barras.append({
+                    "id": etiqueta,
+                    "tipo": tipo,
+                    "inicio": {
+                        "x": float(miembro.i_node.X),
+                        "y": float(miembro.i_node.Y),
+                    },
+                    "fin": {
+                        "x": float(miembro.j_node.X),
+                        "y": float(miembro.j_node.Y),
+                    },
+                    "x_m": estaciones_m,
+                    "M_kNm": momentos_kNm,
+                    "V_kN": cortes_kN,
+                })
+    return {
+        "combinacion": combinacion,
+        "max_abs_kNm": maximo,
+        "max_abs_kN": maximo_corte,
+        "apoyos": mapa.get("apoyos", []),
+        "barras": barras,
+    }
+
+
 def calcular(portico: dict, nombre: str = "") -> dict:
     """
     Resuelve el pórtico y devuelve las solicitaciones, reacciones y
@@ -741,6 +869,8 @@ def calcular(portico: dict, nombre: str = "") -> dict:
     combos = list(combinaciones())
     solicitaciones: dict[str, dict] = {}
     envolvente = _envolvente_vacia(mapa)
+    diagrama_gobernante = None
+    maximo_momento_global = -1.0
 
     for combo in combos:
         bloque: dict[str, dict] = {
@@ -788,6 +918,10 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             }
 
         solicitaciones[combo] = bloque
+        diagrama = _diagrama_momento(m, mapa, combo)
+        if diagrama["max_abs_kNm"] > maximo_momento_global:
+            diagrama_gobernante = diagrama
+            maximo_momento_global = diagrama["max_abs_kNm"]
 
     return {
         "portico": nombre,
@@ -799,6 +933,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
         "viento_general_kN_m": mapa.get("viento_general_kN_m", 0.0),
         "solicitaciones": solicitaciones,
         "envolvente": envolvente,
+        "diagrama_momentos": diagrama_gobernante,
     }
 
 
@@ -882,7 +1017,7 @@ def guardar(resultado: dict) -> Path:
 
 
 def huella_entrada(nombre_portico: str) -> str:
-    """Firma las entradas mecánicas, excluyendo datos de dimensionado de vigas."""
+    """Firma las entradas mecánicas y la versión del modelo."""
     estructura = rutas.cargar_estructura()
     if nombre_portico not in estructura:
         raise ValueError(f"No existe {nombre_portico} en datos/estructura.json")
@@ -897,10 +1032,12 @@ def huella_entrada(nombre_portico: str) -> str:
 def _huella_entradas(datos_portico: dict, cargas: dict, materiales: dict) -> str:
     datos_portico = deepcopy(datos_portico)
     for viga in datos_portico.get("vigas", {}).values():
-        for clave in ("b_cm", "h_cm", "recubrimiento_cm", "fc_MPa", "fy_MPa"):
+        # b y h determinan el peso propio; los demás datos son de dimensionado.
+        for clave in ("recubrimiento_cm", "fc_MPa", "fy_MPa"):
             viga.pop(clave, None)
 
     entradas = {
+        "version_motor": VERSION_MOTOR,
         "portico": datos_portico,
         "cargas": cargas,
         "materiales": materiales,
