@@ -96,7 +96,108 @@
         "coordenada_libre_inicio_m": 0.05,
         "coordenada_libre_fin_m": 4.85
       }
+    },
+    "M01": {
+      "tipo": "muro",
+      "activo": true,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.15,
+      "altura_m": 2.8,
+      "id": "Carga 0-2"
+    },
+    "Lm01": {
+      "id": "Carga 0-3",
+      "tipo": "losa",
+      "activo": 1,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.05,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_maciza",
+          "espesor_m": 0.55
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "maciza",
+      "luz_transversal_m": 11.0,
+      "ancho_losa_m": 5.7,
+      "apoya_en": {
+        "izq": {
+          "portico": "Pórtico 5",
+          "viga": "V0-5"
+        },
+        "der": {
+          "portico": "Pórtico 6",
+          "viga": "V0-6"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "y",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+              "nombre": "X1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "30dad11f-09ae-4327-89df-4823d9241b66",
+              "nombre": "X2",
+              "coordenada_m": 5.7
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "552db56f-d372-4746-ac79-0842fabc6eb9",
+              "nombre": "Y4",
+              "coordenada_m": 11.0
+            },
+            "fin": {
+              "id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
+              "nombre": "Y5",
+              "coordenada_m": 22.0
+            }
+          }
+        },
+        "desfase_inicio_m": 0.0,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 0.0,
+        "coordenada_libre_fin_m": 5.7
+      },
+      "espesor_automatico": true
     }
   },
-  "aplicaciones": []
+  "aplicaciones": [
+    {
+      "id": "Aplicacion 0-1",
+      "carga_id": "Carga 0-2",
+      "tipo_aplicacion": "lineal",
+      "portico": "Pórtico 1",
+      "tramo_id": "V0-1 T1",
+      "x_inicio_m": 0.5,
+      "x_fin_m": 4.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "sumar",
+      "activa": true
+    }
+  ]
 }

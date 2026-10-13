@@ -68,6 +68,7 @@ from app.ejes import (  # noqa: E402
     EditorAsociacionPorticos,
     EditorEjes,
     EditorPorticoPorNiveles,
+    EditorMuroPorNiveles,
     EditorNiveles,
     cargar_ejes,
     cargar_niveles,
@@ -544,7 +545,11 @@ class VentanaPrincipal(QMainWindow):
         self.boton_crear_portico.setToolTip(
             "Crear la geometría de un pórtico y definir columnas y vigas por nivel."
         )
-        self.boton_eliminar_portico = QPushButton("Eliminar pórtico…")
+        self.boton_crear_muro = QPushButton("Crear muro…")
+        self.boton_crear_muro.setToolTip(
+            "Crear la geometría de un muro y definir sus parámetros."
+        )
+        self.boton_eliminar_portico = QPushButton("Eliminar pórtico / muro…")
         self.boton_eliminar_portico.setEnabled(False)
         self.boton_definir_ejes = QPushButton("Definir ejes X/Y…")
         self.boton_definir_niveles = QPushButton("Definir niveles Z…")
@@ -585,6 +590,12 @@ class VentanaPrincipal(QMainWindow):
         self.boton_diagrama_momentos.setEnabled(False)
         self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
         self.ultimo_analisis: Path | None = None
+
+        # --- inicializar estructura, ejes y niveles ---
+        self.estructura = rutas.cargar_estructura()
+        self.ejes = cargar_ejes()
+        self.niveles = cargar_niveles()
+
         for boton in (
             self.boton_resolver_motor,
             self.boton_dimensionar_vigas,
@@ -777,6 +788,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_guardar_proyecto.clicked.connect(self._guardar_ficha_proyecto)
         self.boton_crear_portico.clicked.connect(self._crear_portico)
         self.boton_eliminar_portico.clicked.connect(self._eliminar_portico)
+        self.boton_crear_muro.clicked.connect(self._ingresar_muros)
         self.boton_definir_ejes.clicked.connect(self._editar_ejes)
         self.boton_definir_niveles.clicked.connect(self._editar_niveles)
         self.boton_asociar_porticos.clicked.connect(self._asociar_porticos)
@@ -793,6 +805,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_diagrama_momentos.clicked.connect(self._mostrar_diagrama_momentos)
         self.combo_portico.currentTextChanged.connect(lambda _: self.refrescar())
         self.combo_portico.currentTextChanged.connect(self.pagina_cargas.actualizar_portico)
+        self.combo_portico.currentTextChanged.connect(self.vista_portico.actualizar)
         self.tabla_etapas.itemSelectionChanged.connect(self._al_elegir_etapa)
         self.boton_ejecutar.clicked.connect(self._ejecutar_etapa)
         self.boton_abrir_salida.clicked.connect(self._abrir_salida_etapa)
@@ -811,6 +824,27 @@ class VentanaPrincipal(QMainWindow):
     # ------------------------------------------------------------------
     def _portico(self) -> str:
         return self.combo_portico.currentText().strip()
+
+
+    def _ingresar_muros(self):
+        dialogo = EditorMuroPorNiveles(self.ejes, self.niveles, self.estructura, self)
+        if dialogo.exec() == QDialog.DialogCode.Accepted:
+            datos = dialogo.datos_muro()
+            if not datos:
+                return
+
+            # Generar nombre único (plano, al mismo nivel que los pórticos)
+            siguiente = 1
+            while True:
+                nombre = f"Muro {siguiente}"
+                if nombre not in self.estructura:
+                    break
+                siguiente += 1
+
+            self.estructura[nombre] = datos
+            rutas.guardar_estructura(self.estructura)
+            self.refrescar()
+            QMessageBox.information(self, "Muro guardado", f"Se guardó el muro {nombre}.")
 
     def _editar_ejes(self) -> None:
         dialogo = EditorEjes(cargar_ejes(), self)
@@ -943,14 +977,24 @@ class VentanaPrincipal(QMainWindow):
 
         self.etiqueta_inicio.setStyleSheet("font-size: 11pt;")
 
-        grupo_porticos = QGroupBox("Pórticos de esta obra")
+        grupo_porticos = QGroupBox("Pórticos y muros de esta obra")
         caja_porticos = QVBoxLayout(grupo_porticos)
-        caja_porticos.addWidget(QLabel("Pórtico activo:"))
+        caja_porticos.addWidget(QLabel("Pórtico y Muro activo:"))
         caja_porticos.addWidget(self.combo_portico)
         for boton in (self.boton_crear_portico, self.boton_eliminar_portico):
             boton.setMinimumHeight(34)
             boton.setStyleSheet("QPushButton { padding: 5px 9px; font-weight: 600; }")
             caja_porticos.addWidget(boton)
+
+        grupo_muros = QGroupBox("Muros de esta obra")
+        caja_muros = QVBoxLayout(grupo_muros)
+        self.combo_muro = QComboBox()
+        self.combo_muro.setMinimumWidth(190)
+        #caja_muros.addWidget(QLabel("Muro activo:"))
+        #caja_muros.addWidget(self.combo_muro)
+        caja_muros.addWidget(self.boton_crear_muro)
+        caja_porticos.addStretch(1)
+        caja_porticos.addWidget(grupo_muros)
 
         fila_accesos = QVBoxLayout()
         fila_accesos.setSpacing(4)
@@ -1461,8 +1505,31 @@ class VentanaPrincipal(QMainWindow):
 
     def _eliminar_portico(self) -> None:
         nombre = self._portico()
-        estructura = rutas.cargar_estructura()
-        if not nombre or nombre not in estructura:
+        estructura = rutas.cargar_estructura() or {}
+        if not nombre:
+            QMessageBox.information(self, "Sin elemento", "Escogí el elemento que querés eliminar.")
+            self.refrescar()
+            return
+
+        elemento = estructura.get(nombre)
+        es_muro = isinstance(elemento, dict) and str(elemento.get("tipo", "")).lower() == "muro"
+        if es_muro:
+            respuesta = QMessageBox.question(
+                self,
+                "Confirmar eliminación",
+                f"¿Seguro que querés eliminar el muro {nombre}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if respuesta != QMessageBox.StandardButton.Yes:
+                return
+            if nombre in estructura:
+                del estructura[nombre]
+                self.estructura = estructura
+                rutas.guardar_estructura(self.estructura)
+                self.refrescar()
+                QMessageBox.information(self, "Muro eliminado", f"Se eliminó el muro {nombre}.")
+            return
             QMessageBox.information(
                 self, "Sin pórtico", "Elegí el pórtico que querés eliminar."
             )

@@ -1,0 +1,44 @@
+MEMORIA DE CÁLCULO - LOSA MACIZA
+=================================
+
+Losa: Lm01
+Carga del proyecto: Carga 0-3
+Luz entre apoyos: 11.00 m
+Ancho del paño: 5.70 m
+Espesor adoptado: 55.0 cm
+Criterio de espesor: CIRSOC 201-25, Tabla 7.3.1.1: L/20, redondeado hacia arriba al cm (hormigón normal, fy=420 MPa)
+
+Materiales seleccionados:
+ - Contrapiso de cascotes y cal 0.05 m (carga accesoria) → 0.850 kN/m²
+ - Mortero de cemento y arena 0.03 m (carga accesoria) → 0.630 kN/m²
+ - Yeso Suspendido (carga accesoria) → 0.330 kN/m²
+ - Losa maciza de hormigón armado 0.55 m (peso propio estructural) → 13.750 kN/m²
+Subtotal cargas accesorias (D2): 1.810 kN/m²
+Total cargas permanentes (D1+D2): 15.560 kN/m²
+
+Cargas consideradas:
+ - D1 (peso propio): 13.750 kN/m²
+ - D2 (accesoria): 1.810 kN/m²
+ - D total: 15.560 kN/m²
+ - Sobrecarga seleccionada: Vivienda / habitación → 2.000 kN/m²
+ - Carga de servicio (D+L): 17.560 kN/m²
+
+Modelo de análisis: Franja de 1 m; unidireccional, simplemente apoyada
+Combinaciones consideradas (kN/m²):
+ - 1.4D: 21.784
+ - 1.2D+1.6L: 21.872
+ - 1.2D+0.5L+1.6W: 19.672
+ - 0.9D+1.6W: 14.004
+
+Combinación crítica: 1.2D+1.6L
+Momento último requerido: 330.814 kN·m/m
+Corte último: 120.296 kN/m
+
+Reacciones por borde largo:
+ - izq: D=85.580, L=11.000 kN/m
+ - der: D=85.580, L=11.000 kN/m
+
+=================================
+Alcance: solicitaciones elásticas de un paño aislado.
+No dimensiona armadura ni verifica flecha, corte o continuidad entre paños.
+Fin de la memoria de cálculo

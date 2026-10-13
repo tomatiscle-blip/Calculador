@@ -201,5 +201,95 @@ def ingresar_datos_estructura():
 
     print(f"\nDatos guardados en {archivo}")
 
+def _buscar_eje(ejes, familia, nombre):
+    return next(
+        (e for e in ejes.get(familia, []) if str(e.get("nombre")) == str(nombre)),
+        None,
+    )
+
+def ingresar_datos_muro(nombre, eje_inicio, eje_fin, nivel_inicio, nivel_fin, espesor, offset=0.0):
+    """
+    Crea un muro en el formato plano que usa visualizador.py:
+    - Referencia por ejes (dirección + eje transversal + eje longitudinal inicial).
+    - Posiciones y cotas derivadas de los ejes/niveles reales.
+    """
+    from app.ejes import cargar_ejes, cargar_niveles
+    ejes = cargar_ejes()
+    niveles = cargar_niveles()
+    estructura = rutas.cargar_estructura()
+    archivo = rutas.ESTRUCTURA
+
+    def eje_de(familia, nom):
+        e = _buscar_eje(ejes, familia, nom)
+        if e is None:
+            raise ValueError(f"No existe el eje {nom} en la familia {familia.upper()}")
+        return e
+
+    def nivel_de(nom):
+        n = next((n for n in niveles if str(n.get("nombre")) == str(nom)), None)
+        if n is None:
+            raise ValueError(f"No existe el nivel {nom}")
+        return n
+
+    # Buscar el eje inicial en cualquiera de las dos familias para definir dirección.
+    e_ini = None
+    direccion = None
+    for fam in ("x", "y"):
+        cand = _buscar_eje(ejes, fam, eje_inicio)
+        if cand is not None:
+            e_ini = cand
+            direccion = fam
+            break
+    if e_ini is None:
+        raise ValueError(f"No existe el eje inicial {eje_inicio}")
+
+    e_fin = eje_de(direccion, eje_fin)
+    n_ini = nivel_de(nivel_inicio)
+    n_fin = nivel_de(nivel_fin)
+
+    familia_transversal = "y" if direccion == "x" else "x"
+    # Para el script usamos el primer eje transversal disponible como plano de referencia.
+    eje_transversal = (ejes.get(familia_transversal) or [None])[0]
+    if eje_transversal is None:
+        raise ValueError(f"No hay ejes {familia_transversal.upper()} para ubicar el muro")
+
+    coord_inicio = float(e_ini.get("coordenada_m", 0.0))
+    coord_fin = float(e_fin.get("coordenada_m", 0.0))
+    posicion = float(eje_transversal.get("coordenada_m", 0.0))
+
+    estructura[nombre] = {
+        "tipo": "muro",
+        "referencia_planta": {
+            "direccion": direccion,
+            "eje_id": str(eje_transversal.get("id", "")),
+            "desfase_m": 0.0,
+            "eje_longitudinal_id": str(e_ini.get("id", "")),
+            "desfase_longitudinal_m": 0.0,
+        },
+        "posicion_planta_m": posicion,
+        "x_inicio": coord_inicio,
+        "x_fin": coord_fin,
+        "nivel_inicio": float(n_ini.get("cota_m", 0.0)),
+        "nivel_fin": float(n_fin.get("cota_m", 0.0)),
+        "espesor_m": float(espesor),
+        "offset": float(offset),
+        "longitud_m": abs(coord_fin - coord_inicio),
+    }
+
+    rutas.guardar_estructura(estructura)
+    print(f"\nMuro guardado en {archivo}")
+    
 if __name__ == "__main__":
-    ingresar_datos_estructura()
+    ingresar_datos_muro(
+        nombre="Muro1",
+        eje_inicio="X1",
+        eje_fin="X3",
+        nivel_inicio="PB",
+        nivel_fin="N1",
+        espesor=0.20,
+        offset=0.0
+    )
+
+
+
+

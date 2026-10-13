@@ -1,0 +1,86 @@
+{
+  "nombre": "Lm01",
+  "carga_id": "Carga 0-3",
+  "metodo": "Franja de 1 m; unidireccional, simplemente apoyada",
+  "criterio_espesor": "CIRSOC 201-25, Tabla 7.3.1.1: L/20, redondeado hacia arriba al cm (hormigón normal, fy=420 MPa)",
+  "luz_m": 11.0,
+  "ancho_m": 5.7,
+  "espesor_m": 0.55,
+  "peso_propio_kNm2": 13.750000000000002,
+  "componentes": [
+    {
+      "descripcion": "Contrapiso de cascotes y cal 0.05 m",
+      "valor_kNm2": 0.8500000000000001,
+      "estructural": false
+    },
+    {
+      "descripcion": "Mortero de cemento y arena 0.03 m",
+      "valor_kNm2": 0.63,
+      "estructural": false
+    },
+    {
+      "descripcion": "Yeso Suspendido",
+      "valor_kNm2": 0.33,
+      "estructural": false
+    },
+    {
+      "descripcion": "Losa maciza de hormigón armado 0.55 m",
+      "valor_kNm2": 13.750000000000002,
+      "estructural": true
+    }
+  ],
+  "D2_kNm2": 1.81,
+  "uso_sobrecarga": "Vivienda / habitación",
+  "D_kNm2": 15.560000000000002,
+  "L_kNm2": 2.0,
+  "q_servicio_kNm2": 17.560000000000002,
+  "combinaciones_kNm2": {
+    "1.4D": 21.784000000000002,
+    "1.2D+1.6L": 21.872,
+    "1.2D+0.5L+1.6W": 19.672,
+    "0.9D+1.6W": 14.004000000000003
+  },
+  "combo_critica": "1.2D+1.6L",
+  "momento_ultimo_kNm_m": 330.814,
+  "corte_ultimo_kN_m": 120.29599999999999,
+  "reacciones": [
+    {
+      "apoyo": "izq",
+      "apoya_en": {
+        "portico": "Pórtico 5",
+        "viga": "V0-5"
+      },
+      "cargas_kN_m": {
+        "D": 85.58000000000001,
+        "L": 11.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 119.81200000000001,
+        "1.2D+1.6L": 120.29599999999999,
+        "1.2D+0.5L+1.6W": 108.196,
+        "0.9D+1.6W": 77.02200000000002
+      },
+      "reaccion_total_D_kN": 487.8060000000001,
+      "reaccion_total_L_kN": 62.7
+    },
+    {
+      "apoyo": "der",
+      "apoya_en": {
+        "portico": "Pórtico 6",
+        "viga": "V0-6"
+      },
+      "cargas_kN_m": {
+        "D": 85.58000000000001,
+        "L": 11.0
+      },
+      "combinaciones_kN_m": {
+        "1.4D": 119.81200000000001,
+        "1.2D+1.6L": 120.29599999999999,
+        "1.2D+0.5L+1.6W": 108.196,
+        "0.9D+1.6W": 77.02200000000002
+      },
+      "reaccion_total_D_kN": 487.8060000000001,
+      "reaccion_total_L_kN": 62.7
+    }
+  ]
+}

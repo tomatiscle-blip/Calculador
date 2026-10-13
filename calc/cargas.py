@@ -25,7 +25,9 @@ from datetime import datetime
 from math import cos, radians, tan
 from pathlib import Path
 
-from . import materiales, rutas
+from . import materiales, rutas, muros
+
+
 
 # Orden en que aparecen los elementos en el informe (el mismo de siempre:
 # cubiertas, losas/forjados, muros, encadenados y al final el viento general)

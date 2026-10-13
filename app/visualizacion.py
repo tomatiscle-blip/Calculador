@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QWidget
 
 from calc import cargas, materiales, rutas
 
-
+#-------MOMENTOS Y CORTES-----
 class VistaDiagramaMomentos(QWidget):
     """Dibuja la geometría del pórtico y sus diagramas de momento y corte."""
 
@@ -293,6 +293,7 @@ class VistaDiagramaMomentos(QWidget):
                 self.update()
         super().mousePressEvent(event)
 
+#--VISTA DE PORTICOS----
 class VistaPortico(QWidget):
     """Dibuja el pórtico seleccionado y los intervalos de carga del proyecto."""
 
@@ -307,26 +308,50 @@ class VistaPortico(QWidget):
         self.vigas: dict = {}
         self.tramos: list[dict] = []
         self.cargas: dict[str, list[dict]] = {}
+        self.muros: dict = {}
+        self.tipo = "pórtico"
+        self.muro_nombre = ""
         self.aviso = ""
         self.leyenda = "Sin cargas asignadas a este pórtico."
         self.ancho_viento_m = 0.0
         self.viento_lineal_kN_m = 0.0
         self.viento_nodos: list[dict] = []
         self.capas_carga = 0
-
+        
     def actualizar(self, nombre: str) -> None:
         self.nombre = nombre
         estructura = rutas.cargar_estructura().get(nombre, {}) if nombre else {}
-        self.columnas = estructura.get("columnas", {})
-        self.vigas = estructura.get("vigas", {})
-        self.tramos = self._geometria_tramos()
+        es_muro = isinstance(estructura, dict) and str(estructura.get("tipo", "")).lower() == "muro"
+        if nombre and es_muro:
+            self.tipo = "muro"
+            self.muro_nombre = nombre
+            self.columnas = {}
+            self.vigas = {}
+            # Solo este muro en el visor de inicio
+            self.muros = {nombre: estructura}
+            self.tramos = []
+            self.cargas = {}
+        else:
+            self.tipo = "pórtico"
+            self.muro_nombre = ""
+            self.columnas = estructura.get("columnas", {})
+            self.vigas = estructura.get("vigas", {})
+            # Contexto: se conservan los muros existentes del proyecto para
+            # dibujarlos tenues detrás del pórtico (ver paintEvent). Esto no
+            # altera la escala del pórtico.
+            estructura_completa = rutas.cargar_estructura() or {}
+            self.muros = {
+                n: d for n, d in estructura_completa.items()
+                if isinstance(d, dict) and str(d.get("tipo", "")).lower() == "muro"
+            }
+            self.tramos = self._geometria_tramos()
         self.cargas = {}
         self.capas_carga = 0
         self.aviso = ""
         self.ancho_viento_m = 0.0
         self.viento_lineal_kN_m = 0.0
         self.viento_nodos = []
-        if nombre:
+        if nombre and self.tipo != "muro":
             try:
                 from calc.portico import _cargas_asignadas
 
@@ -334,6 +359,8 @@ class VistaPortico(QWidget):
                 self.aviso = "; ".join(avisos)
             except Exception as exc:
                 self.aviso = f"No se pudieron leer las cargas: {exc}"
+        elif self.tipo == "muro":
+            self.aviso = "Muro seleccionado."
         self.capas_carga = max((
             len({c.get("aplicacion_id", "") for c in cargas_tramo})
             for cargas_tramo in self.cargas.values()
@@ -440,19 +467,32 @@ class VistaPortico(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor("#ffffff"))
-        if not self.columnas:
+        if self.tipo == "muro":
+            xs = []
+            ys = []
+            for muro in self.muros.values():
+                xs.append(float(muro.get("x_inicio", 0.0)))
+                xs.append(float(muro.get("x_fin", 0.0)))
+                ys.append(float(muro.get("nivel_inicio", 0.0)))
+                ys.append(float(muro.get("nivel_fin", 0.0)))
+            if not xs or not ys:
+                painter.setPen(QColor("#64748b"))
+                painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No hay geometría de muro seleccionada")
+                return
+        elif not self.columnas:
             painter.setPen(QColor("#64748b"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Seleccioná un pórtico con geometría")
             return
 
-        xs = [float(c.get("x", 0.0)) for c in self.columnas.values()]
-        ys = [float(c.get("nivel", 0.0)) for c in self.columnas.values()]
-        ys.extend(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values())
-        for tramo in self.tramos:
-            xs.extend((tramo["x0"], tramo["x1"]))
-            ys.append(tramo["y"])
-        if not xs or not ys:
-            return
+        if self.tipo != "muro":
+            xs = [float(c.get("x", 0.0)) for c in self.columnas.values()]
+            ys = [float(c.get("nivel", 0.0)) for c in self.columnas.values()]
+            ys.extend(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values())
+            for tramo in self.tramos:
+                xs.extend((tramo["x0"], tramo["x1"]))
+                ys.append(tramo["y"])
+            if not xs or not ys:
+                return
         ancho, alto = self.width(), self.height()
         margen_x = 56.0
         margen_y_superior = max(44.0, 30.0 + self.capas_carga * 24.0)
@@ -469,6 +509,67 @@ class VistaPortico(QWidget):
 
         def punto(x, y):
             return QPointF(origen_x + (x - xmin) * escala, origen_y - (y - ymin) * escala)
+
+        # Contexto: muros existentes dibujados TENUES detrás del pórtico.
+        # Usan la MISMA escala del pórtico (no se modifica) y comparten el eje Y
+        # de cotas. Se recortan a la zona de dibujo para no invadir los márgenes.
+        if self.tipo != "muro" and self.muros:
+            region = QRectF(origen_x, origen_y - dibujar_alto, dibujar_ancho, dibujar_alto)
+            painter.save()
+            painter.setClipRect(region)
+            for muro in self.muros.values():
+                x0 = float(muro.get("x_inicio", 0.0))
+                x1 = float(muro.get("x_fin", 0.0))
+                y0 = float(muro.get("nivel_inicio", 0.0))
+                y1 = float(muro.get("nivel_fin", 0.0))
+                relleno = QColor("#0f766e")
+                relleno.setAlpha(45)
+                painter.setBrush(relleno)
+                painter.setPen(QPen(QColor("#0f766e"), 1))
+                a = punto(min(x0, x1), min(y0, y1))
+                b = punto(max(x0, x1), max(y0, y1))
+                painter.drawRect(QRectF(a, b).normalized())
+            painter.restore()
+
+        # Dibujar muros SOLO cuando el elemento seleccionado es un muro.
+        # Si es un pórtico, self.muros queda vacío y no se dibuja nada aquí.
+        if self.tipo == "muro":
+            for indice, (nombre, muro) in enumerate(self.muros.items()):
+                x0 = float(muro.get("x_inicio", 0.0))
+                x1 = float(muro.get("x_fin", 0.0))
+                y0 = float(muro.get("nivel_inicio", 0.0))
+                y1 = float(muro.get("nivel_fin", 0.0))
+                espesor = float(muro.get("espesor_m", 0.20))
+                offset = float(muro.get("offset", 0.0))
+                longitud = abs(x1 - x0)
+
+                # convertir a puntos en pantalla
+                a = punto(x0 + offset, y0)
+                b = punto(x1 + offset, y0)
+                c = punto(x1 + offset, y1)
+                d = punto(x0 + offset, y1)
+
+                # dibujar rectángulo del muro (relleno suave + borde)
+                painter.setBrush(QColor("#0f766e"))
+                painter.setPen(QPen(QColor("#0f766e"), 3))
+                painter.drawPolygon(QPolygonF([a, b, c, d]))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+
+                # etiqueta rica; se apila en niveles para que no se superponga
+                etiqueta = (
+                    f"{nombre} · L={longitud:.2f} m · e={espesor:.2f} m · "
+                    f"niveles {y0:.2f}-{y1:.2f} m"
+                )
+                painter.setPen(QColor("#0f172a"))
+                cx = (a.x() + c.x()) / 2
+                painter.drawText(
+                    QPointF(cx, min(a.y(), b.y()) - 10 - indice * 16),
+                    etiqueta,
+                )
+
+            # Un muro se dibuja por sí solo: no se continúa con la lógica
+            # de columnas, tramos ni cargas (eso es exclusivo de los pórticos).
+            return
 
         painter.setPen(QPen(QColor("#334155"), 3))
         for columna in self.columnas.values():

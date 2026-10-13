@@ -263,34 +263,29 @@
       }
     ]
   },
-  "Pórtico 3": {
+  "Pórtico 5": {
     "vigas": {
-      "V0-3": {
+      "V0-5": {
         "tramos": [
           {
-            "id": "V0-3 T1",
+            "id": "V0-5 T1",
             "longitud_m": 5.7,
             "es_voladizo": false,
             "x_inicio": 0.0,
             "x_fin": 5.7,
             "cargas_puntuales": []
-          },
-          {
-            "id": "V0-3 T2",
-            "longitud_m": 2.2,
-            "es_voladizo": false,
-            "x_inicio": 5.7,
-            "x_fin": 7.9,
-            "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
-        "voladizos_m": {}
+        "voladizos_m": {},
+        "b_cm": 25.0,
+        "fc_MPa": 20,
+        "h_cm": 85.0
       }
     },
     "columnas": {
-      "C0-5": {
+      "C0-11": {
         "x": 0.0,
         "altura_m": 3.0,
         "nivel": 0.0,
@@ -298,41 +293,29 @@
         "eje_nombre": "X1",
         "nivel_inicio": "PB"
       },
-      "C0-6": {
+      "C0-12": {
         "x": 5.7,
         "altura_m": 3.0,
         "nivel": 0.0,
         "eje_id": "30dad11f-09ae-4327-89df-4823d9241b66",
         "eje_nombre": "X2",
         "nivel_inicio": "PB"
-      },
-      "C0-7": {
-        "x": 7.9,
-        "altura_m": 3.0,
-        "nivel": 0.0,
-        "eje_id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
-        "eje_nombre": "X3",
-        "nivel_inicio": "PB"
       }
     },
     "bases": {
-      "B0-5": {
+      "B0-11": {
         "x": 0.0,
         "tipo": "empotramiento"
       },
-      "B0-6": {
+      "B0-12": {
         "x": 5.7,
-        "tipo": "empotramiento"
-      },
-      "B0-7": {
-        "x": 7.9,
         "tipo": "empotramiento"
       }
     },
     "cargas_puntuales": [],
     "referencia_planta": {
       "direccion": "x",
-      "eje_id": "6c9c4587-f143-4730-8fa2-ad3fd9340274",
+      "eje_id": "552db56f-d372-4746-ac79-0842fabc6eb9",
       "desfase_m": 0.0,
       "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
       "desfase_longitudinal_m": 0.0,
@@ -355,13 +338,12 @@
           "cota_m": 0.0,
           "eje_ids": [
             "55cc1b19-fdad-42a9-bea7-595f1f7be838",
-            "30dad11f-09ae-4327-89df-4823d9241b66",
-            "273f63d2-3a8e-4667-9623-ccda5e881ef8"
+            "30dad11f-09ae-4327-89df-4823d9241b66"
           ]
         }
       ]
     },
-    "posicion_planta_m": 4.85,
+    "posicion_planta_m": 11.0,
     "niveles_geometria": [
       {
         "nombre": "PB",
@@ -374,5 +356,281 @@
         "cota_origen_m": 3.0
       }
     ]
+  },
+  "Pórtico 6": {
+    "vigas": {
+      "V0-6": {
+        "tramos": [
+          {
+            "id": "V0-6 T1",
+            "longitud_m": 5.7,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 5.7,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-6 T2",
+            "longitud_m": 2.2,
+            "es_voladizo": false,
+            "x_inicio": 5.7,
+            "x_fin": 7.9,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-6 T3",
+            "longitud_m": 3.75,
+            "es_voladizo": false,
+            "x_inicio": 7.9,
+            "x_fin": 11.65,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N1",
+        "cota_m": 3.0,
+        "voladizos_m": {}
+      },
+      "V1-6": {
+        "tramos": [
+          {
+            "id": "V1-6 T1",
+            "longitud_m": 4.100000000000006,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.100000000000006,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V1-6 T2",
+            "longitud_m": 3.7999999999999945,
+            "es_voladizo": false,
+            "x_inicio": 4.100000000000006,
+            "x_fin": 7.9,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V1-6 T3",
+            "longitud_m": 3.75,
+            "es_voladizo": false,
+            "x_inicio": 7.9,
+            "x_fin": 11.65,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N2",
+        "cota_m": 6.0,
+        "voladizos_m": {}
+      }
+    },
+    "columnas": {
+      "C0-13": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 0.0,
+        "eje_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+        "eje_nombre": "X1",
+        "nivel_inicio": "PB"
+      },
+      "C0-14": {
+        "x": 5.7,
+        "altura_m": 3.0,
+        "nivel": 0.0,
+        "eje_id": "30dad11f-09ae-4327-89df-4823d9241b66",
+        "eje_nombre": "X2",
+        "nivel_inicio": "PB"
+      },
+      "C0-15": {
+        "x": 7.9,
+        "altura_m": 3.0,
+        "nivel": 0.0,
+        "eje_id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+        "eje_nombre": "X3",
+        "nivel_inicio": "PB"
+      },
+      "C0-16": {
+        "x": 11.65,
+        "altura_m": 3.0,
+        "nivel": 0.0,
+        "eje_id": "927c5424-9dab-4e86-bd21-896711752460",
+        "eje_nombre": "X4",
+        "nivel_inicio": "PB"
+      },
+      "C1-13": {
+        "x": 0.0,
+        "altura_m": 3.0,
+        "nivel": 3.0,
+        "eje_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+        "eje_nombre": "X1",
+        "nivel_inicio": "N1"
+      },
+      "C1-14": {
+        "x": 4.100000000000006,
+        "altura_m": 3.0,
+        "nivel": 3.0,
+        "eje_id": "30dad11f-09ae-4327-89df-4823d9241b66",
+        "eje_nombre": "X2",
+        "nivel_inicio": "N1"
+      },
+      "C1-15": {
+        "x": 7.9,
+        "altura_m": 3.0,
+        "nivel": 3.0,
+        "eje_id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+        "eje_nombre": "X3",
+        "nivel_inicio": "N1"
+      },
+      "C1-16": {
+        "x": 11.65,
+        "altura_m": 3.0,
+        "nivel": 3.0,
+        "eje_id": "927c5424-9dab-4e86-bd21-896711752460",
+        "eje_nombre": "X4",
+        "nivel_inicio": "N1"
+      }
+    },
+    "bases": {
+      "B0-13": {
+        "x": 0.0,
+        "tipo": "empotramiento"
+      },
+      "B0-14": {
+        "x": 5.7,
+        "tipo": "empotramiento"
+      },
+      "B0-15": {
+        "x": 7.9,
+        "tipo": "empotramiento"
+      },
+      "B0-16": {
+        "x": 11.65,
+        "tipo": "empotramiento"
+      }
+    },
+    "cargas_puntuales": [],
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "desfase_longitudinal_m": 0.0,
+      "origen_longitudinal_m": 0.0,
+      "niveles": [
+        {
+          "nombre": "PB",
+          "cota_m": 0.0,
+          "cota_origen_m": 0.0
+        },
+        {
+          "nombre": "N1",
+          "cota_m": 3.0,
+          "cota_origen_m": 3.0
+        },
+        {
+          "nombre": "N2",
+          "cota_m": 6.0,
+          "cota_origen_m": 6.0
+        }
+      ],
+      "columnas_por_nivel": [
+        {
+          "nivel": "PB",
+          "cota_m": 0.0,
+          "eje_ids": [
+            "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+            "30dad11f-09ae-4327-89df-4823d9241b66",
+            "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+            "927c5424-9dab-4e86-bd21-896711752460"
+          ]
+        },
+        {
+          "nivel": "N1",
+          "cota_m": 3.0,
+          "eje_ids": [
+            "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+            "30dad11f-09ae-4327-89df-4823d9241b66",
+            "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+            "927c5424-9dab-4e86-bd21-896711752460"
+          ]
+        }
+      ]
+    },
+    "posicion_planta_m": 22.0,
+    "niveles_geometria": [
+      {
+        "nombre": "PB",
+        "cota_m": 0.0,
+        "cota_origen_m": 0.0
+      },
+      {
+        "nombre": "N1",
+        "cota_m": 3.0,
+        "cota_origen_m": 3.0
+      },
+      {
+        "nombre": "N2",
+        "cota_m": 6.0,
+        "cota_origen_m": 6.0
+      }
+    ]
+  },
+  "Muro 1": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "30dad11f-09ae-4327-89df-4823d9241b66",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "7a4cf2c9-3a92-4c9c-b097-54c42ffc751d",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.5,
+      "desfase_fin_m": 1.0
+    },
+    "posicion_planta_m": 5.7,
+    "x_inicio": 1.35,
+    "x_fin": 12.0,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 3.0,
+    "espesor_m": 0.28,
+    "offset": 0.0,
+    "longitud_m": 10.65
+  },
+  "Muro 2": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "7a4cf2c9-3a92-4c9c-b097-54c42ffc751d",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 0.85,
+    "x_inicio": 0.0,
+    "x_fin": 5.7,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 3.0,
+    "espesor_m": 0.25,
+    "offset": 0.0,
+    "longitud_m": 5.7
+  },
+  "Muro 3": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 22.0,
+    "x_inicio": 0.0,
+    "x_fin": 11.65,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 6.0,
+    "espesor_m": 0.3,
+    "offset": 0.0,
+    "longitud_m": 11.65
   }
 }

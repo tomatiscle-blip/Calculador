@@ -1,0 +1,2 @@
+MURO_TEST: {"tipo": "muro", "referencia_planta": {"direccion": "x", "eje_id": "fb9237bd-1ca2-41c8-b2fb-784fd84e7c31", "desfase_m": 0.0, "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838", "desfase_longitudinal_m": 0.0}, "posicion_planta_m": 0.0, "x_inicio": 0.0, "x_fin": 7.9, "nivel_inicio": 0.0, "nivel_fin": 3.0, "espesor_m": 0.2, "offset": 0.0, "longitud_m": 7.9}
+TIENE_CLAVE_MUROS_ANIDADA: False

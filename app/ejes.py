@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
+    QPlainTextEdit,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -1461,7 +1462,7 @@ class EditorNiveles(QDialog):
             return
         self.accept()
 
-
+#---------------------------------------------------------------------------------
 class EditorAsociacionPorticos(QDialog):
     """Asocia cada pórtico directamente a ejes de planta, sin desfases."""
 
@@ -1531,9 +1532,38 @@ class EditorAsociacionPorticos(QDialog):
         caja.addWidget(instrucciones)
         caja.addWidget(self.tabla, 1)
         caja.addWidget(self.vista, 2)
+        boton_muro = QPushButton("Agregar muro")
+        boton_muro.clicked.connect(self._abrir_editor_muro)
+        caja.addWidget(boton_muro)
         caja.addWidget(botones)
         self.resize(920, 720)
+#---------------------------------------------------------------------------------
+    def _abrir_editor_muro(self):
+        # cargar ejes y niveles igual que en principal.py
+        ejes = cargar_ejes()
+        niveles = cargar_niveles()
 
+        # abrir el mismo flujo que se usa en principal.py
+        dialogo = EditorMuroPorNiveles(ejes, niveles, rutas.cargar_estructura(), self)
+        if dialogo.exec() == QDialog.DialogCode.Accepted:
+            datos = dialogo.datos_muro()
+            if not datos:
+                return
+
+            # guardar en estructura.json de forma plana, al nivel de los pórticos
+            estructura = rutas.cargar_estructura()
+            siguiente = 1
+            while True:
+                nombre = f"Muro {siguiente}"
+                if nombre not in estructura:
+                    break
+                siguiente += 1
+            estructura[nombre] = datos
+            rutas.guardar_estructura(estructura)
+
+            # refrescar la vista
+            self._actualizar_vista()
+#------------------------   ---------------------------------------------------------
     def _direccion_portico_cambiada(self, nombre: str, indice: int) -> None:
         if indice >= 0:
             selector, selector_longitudinal = self.controles[nombre][1:]
@@ -1684,3 +1714,493 @@ class EditorAsociacionPorticos(QDialog):
             return
         self.estructura = nuevos_datos
         self.accept()
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+class VistaPlantaMuros(QWidget):
+    """Muestra la grilla de referencia y los muros definidos."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.ejes: dict[str, list[dict]] = {"x": [], "y": []}
+        self.muros: dict[str, dict] = {}
+        self.porticos: dict[str, dict] = {}
+        self.seleccionado: str | None = None
+        self.setMinimumSize(520, 300)
+
+    def _nombre_eje_por_id(self, eje_id: str) -> str:
+        for eje in self.ejes.get("x", []) + self.ejes.get("y", []):
+            if str(eje.get("id", "")) == str(eje_id):
+                return eje.get("nombre", "?")
+        return "?"
+
+    @staticmethod
+    def _es_numero_finito(valor: object) -> bool:
+        try:
+            return math.isfinite(float(valor))
+        except (TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _rango_con_margen(valores: list[float]) -> tuple[float, float]:
+        if not valores:
+            return -0.5, 0.5
+        minimo, maximo = min(valores), max(valores)
+        margen = max((maximo - minimo) * 0.08, 0.5)
+        return minimo - margen, maximo + margen
+
+    def establecer_datos(
+        self,
+        ejes: dict[str, list[dict]],
+        estructura: dict,
+        seleccionado: str | None = None,
+    ) -> None:
+        self.ejes = ejes
+        self.seleccionado = seleccionado
+        self.muros = {}
+        self.porticos = {}
+        for nombre, datos in estructura.items():
+            if not isinstance(datos, dict):
+                continue
+            if str(datos.get("tipo", "")).lower() == "muro":
+                referencia = datos.get("referencia_planta", {}) or {}
+                direccion = str(referencia.get("direccion", "x")).lower()
+                if direccion not in ("x", "y"):
+                    direccion = "x"
+                # El eje transversal es de la familia opuesta a la dirección.
+                # Derivamos su posición por id, igual que en VistaPlantaPorticos,
+                # para no depender del campo posicion_planta_m (puede quedar viejo).
+                familia_transversal = "y" if direccion == "x" else "x"
+                eje_transversal = self._buscar_eje(
+                    ejes, familia_transversal, referencia.get("eje_id"),
+                )
+                try:
+                    posicion = (
+                        float(eje_transversal["coordenada_m"])
+                        if eje_transversal is not None
+                        else float(datos.get("posicion_planta_m", 0.0))
+                    )
+                    x_inicio = float(datos.get("x_inicio", 0.0))
+                    x_fin = float(datos.get("x_fin", 0.0))
+                except (TypeError, ValueError):
+                    continue
+                longitud = abs(x_fin - x_inicio)
+                self.muros[nombre] = {
+                    "direccion": direccion,
+                    "posicion": posicion,
+                    "x_inicio": x_inicio,
+                    "x_fin": x_fin,
+                    "longitud": longitud,
+                    "referencia": referencia,
+                }
+            else:
+                # Pórtico existente: se dibuja como contexto transparente.
+                referencia = datos.get("referencia_planta", {}) or {}
+                direccion = str(referencia.get("direccion", "x")).lower()
+                if direccion not in ("x", "y"):
+                    direccion = "x"
+                familia_transversal = "y" if direccion == "x" else "x"
+                eje_transversal = self._buscar_eje(
+                    ejes, familia_transversal, referencia.get("eje_id"),
+                )
+                try:
+                    posicion = (
+                        float(eje_transversal["coordenada_m"])
+                        if eje_transversal is not None
+                        else float(datos.get("posicion_planta_m", 0.0))
+                    )
+                except (TypeError, ValueError):
+                    posicion = 0.0
+                columnas = datos.get("columnas", {})
+                coords = sorted({
+                    round(float(c["x"]), 6)
+                    for c in columnas.values()
+                    if isinstance(c, dict) and self._es_numero_finito(c.get("x"))
+                })
+                self.porticos[nombre] = {
+                    "direccion": direccion,
+                    "posicion": posicion,
+                    "columnas": coords,
+                }
+        self.update()
+
+    @staticmethod
+    def _buscar_eje(
+        ejes: dict[str, list[dict]], familia: str, eje_id: object,
+    ) -> dict | None:
+        if not eje_id:
+            return None
+        return next(
+            (
+                item for item in ejes.get(familia, [])
+                if str(item.get(
+                    "id", f"{familia}:{str(item.get('nombre', '')).casefold()}"
+                )) == str(eje_id)
+            ),
+            None,
+        )
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QColor("#ffffff"))
+        painter.setPen(QColor("#334155"))
+        painter.drawText(12, 20, "Planta de muros  ·  X horizontal  ·  Y vertical")
+
+        left, right = 58.0, max(59.0, self.width() - 24.0)
+        top, bottom = 36.0, max(37.0, self.height() - 38.0)
+        ancho, alto = right - left, bottom - top
+
+        # Reunir coordenadas para escalar igual que la vista de pórticos
+        coords_x = [float(item["coordenada_m"]) for item in self.ejes.get("x", [])]
+        coords_y = [float(item["coordenada_m"]) for item in self.ejes.get("y", [])]
+        for datos in self.muros.values():
+            if datos["direccion"] == "x":
+                coords_y.append(datos["posicion"])
+                coords_x.extend((datos["x_inicio"], datos["x_fin"]))
+            else:
+                coords_x.append(datos["posicion"])
+                coords_y.extend((datos["x_inicio"], datos["x_fin"]))
+        min_x, max_x = self._rango_con_margen(coords_x)
+        min_y, max_y = self._rango_con_margen(coords_y)
+
+        def punto(x: float, y: float) -> tuple[int, int]:
+            px = left + (x - min_x) / (max_x - min_x) * ancho
+            py = bottom - (y - min_y) / (max_y - min_y) * alto
+            return int(px), int(py)
+
+        # Dibujar ejes X (verticales) con nombre
+        for item in self.ejes.get("x", []):
+            x = float(item["coordenada_m"])
+            px, _ = punto(x, min_y)
+            painter.setPen(QPen(QColor("#2563eb"), 1, Qt.PenStyle.DashLine))
+            painter.drawLine(px, int(top), px, int(bottom))
+            painter.setPen(QColor("#1d4ed8"))
+            painter.drawText(px - 12, int(bottom + 16), str(item.get("nombre", "X")))
+        # Dibujar ejes Y (horizontales) con nombre
+        for item in self.ejes.get("y", []):
+            y = float(item["coordenada_m"])
+            _, py = punto(min_x, y)
+            painter.setPen(QPen(QColor("#15803d"), 1, Qt.PenStyle.DashLine))
+            painter.drawLine(int(left), py, int(right), py)
+            painter.setPen(QColor("#166534"))
+            painter.drawText(8, py + 4, str(item.get("nombre", "Y")))
+
+        # Pórticos existentes como CONTEXTO tenue (puntos + línea guía)
+        for nombre, datos in self.porticos.items():
+            color = QColor(120, 130, 145, 70)  # gris muy transparente
+            painter.setPen(QPen(color, 2, Qt.PenStyle.DashLine))
+            if datos["direccion"] == "x":
+                py = bottom - (datos["posicion"] - min_y) / (max_y - min_y) * alto
+                p1 = punto(datos["columnas"][0], datos["posicion"]) if datos["columnas"] else (int(left), int(py))
+                p2 = punto(datos["columnas"][-1], datos["posicion"]) if datos["columnas"] else (int(right), int(py))
+                painter.drawLine(*p1, *p2)
+            else:
+                px = left + (datos["posicion"] - min_x) / (max_x - min_x) * ancho
+                p1 = punto(datos["posicion"], datos["columnas"][0]) if datos["columnas"] else (int(px), int(top))
+                p2 = punto(datos["posicion"], datos["columnas"][-1]) if datos["columnas"] else (int(px), int(bottom))
+                painter.drawLine(*p1, *p2)
+            painter.setBrush(color)
+            for cx in datos["columnas"]:
+                cxp, cyp = (
+                    punto(cx, datos["posicion"]) if datos["direccion"] == "x"
+                    else punto(datos["posicion"], cx)
+                )
+                painter.drawEllipse(cxp - 3, cyp - 3, 6, 6)
+            painter.setPen(QColor(120, 130, 145, 150))
+            lx, ly = p1
+            painter.drawText(lx + 6, ly - 6, f"{nombre} (pórtico)")
+
+        # Dibujar muros
+        for nombre, datos in self.muros.items():
+            activo = nombre == self.seleccionado
+            # Transparencia: el muro activo opaco, los existentes semitransparentes.
+            color = QColor("#dc2626") if activo else QColor(71, 85, 105, 150)
+            painter.setPen(QPen(color, 5 if activo else 3))
+            if datos["direccion"] == "x":
+                # muro paralelo a X → línea horizontal en y=posicion
+                p_inicio = punto(datos["x_inicio"], datos["posicion"])
+                p_fin = punto(datos["x_fin"], datos["posicion"])
+            else:
+                # muro paralelo a Y → línea vertical en x=posicion
+                p_inicio = punto(datos["posicion"], datos["x_inicio"])
+                p_fin = punto(datos["posicion"], datos["x_fin"])
+            painter.drawLine(*p_inicio, *p_fin)
+            eje_aloja = self._nombre_eje_por_id(
+                datos.get("referencia_planta", {}).get("eje_id", "")
+            )
+            texto = (
+                f"{nombre} · {eje_aloja} · "
+                f"{datos['x_inicio']:.2f}→{datos['x_fin']:.2f} m"
+            )
+            painter.setPen(color)
+            painter.drawText(p_inicio[0] + 8, p_inicio[1] - 8, texto)
+
+        painter.setPen(QColor("#64748b"))
+        painter.drawText(
+            12, self.height() - 10,
+            "Ejes punteados  ·  líneas gruesas: muros  ·  rojo: muro seleccionado",
+        )
+#----------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------
+class EditorMuroPorNiveles(QDialog):
+    """Define muros entre ejes y niveles de referencia."""
+
+    def __init__(
+        self,
+        ejes: dict[str, list[dict]],
+        niveles: list[dict],
+        estructura: dict | None = None,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Geometría del muro por niveles")
+        self.ejes = ejes
+        self.niveles = niveles
+        self.estructura = estructura or {}
+
+        # Combo para dirección = familia del eje donde se ALOJA el muro.
+        # "Paralelo a X" => el muro se apoya en un eje X (X1, X2…); su longitud
+        # se mide en los cruces con los ejes perpendiculares (Y).
+        self.direccion = QComboBox()
+        self.direccion.addItem("Paralelo a X  (se aloja en un eje X: X1, X2…)", "x")
+        self.direccion.addItem("Paralelo a Y  (se aloja en un eje Y: Y1, Y2…)", "y")
+        self.direccion.currentIndexChanged.connect(self._actualizar_ejes)
+
+        # Combos para elegir ejes y niveles
+        self.eje_inicio = QComboBox()
+        self.eje_fin = QComboBox()
+        self.eje_transversal = QComboBox()
+        self.nivel_inicio = QComboBox()
+        self.nivel_fin = QComboBox()
+        self.espesor = QDoubleSpinBox()
+        self.espesor.setSuffix(" m")
+        self.espesor.setDecimals(3)
+        self.espesor.setRange(0.05, 1.00)
+        self.espesor.setValue(0.20)
+
+        # Desfases opcionales desde el eje de inicio y de fin (a lo largo de la
+        # dirección del muro). Por defecto el muro arranca/termina justo en el eje.
+        self.desfase_inicio = QDoubleSpinBox()
+        self.desfase_inicio.setSuffix(" m")
+        self.desfase_inicio.setDecimals(3)
+        self.desfase_inicio.setRange(-50.0, 50.0)
+        self.desfase_inicio.setValue(0.0)
+        self.desfase_fin = QDoubleSpinBox()
+        self.desfase_fin.setSuffix(" m")
+        self.desfase_fin.setDecimals(3)
+        self.desfase_fin.setRange(-50.0, 50.0)
+        self.desfase_fin.setValue(0.0)
+
+        # Llenar combos de niveles (con la cota para saber dónde queda)
+        for nivel in self.niveles:
+            etiqueta = f"{nivel['nombre']}  ({float(nivel.get('cota_m', 0.0)):+.2f} m)"
+            self.nivel_inicio.addItem(etiqueta, nivel.get("nombre"))
+            self.nivel_fin.addItem(etiqueta, nivel.get("nombre"))
+        # Por defecto arranca en Planta Baja (primer nivel) y llega al más alto,
+        # PERO el nivel de inicio sigue siendo seleccionable: así podés apoyar un
+        # muro arriba de un pórtico de planta baja (arrancar en N1, N2…).
+        if self.nivel_inicio.count():
+            self.nivel_inicio.setCurrentIndex(0)
+            self.nivel_fin.setCurrentIndex(self.nivel_fin.count() - 1)
+
+        # Inicializar combos de ejes según dirección
+        self._actualizar_ejes()
+
+        # Resumen textual
+        self.resumen = QPlainTextEdit()
+        self.resumen.setReadOnly(True)
+        self.resumen.setMaximumHeight(140)
+        self.resumen.setMinimumHeight(140)
+        self.resumen.setStyleSheet(
+            "background-color: #f8fafc;"
+            "border: 1px solid #cbd5e1;"
+            "border-radius: 6px;"
+            "font: 9pt 'Segoe UI';"
+        )
+        self._actualizar_resumen()
+
+        # 👉 Vista gráfica de muros
+        self.vista = VistaPlantaMuros()
+
+        # Botones
+        botones = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        botones.button(QDialogButtonBox.Ok).setText("Usar este muro")
+        botones.accepted.connect(self.accept)
+        botones.rejected.connect(self.reject)
+
+        # Conectar cambios para refrescar la vista en vivo
+        self.direccion.currentIndexChanged.connect(self._actualizar_vista)
+        self.eje_inicio.currentIndexChanged.connect(self._actualizar_vista)
+        self.eje_fin.currentIndexChanged.connect(self._actualizar_vista)
+        self.eje_transversal.currentIndexChanged.connect(self._actualizar_vista)
+        self.desfase_inicio.valueChanged.connect(self._actualizar_vista)
+        self.desfase_fin.valueChanged.connect(self._actualizar_vista)
+
+        # Layout
+        formulario = QFormLayout()
+        formulario.addRow("Dirección:", self.direccion)
+        formulario.addRow("Se aloja en el eje:", self.eje_transversal)
+        formulario.addRow("Arranca en cruce:", self.eje_inicio)
+        formulario.addRow("Termina en cruce:", self.eje_fin)
+        formulario.addRow("Nivel inicio:", self.nivel_inicio)
+        formulario.addRow("Nivel fin:", self.nivel_fin)
+        formulario.addRow("Espesor:", self.espesor)
+        formulario.addRow("Desfase desde inicio:", self.desfase_inicio)
+        formulario.addRow("Desfase desde fin:", self.desfase_fin)
+
+        caja = QVBoxLayout(self)
+        caja.addWidget(self.resumen)
+        caja.addLayout(formulario)
+        caja.addWidget(self.vista, 2)   # 👈 se integra la vista aquí
+        caja.addWidget(botones)
+        self.resize(720, 620)
+        self._actualizar_vista()
+
+    def _actualizar_vista(self) -> None:
+        """Compone un muro temporal con la selección actual y lo dibuja."""
+        datos = self.datos_muro(mostrar_errores=False)
+        estructura_vista = {
+            nombre: elem
+            for nombre, elem in self.estructura.items()
+            if isinstance(elem, dict)
+            and str(elem.get("tipo", "")).lower() == "muro"
+        }
+        if datos:
+            estructura_vista["__preview__"] = datos
+        self.vista.establecer_datos(
+            self.ejes, estructura_vista, "__preview__",
+        )
+
+    def _actualizar_ejes(self) -> None:
+        """Actualizar combos de ejes según la dirección seleccionada.
+
+        Convención (Opción A): "Paralelo a X" => el muro SE ALOJA en un eje X
+        (elegís cuál: X1, X2…) y arranca/termina en los cruces con los ejes
+        PERPENDICULARES (Y).
+        """
+        direccion = str(self.direccion.currentData())
+        familia_aloja = direccion
+        familia_cruces = "y" if direccion == "x" else "x"
+
+        self.eje_inicio.blockSignals(True)
+        self.eje_fin.blockSignals(True)
+        self.eje_transversal.blockSignals(True)
+
+        # Arranque y fin: cruces con los ejes PERPENDICULARES a la dirección.
+        self.eje_inicio.clear()
+        self.eje_fin.clear()
+        for eje in self.ejes.get(familia_cruces, []):
+            etiqueta = f"{eje['nombre']} ({float(eje['coordenada_m']):.3f} m)"
+            self.eje_inicio.addItem(etiqueta, eje.get("id"))
+            self.eje_fin.addItem(etiqueta, eje.get("id"))
+
+        # Eje donde SE ALOJA el muro (de la familia paralela elegida).
+        self.eje_transversal.clear()
+        for eje in self.ejes.get(familia_aloja, []):
+            self.eje_transversal.addItem(
+                f"{eje['nombre']} ({float(eje['coordenada_m']):.3f} m)",
+                eje.get("id"),
+            )
+
+        self.eje_inicio.blockSignals(False)
+        self.eje_fin.blockSignals(False)
+        self.eje_transversal.blockSignals(False)
+
+    def _actualizar_resumen(self) -> None:
+        muros = {
+            nombre: datos
+            for nombre, datos in self.estructura.items()
+            if isinstance(datos, dict)
+            and str(datos.get("tipo", "")).lower() == "muro"
+        }
+        lines = [f"Muros existentes: {len(muros)}"]
+        for nombre, datos in muros.items():
+            referencia = datos.get("referencia_planta", {}) or {}
+            lines.append(
+                f"  {nombre}: dir={referencia.get('direccion', '?')}, "
+                f"longitud={float(datos.get('longitud_m', 0.0)):.2f} m, "
+                f"niveles={float(datos.get('nivel_inicio', 0.0)):.2f}-"
+                f"{float(datos.get('nivel_fin', 0.0)):.2f} m, "
+                f"espesor={float(datos.get('espesor_m', 0.20)):.2f} m"
+            )
+        self.resumen.setPlainText("\n".join(lines))
+
+    def _buscar_eje(self, familia: str, eje_id: object) -> dict | None:
+        if not eje_id:
+            return None
+        return next(
+            (
+                item for item in self.ejes.get(familia, [])
+                if str(item.get("id", "")) == str(eje_id)
+            ),
+            None,
+        )
+
+    def datos_muro(self, mostrar_errores: bool = True) -> dict:
+        # direccion = familia del eje donde SE ALOJA el muro (Opción A).
+        direccion = str(self.direccion.currentData())
+        familia_aloja = direccion
+        familia_cruces = "y" if direccion == "x" else "x"
+
+        # El eje de alojamiento pertenece a la familia paralela elegida.
+        eje_transversal = self._buscar_eje(familia_aloja, self.eje_transversal.currentData())
+        # Arranque y fin son cruces con los ejes PERPENDICULARES.
+        eje_inicio = self._buscar_eje(familia_cruces, self.eje_inicio.currentData())
+        eje_fin = self._buscar_eje(familia_cruces, self.eje_fin.currentData())
+        nivel_inicio = next(
+            (n for n in self.niveles
+             if n["nombre"] == self.nivel_inicio.currentData()), None
+        )
+        nivel_fin = next(
+            (n for n in self.niveles
+             if n["nombre"] == self.nivel_fin.currentData()), None
+        )
+
+        if not eje_inicio or not eje_fin or not eje_transversal or not nivel_inicio or not nivel_fin:
+            if mostrar_errores:
+                QMessageBox.warning(self, "Faltan datos", "Seleccioná dirección, ejes y niveles.")
+            return {}
+
+        if float(nivel_fin["cota_m"]) <= float(nivel_inicio["cota_m"]):
+            if mostrar_errores:
+                QMessageBox.warning(self, "Niveles incorrectos", "El nivel final debe ser mayor.")
+            return {}
+
+        coord_inicio = float(eje_inicio.get("coordenada_m", 0.0))
+        coord_fin = float(eje_fin.get("coordenada_m", 0.0))
+        posicion = float(eje_transversal.get("coordenada_m", 0.0))
+        desfase_inicio = self.desfase_inicio.value()
+        desfase_fin = self.desfase_fin.value()
+        # Aplicar los desfases a lo largo de la dirección del muro.
+        x_inicio = coord_inicio + desfase_inicio
+        x_fin = coord_fin + desfase_fin
+        longitud = abs(x_fin - x_inicio)
+
+        # Vista interna: "direccion" = familia por la que CORRE la línea = familia
+        # de los cruces (opuesta a la de alojamiento). Así la vista no se toca.
+        direccion_linea = familia_cruces
+
+        return {
+            "tipo": "muro",
+            "referencia_planta": {
+                "direccion": direccion_linea,
+                "eje_id": str(eje_transversal.get("id", "")),
+                "desfase_m": 0.0,
+                "eje_longitudinal_id": str(eje_inicio.get("id", "")),
+                "desfase_longitudinal_m": 0.0,
+                "desfase_inicio_m": desfase_inicio,
+                "desfase_fin_m": desfase_fin,
+            },
+            "posicion_planta_m": posicion,
+            # 👇 estas claves son las que VistaPlantaMuros espera
+            "x_inicio": x_inicio,
+            "x_fin": x_fin,
+            "nivel_inicio": float(nivel_inicio.get("cota_m", 0.0)),
+            "nivel_fin": float(nivel_fin.get("cota_m", 0.0)),
+            "espesor_m": self.espesor.value(),
+            "offset": 0.0,
+            "longitud_m": longitud,
+        }
+#---------------------------------------------------------------------------------
