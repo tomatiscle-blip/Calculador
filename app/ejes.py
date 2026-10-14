@@ -142,6 +142,7 @@ class VistaPlantaPorticos(QWidget):
         super().__init__(parent)
         self.ejes: dict[str, list[dict]] = {"x": [], "y": []}
         self.porticos: dict[str, dict] = {}
+        self.muros: dict[str, dict] = {}
         self.seleccionado: str | None = None
         self.setMinimumSize(520, 300)
 
@@ -155,10 +156,14 @@ class VistaPlantaPorticos(QWidget):
         self.ejes = ejes
         self.seleccionado = seleccionado
         self.porticos = {}
+        self.muros = {}
         for nombre, datos in estructura.items():
             if not isinstance(datos, dict):
                 continue
-            referencia = asociaciones.get(nombre, {})
+            referencia = asociaciones.get(nombre, {}) or {}
+            if str(datos.get("tipo", "")).lower() == "muro":
+                self._registrar_muro(str(nombre), ejes, referencia, datos)
+                continue
             direccion = str(referencia.get("direccion", "x")).lower()
             if direccion not in ("x", "y"):
                 direccion = "x"
@@ -216,6 +221,45 @@ class VistaPlantaPorticos(QWidget):
             }
         self.update()
 
+    def _registrar_muro(
+        self,
+        nombre: str,
+        ejes: dict[str, list[dict]],
+        referencia: dict,
+        datos: dict,
+    ) -> None:
+        """Registra un muro existente para dibujarlo como contexto en la planta.
+
+        Convención de muro: ``referencia['direccion']`` es la familia por la que
+        CORRE el muro (cruces), mientras el eje donde se aloja está en la familia
+        opuesta. Derivamos la posición por id para no depender de un campo viejo.
+        """
+        direccion = str(referencia.get("direccion", "x")).lower()
+        if direccion not in ("x", "y"):
+            direccion = "x"
+        familia_transversal = "y" if direccion == "x" else "x"
+        eje_transversal = self._buscar_eje(
+            ejes, familia_transversal, referencia.get("eje_id"),
+        )
+        try:
+            posicion = (
+                float(eje_transversal["coordenada_m"])
+                if eje_transversal is not None
+                else float(datos.get("posicion_planta_m", 0.0))
+            )
+            x_inicio = float(datos.get("x_inicio", 0.0))
+            x_fin = float(datos.get("x_fin", 0.0))
+        except (TypeError, ValueError):
+            return
+        self.muros[nombre] = {
+            "direccion": direccion,
+            "posicion": posicion,
+            "x_inicio": x_inicio,
+            "x_fin": x_fin,
+            "longitud": abs(x_fin - x_inicio),
+            "referencia": referencia,
+        }
+
     @staticmethod
     def _buscar_eje(
         ejes: dict[str, list[dict]], familia: str, eje_id: object,
@@ -263,6 +307,13 @@ class VistaPlantaPorticos(QWidget):
                 coords_y.extend(datos["columnas"])
                 if datos["extremos_viga"]:
                     coords_y.extend(datos["extremos_viga"])
+        for datos in self.muros.values():
+            if datos["direccion"] == "x":
+                coords_y.append(datos["posicion"])
+                coords_x.extend((datos["x_inicio"], datos["x_fin"]))
+            else:
+                coords_x.append(datos["posicion"])
+                coords_y.extend((datos["x_inicio"], datos["x_fin"]))
         min_x, max_x = self._rango_con_margen(coords_x)
         min_y, max_y = self._rango_con_margen(coords_y)
 
@@ -323,11 +374,29 @@ class VistaPlantaPorticos(QWidget):
             px, py = puntos[0]
             painter.drawText(px + 7, py - 7, nombre)
 
+        # Muros existentes como CONTEXTO tenue (línea sólida fina en verde agua)
+        for nombre, datos in self.muros.items():
+            color = QColor(13, 148, 136, 170)  # teal semitransparente
+            painter.setPen(QPen(color, 4, Qt.PenStyle.SolidLine))
+            if datos["direccion"] == "x":
+                # muro corre en X => línea horizontal en y=posicion
+                p_inicio = punto(datos["x_inicio"], datos["posicion"])
+                p_fin = punto(datos["x_fin"], datos["posicion"])
+            else:
+                # muro corre en Y => línea vertical en x=posicion
+                p_inicio = punto(datos["posicion"], datos["x_inicio"])
+                p_fin = punto(datos["posicion"], datos["x_fin"])
+            painter.drawLine(*p_inicio, *p_fin)
+            painter.setPen(QColor(13, 148, 136, 200))
+            painter.drawText(
+                p_inicio[0] + 6, p_inicio[1] - 6, f"{nombre} (muro)"
+            )
+
         painter.setPen(QColor("#64748b"))
         painter.drawText(
             12, self.height() - 10,
             "Ejes punteados  ·  puntos: columnas  ·  voladizos: extensión punteada  ·  "
-            "rojo: pórtico seleccionado",
+            "rojo: pórtico seleccionado  ·  verde: muro existente",
         )
 
     @staticmethod
@@ -590,8 +659,8 @@ class EditorPorticoPorNiveles(QDialog):
         )
         self.niveles = list(self.niveles_disponibles)
         self.direccion = QComboBox()
-        self.direccion.addItem("Paralelo a X", "x")
-        self.direccion.addItem("Paralelo a Y", "y")
+        self.direccion.addItem("Paralelo a X  (plano en un eje X: X1, X2…)", "x")
+        self.direccion.addItem("Paralelo a Y  (plano en un eje Y: Y1, Y2…)", "y")
         self.eje_transversal = QComboBox()
         self.nivel_final = QComboBox()
         for indice, nivel in enumerate(self.niveles_disponibles[1:], start=1):
@@ -648,8 +717,21 @@ class EditorPorticoPorNiveles(QDialog):
         self._actualizar_ejes_transversales()
         self._actualizar_vista()
 
+    def _familia_plano(self) -> str:
+        """Familia del eje donde se ubica el plano del pórtico (transversal).
+
+        Convención unificada con el editor de muros: la dirección elegida indica
+        la familia del eje donde se APOYA/UBICA el elemento (el plano), no la de
+        sus columnas. «Paralelo a X» => el plano corre sobre un eje X.
+        """
+        return str(self.direccion.currentData())
+
+    def _familia_columnas(self) -> str:
+        """Familia por la que corren las columnas y vigas (longitudinal)."""
+        return "y" if self.direccion.currentData() == "x" else "x"
+
     def _actualizar_ejes_transversales(self) -> None:
-        familia = "y" if self.direccion.currentData() == "x" else "x"
+        familia = self._familia_plano()
         actual = self.eje_transversal.currentData()
         self.eje_transversal.blockSignals(True)
         self.eje_transversal.clear()
@@ -657,11 +739,14 @@ class EditorPorticoPorNiveles(QDialog):
             nombre = str(eje.get("nombre", ""))
             coordenada = float(eje["coordenada_m"])
             ocupantes = self._porticos_en_plano(
-                str(self.direccion.currentData()), coordenada
+                self._familia_columnas(), coordenada
             )
             etiqueta = f"{nombre} ({coordenada:.3f} m)"
             if ocupantes:
-                etiqueta += f" — ocupado: {', '.join(ocupantes)}"
+                # El plano ya tiene elementos, pero puede quedar lugar libre a lo
+                # largo; no se bloquea el eje. La validación definitiva (solape
+                # longitudinal/vertical) se hace al aceptar en geometria().
+                etiqueta += f" — en uso: {', '.join(ocupantes)}"
             self.eje_transversal.addItem(
                 etiqueta,
                 str(eje.get("id", f"{familia}:{str(eje['nombre']).casefold()}")),
@@ -669,16 +754,11 @@ class EditorPorticoPorNiveles(QDialog):
             modelo = self.eje_transversal.model()
             item = modelo.item(self.eje_transversal.count() - 1) if hasattr(modelo, "item") else None
             if item is not None:
-                item.setEnabled(not ocupantes)
+                # Se mantiene habilitado: se puede reutilizar el lugar libre.
+                item.setEnabled(True)
         indice = self.eje_transversal.findData(actual)
-        if indice < 0 or not self.eje_transversal.model().item(indice).isEnabled():
-            indice = next(
-                (
-                    i for i in range(self.eje_transversal.count())
-                    if self.eje_transversal.model().item(i).isEnabled()
-                ),
-                -1,
-            )
+        if indice < 0:
+            indice = 0
         self.eje_transversal.setCurrentIndex(indice)
         self.eje_transversal.blockSignals(False)
 
@@ -702,6 +782,139 @@ class EditorPorticoPorNiveles(QDialog):
                 nombres.append(str(nombre))
         return nombres
 
+    # ------------------------------------------------------------------
+    # Ocupación por RANGO: varios elementos pueden compartir un plano si
+    # sus tramos longitudinales no se solapan (y se respetan reglas de
+    # apilado vertical muro/pórtico).
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _solapa(rango_a: tuple[float, float], rango_b: tuple[float, float],
+                tolerancia: float = 1e-4) -> bool:
+        """True si los intervalos se solapan con longitud > 0 (no al solo tocarse
+        en un extremo). Tocar en un punto (p. ej. un pórtico acaba en X2 y otro
+        arranca en X2, o un muro 0–3 con un pórtico 3–6) NO cuenta como solape."""
+        return (
+            rango_a[0] < rango_b[1] - tolerancia
+            and rango_b[0] < rango_a[1] - tolerancia
+        )
+
+    def _rango_longitudinal_elemento(self, datos: dict) -> tuple[float, float] | None:
+        """Rango longitudinal global [min, max] que ocupa un elemento en planta."""
+        referencia = datos.get("referencia_planta", {}) or {}
+        try:
+            origen = float(referencia.get("origen_longitudinal_m", 0.0))
+        except (TypeError, ValueError):
+            origen = 0.0
+        es_muro = str(datos.get("tipo", "")).lower() == "muro"
+        if es_muro:
+            try:
+                a = float(datos.get("x_inicio", 0.0))
+                b = float(datos.get("x_fin", 0.0))
+            except (TypeError, ValueError):
+                return None
+            return (min(a, b), max(a, b))
+        extremos: list[float] = []
+        for viga in (datos.get("vigas", {}) or {}).values():
+            if not isinstance(viga, dict):
+                continue
+            for tramo in viga.get("tramos", []):
+                if not isinstance(tramo, dict):
+                    continue
+                for extremo in (tramo.get("x_inicio"), tramo.get("x_fin")):
+                    try:
+                        extremos.append(origen + float(extremo))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            for columna in (datos.get("columnas", {}) or {}).values():
+                if isinstance(columna, dict):
+                    try:
+                        extremos.append(origen + float(columna.get("x", 0.0)))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            return None
+        return (min(extremos), max(extremos))
+
+    def _rango_niveles_elemento(self, datos: dict) -> tuple[float, float] | None:
+        """Rango vertical [cota_inferior, cota_superior] global de un elemento."""
+        es_muro = str(datos.get("tipo", "")).lower() == "muro"
+        if es_muro:
+            try:
+                a = float(datos.get("nivel_inicio", 0.0))
+                b = float(datos.get("nivel_fin", 0.0))
+            except (TypeError, ValueError):
+                return None
+            return (min(a, b), max(a, b))
+        cotas: list[float] = []
+        for nivel in (datos.get("niveles_geometria", []) or []):
+            if isinstance(nivel, dict):
+                try:
+                    cotas.append(float(nivel.get("cota_origen_m", nivel.get("cota_m", 0.0))))
+                except (TypeError, ValueError):
+                    continue
+        for viga in (datos.get("vigas", {}) or {}).values():
+            if isinstance(viga, dict) and viga.get("cota_m") is not None:
+                try:
+                    cotas.append(float(viga["cota_m"]))
+                except (TypeError, ValueError):
+                    continue
+        if not cotas:
+            return None
+        return (min(cotas), max(cotas))
+
+    def _validar_ocupacion_plano(
+        self,
+        direccion_longitudinal: str,
+        posicion_transversal: float,
+        rango_long_nuevo: tuple[float, float],
+        rango_niveles_nuevo: tuple[float, float],
+    ) -> None:
+        """Valida que el nuevo pórtico pueda ocupar el plano.
+
+        * Sin solapamiento longitudinal => permitido (aprovecha lugar libre).
+        * Con solapamiento longitudinal:
+            - si también se solapan niveles => ocupado (rechaza).
+            - si no se solapan niveles pero debajo hay un MURO en la base =>
+              no se apila pórtico encima (lógica constructiva).
+        """
+        familia_transversal = "y" if direccion_longitudinal == "x" else "x"
+        for nombre, datos in self.estructura_existente.items():
+            if not isinstance(datos, dict):
+                continue
+            referencia = datos.get("referencia_planta", {}) or {}
+            if str(referencia.get("direccion", "x")).lower() != direccion_longitudinal:
+                continue
+            eje = VistaPlantaPorticos._buscar_eje(
+                self.ejes, familia_transversal, referencia.get("eje_id")
+            )
+            try:
+                posicion = (
+                    float(eje["coordenada_m"])
+                    if eje is not None
+                    else float(datos.get("posicion_planta_m", 0.0))
+                )
+            except (TypeError, ValueError):
+                continue
+            if abs(posicion - posicion_transversal) > 1e-4:
+                continue
+            rango_long = self._rango_longitudinal_elemento(datos)
+            if rango_long is None or not self._solapa(rango_long, rango_long_nuevo):
+                continue  # hay lugar libre a lo largo: no estorba
+            es_muro = str(datos.get("tipo", "")).lower() == "muro"
+            rango_niveles = self._rango_niveles_elemento(datos)
+            if rango_niveles is not None and self._solapa(rango_niveles, rango_niveles_nuevo):
+                raise ValueError(
+                    f"El eje transversal ya está ocupado por «{nombre}» en el tramo "
+                    f"{rango_long[0]:.2f}–{rango_long[1]:.2f} m con niveles solapados."
+                )
+            if es_muro and rango_niveles is not None and rango_niveles[0] <= 1e-4:
+                raise ValueError(
+                    f"No se puede crear un pórtico sobre «{nombre}»: hay un muro en "
+                    "planta baja en ese plano (lógica constructiva). El muro debía "
+                    "arrancar sobre un pórtico, no al revés."
+                )
+
     def _crear_pestanas(self) -> None:
         seleccion_previa = []
         for tabla in self.tablas:
@@ -715,7 +928,7 @@ class EditorPorticoPorNiveles(QDialog):
         while self.pestanas.count():
             self.pestanas.removeTab(0)
         self.tablas = []
-        familia = str(self.direccion.currentData())
+        familia = self._familia_columnas()
         ejes = sorted(
             self.ejes.get(familia, []),
             key=lambda eje: float(eje["coordenada_m"]),
@@ -803,7 +1016,7 @@ class EditorPorticoPorNiveles(QDialog):
         if indice < 0 or indice >= len(self.tablas):
             return []
         tabla = self.tablas[indice]
-        familia = str(self.direccion.currentData())
+        familia = self._familia_columnas()
         seleccionados = []
         for fila in range(tabla.rowCount()):
             check = tabla.item(fila, 0)
@@ -837,7 +1050,7 @@ class EditorPorticoPorNiveles(QDialog):
             return
         seleccionados = self._ejes_seleccionados(indice)
         eje_id = str(self.eje_transversal.currentData() or "")
-        familia_transversal = "y" if self.direccion.currentData() == "x" else "x"
+        familia_transversal = self._familia_plano()
         eje_transversal = VistaPlantaPorticos._buscar_eje(self.ejes, familia_transversal, eje_id)
         if eje_transversal is None:
             return
@@ -856,7 +1069,7 @@ class EditorPorticoPorNiveles(QDialog):
                 "vigas": {},
         }
         referencia = {
-            "direccion": str(self.direccion.currentData()),
+            "direccion": self._familia_columnas(),
             "eje_id": eje_id,
             "desfase_m": 0.0,
             "eje_longitudinal_id": ejes_base[0]["id"] if ejes_base else None,
@@ -892,18 +1105,25 @@ class EditorPorticoPorNiveles(QDialog):
                     f"{self.niveles[indice + 1]['nombre']} deben tener coordenadas distintas."
                 )
         eje_id = str(self.eje_transversal.currentData() or "")
-        familia_transversal = "y" if self.direccion.currentData() == "x" else "x"
+        familia_transversal = self._familia_plano()
         eje_transversal = VistaPlantaPorticos._buscar_eje(self.ejes, familia_transversal, eje_id)
         if eje_transversal is None:
             raise ValueError("Seleccioná un eje transversal disponible para el pórtico.")
         posicion_transversal = float(eje_transversal["coordenada_m"])
-        ocupantes = self._porticos_en_plano(
-            str(self.direccion.currentData()), posicion_transversal
+        # Ocupación por RANGO longitudinal y vertical (reemplaza el bloqueo por
+        # plano completo): permite aprovechar el lugar libre de un eje).
+        coords_columnas = [
+            round(eje["coordenada_m"], 6)
+            for indice in range(len(self.tablas))
+            for eje in self._ejes_seleccionados(indice)
+        ]
+        rango_long_nuevo = (min(coords_columnas), max(coords_columnas))
+        cotas_nuevas = [float(self.niveles[0]["cota_m"]), float(self.niveles[-1]["cota_m"])]
+        rango_niveles_nuevo = (min(cotas_nuevas), max(cotas_nuevas))
+        self._validar_ocupacion_plano(
+            self._familia_columnas(), posicion_transversal,
+            rango_long_nuevo, rango_niveles_nuevo,
         )
-        if ocupantes:
-            raise ValueError(
-                f"El eje transversal ya está ocupado por: {', '.join(ocupantes)}."
-            )
         niveles = []
         cota_base = float(self.niveles[0]["cota_m"])
         for nivel in self.niveles:
@@ -932,7 +1152,7 @@ class EditorPorticoPorNiveles(QDialog):
                 ],
             })
         referencia = {
-            "direccion": str(self.direccion.currentData()),
+            "direccion": self._familia_columnas(),
             "eje_id": eje_id,
             "desfase_m": 0.0,
             "eje_longitudinal_id": self._ejes_seleccionados(0)[0]["id"],
@@ -2021,6 +2241,20 @@ class EditorMuroPorNiveles(QDialog):
         )
         self._actualizar_resumen()
 
+        # Aviso de estructura mixta: detecta un pórtico coplanar y ofrece
+        # reutilizar su longitud sin borrarlo (el pórtico siempre se conserva).
+        self.aviso_coplanar = QLabel()
+        self.aviso_coplanar.setWordWrap(True)
+        self.aviso_coplanar.setStyleSheet(
+            "color: #0f766e; background-color: #ecfdf5;"
+            "border: 1px solid #99f6e4; border-radius: 6px; padding: 6px;"
+            "font: 9pt 'Segoe UI';"
+        )
+        self.aviso_coplanar.setVisible(False)
+        self.boton_usar_portico = QPushButton("Usar la longitud del pórtico coplanar")
+        self.boton_usar_portico.setVisible(False)
+        self.boton_usar_portico.clicked.connect(self._usar_longitud_portico)
+
         # 👉 Vista gráfica de muros
         self.vista = VistaPlantaMuros()
 
@@ -2037,6 +2271,8 @@ class EditorMuroPorNiveles(QDialog):
         self.eje_transversal.currentIndexChanged.connect(self._actualizar_vista)
         self.desfase_inicio.valueChanged.connect(self._actualizar_vista)
         self.desfase_fin.valueChanged.connect(self._actualizar_vista)
+        self.nivel_inicio.currentIndexChanged.connect(self._actualizar_vista)
+        self.nivel_fin.currentIndexChanged.connect(self._actualizar_vista)
 
         # Layout
         formulario = QFormLayout()
@@ -2052,26 +2288,33 @@ class EditorMuroPorNiveles(QDialog):
 
         caja = QVBoxLayout(self)
         caja.addWidget(self.resumen)
+        caja.addWidget(self.aviso_coplanar)
+        caja.addWidget(self.boton_usar_portico)
         caja.addLayout(formulario)
         caja.addWidget(self.vista, 2)   # 👈 se integra la vista aquí
         caja.addWidget(botones)
-        self.resize(720, 620)
+        self.resize(760, 700)
         self._actualizar_vista()
 
     def _actualizar_vista(self) -> None:
-        """Compone un muro temporal con la selección actual y lo dibuja."""
+        """Compone un muro temporal con la selección actual y lo dibuja.
+
+        Se pasa la estructura completa (muros y pórticos) para que el visor
+        muestre los pórticos existentes como contexto y el usuario vea en qué
+        plano puede apoyar el muro sin borrarlos.
+        """
         datos = self.datos_muro(mostrar_errores=False)
         estructura_vista = {
             nombre: elem
             for nombre, elem in self.estructura.items()
             if isinstance(elem, dict)
-            and str(elem.get("tipo", "")).lower() == "muro"
         }
         if datos:
             estructura_vista["__preview__"] = datos
         self.vista.establecer_datos(
             self.ejes, estructura_vista, "__preview__",
         )
+        self._actualizar_aviso_coplanar()
 
     def _actualizar_ejes(self) -> None:
         """Actualizar combos de ejes según la dirección seleccionada.
@@ -2127,6 +2370,131 @@ class EditorMuroPorNiveles(QDialog):
             )
         self.resumen.setPlainText("\n".join(lines))
 
+    # ------------------------------------------------------------------
+    # Estructura mixta: convivir con un pórtico coplanar SIN borrarlo
+    # ------------------------------------------------------------------
+    def _portico_coplanar(self) -> tuple[str, dict] | None:
+        """Devuelve (nombre, datos) de un pórtico coplanar con el muro actual.
+
+        Dos elementos son coplanares cuando comparten la dirección de corrida
+        (``referencia_planta.direccion``) y la ubicación transversal
+        (``posicion_planta_m``). El pórtico NUNCA se modifica ni se elimina: el
+        muro simplemente puede apoyarse sobre él como estructura mixta.
+        """
+        muro = self.datos_muro(mostrar_errores=False)
+        if not muro:
+            return None
+        referencia_muro = muro.get("referencia_planta", {}) or {}
+        direccion_muro = str(referencia_muro.get("direccion", "x")).lower()
+        posicion_muro = float(muro.get("posicion_planta_m", 0.0))
+        for nombre, datos in self.estructura.items():
+            if not isinstance(datos, dict):
+                continue
+            if str(datos.get("tipo", "")).lower() == "muro":
+                continue
+            referencia = datos.get("referencia_planta", {}) or {}
+            if str(referencia.get("direccion", "x")).lower() != direccion_muro:
+                continue
+            familia_transversal = "y" if direccion_muro == "x" else "x"
+            eje = self._buscar_eje(familia_transversal, referencia.get("eje_id"))
+            try:
+                posicion = (
+                    float(eje["coordenada_m"])
+                    if eje is not None
+                    else float(datos.get("posicion_planta_m", 0.0))
+                )
+            except (TypeError, ValueError):
+                continue
+            if abs(posicion - posicion_muro) <= 1e-4:
+                return str(nombre), datos
+        return None
+
+    def _rango_longitudinal_portico(self, portico: dict) -> tuple[float, float] | None:
+        """Rango longitudinal global [min, max] que ocupa el pórtico en planta."""
+        referencia = portico.get("referencia_planta", {}) or {}
+        try:
+            origen = float(referencia.get("origen_longitudinal_m", 0.0))
+        except (TypeError, ValueError):
+            origen = 0.0
+        extremos: list[float] = []
+        for viga in (portico.get("vigas", {}) or {}).values():
+            if not isinstance(viga, dict):
+                continue
+            for tramo in viga.get("tramos", []):
+                if not isinstance(tramo, dict):
+                    continue
+                for extremo in (tramo.get("x_inicio"), tramo.get("x_fin")):
+                    try:
+                        extremos.append(origen + float(extremo))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            for columna in (portico.get("columnas", {}) or {}).values():
+                if isinstance(columna, dict):
+                    try:
+                        extremos.append(origen + float(columna.get("x", 0.0)))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            return None
+        return min(extremos), max(extremos)
+
+    def _actualizar_aviso_coplanar(self) -> None:
+        coplanar = self._portico_coplanar()
+        if coplanar is None:
+            self.aviso_coplanar.setVisible(False)
+            self.boton_usar_portico.setVisible(False)
+            return
+        nombre, portico = coplanar
+        rango = self._rango_longitudinal_portico(portico)
+        detalle = ""
+        if rango is not None:
+            detalle = f" (ocupa {rango[0]:.2f}→{rango[1]:.2f} m)"
+        self.aviso_coplanar.setText(
+            f"Estructura mixta: el pórtico «{nombre}» comparte este plano{detalle}. "
+            "Podés apoyar el muro sobre él arrancando en un nivel superior "
+            "(por ejemplo, sobre la planta alta del pórtico). El pórtico se "
+            "conserva; no se elimina ni se modifica."
+        )
+        self.aviso_coplanar.setVisible(True)
+        self.boton_usar_portico.setVisible(True)
+
+    def _usar_longitud_portico(self) -> None:
+        coplanar = self._portico_coplanar()
+        if coplanar is None:
+            return
+        _nombre, portico = coplanar
+        rango = self._rango_longitudinal_portico(portico)
+        if rango is None:
+            return
+        x_ini_glob, x_fin_glob = rango
+        direccion = str(self.direccion.currentData())
+        familia_cruces = "y" if direccion == "x" else "x"
+        ejes = self.ejes.get(familia_cruces, [])
+        if not ejes:
+            return
+
+        def eje_mas_cercano(valor: float) -> dict:
+            return min(ejes, key=lambda e: abs(float(e["coordenada_m"]) - valor))
+
+        eje_ini = eje_mas_cercano(x_ini_glob)
+        eje_fin = eje_mas_cercano(x_fin_glob)
+
+        self.eje_inicio.blockSignals(True)
+        self.eje_fin.blockSignals(True)
+        indice_ini = self.eje_inicio.findData(eje_ini.get("id"))
+        indice_fin = self.eje_fin.findData(eje_fin.get("id"))
+        if indice_ini >= 0:
+            self.eje_inicio.setCurrentIndex(indice_ini)
+        if indice_fin >= 0:
+            self.eje_fin.setCurrentIndex(indice_fin)
+        self.eje_inicio.blockSignals(False)
+        self.eje_fin.blockSignals(False)
+
+        self.desfase_inicio.setValue(x_ini_glob - float(eje_ini["coordenada_m"]))
+        self.desfase_fin.setValue(x_fin_glob - float(eje_fin["coordenada_m"]))
+        self._actualizar_vista()
+
     def _buscar_eje(self, familia: str, eje_id: object) -> dict | None:
         if not eje_id:
             return None
@@ -2176,7 +2544,15 @@ class EditorMuroPorNiveles(QDialog):
         # Aplicar los desfases a lo largo de la dirección del muro.
         x_inicio = coord_inicio + desfase_inicio
         x_fin = coord_fin + desfase_fin
-        longitud = abs(x_fin - x_inicio)
+        # Normalizar: el muro siempre corre de menor a mayor coordenada, sin
+        # importar el orden en que se eligieron «arranca» y «termina». Así no
+        # queda "al revés" (invertido). El eje de referencia pasa a ser el del
+        # extremo menor para mantener la coherencia.
+        eje_referencia = eje_inicio
+        if x_inicio > x_fin:
+            x_inicio, x_fin = x_fin, x_inicio
+            eje_referencia = eje_fin
+        longitud = x_fin - x_inicio
 
         # Vista interna: "direccion" = familia por la que CORRE la línea = familia
         # de los cruces (opuesta a la de alojamiento). Así la vista no se toca.
@@ -2188,7 +2564,7 @@ class EditorMuroPorNiveles(QDialog):
                 "direccion": direccion_linea,
                 "eje_id": str(eje_transversal.get("id", "")),
                 "desfase_m": 0.0,
-                "eje_longitudinal_id": str(eje_inicio.get("id", "")),
+                "eje_longitudinal_id": str(eje_referencia.get("id", "")),
                 "desfase_longitudinal_m": 0.0,
                 "desfase_inicio_m": desfase_inicio,
                 "desfase_fin_m": desfase_fin,

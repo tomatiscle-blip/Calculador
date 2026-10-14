@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (  # noqa: E402
 
 from calc import cargas, pipeline, rutas  # noqa: E402
 from app.cargas_proyecto import PaginaCargas  # noqa: E402
+from app.muros_proyecto import PaginaMuros  # noqa: E402
 from app.diseno_columnas_bases import datos_bases as pedir_datos_bases  # noqa: E402
 from app.diseno_columnas_bases import respuestas_columnas  # noqa: E402
 from app.diseno_vigas import dimensionar_desde_app  # noqa: E402
@@ -605,6 +606,7 @@ class VentanaPrincipal(QMainWindow):
             boton.setProperty("role", "primary")
 
         self.pagina_cargas = PaginaCargas(self.refrescar, self._portico)
+        self.pagina_muros = PaginaMuros(self)
         self._armar_interfaz()
         self._conectar()
         self.refrescar()
@@ -736,7 +738,8 @@ class VentanaPrincipal(QMainWindow):
         pestanias.addTab(pagina, "4 · Bases")
 
         pestanias.addTab(self._pagina_losas(), "5 · Losas")
-        pestanias.addTab(self._pagina_archivos(), "6 · Archivos")
+        pestanias.addTab(self.pagina_muros, "6 · Muros")
+        pestanias.addTab(self._pagina_archivos(), "7 · Archivos")
 
         principal.addWidget(pestanias, 1)
         self.setCentralWidget(contenedor)
@@ -920,6 +923,7 @@ class VentanaPrincipal(QMainWindow):
         self._cargar_columnas(portico)
         self._cargar_bases(portico)
         self._cargar_losas()
+        self.pagina_muros.refrescar()
         self._cargar_arbol()
         self.statusBar().showMessage(
             f"{len(porticos)} pórtico(s) en {rutas.CARPETA_OBRA or rutas.RAIZ}"
