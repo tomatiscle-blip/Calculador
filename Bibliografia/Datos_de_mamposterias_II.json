@@ -1,0 +1,38 @@
+{
+  "calculo_estructural": {
+    "1_compresion_axial": {
+      "resistencia_nominal_Pn_mampostería_armada_y_simple": {
+        "formula_esbeltez_menor_99": "P_n = 0,80 * [ 0,80 * f'_m * (A_n - A_s) + f_y * A_s ] * (1 - (h / (140 * r))^2)",
+        "formula_esbeltez_mayor_99": "P_n = 0,80 * [ 0,80 * f'_m * (A_n - A_s) + f_y * A_s ] * (70 * r / h)^2",
+        "nota": "Para mampostería simple (sin armar), se anula el término de la armadura (A_s = 0) y se usa la expresión equivalente (Art. 9.1.6.3)."
+      }
+    },
+    "2_corte": {
+      "resistencia_nominal_Vn": "V_n = V_m + V_s",
+      "resistencia_mamposteria_Vm": "V_m = 0,083 * [ 4,0 - 1,75 * (M / (V * d_v)) ] * A_n * sqrt(f'_m) + 0,25 * P",
+      "resistencia_armadura_Vs": "V_s = 0,5 * (A_v / s) * f_y * d_v",
+      "limites_Vn": "V_n no debe superar 0,5 * A_n * sqrt(f'_m) para M/(V*d_v) <= 0,25, ni 0,3 * A_n * sqrt(f'_m) para M/(V*d_v) >= 1,0"
+    },
+    "3_armadura_y_criterios_de_refuerzo": {
+      "cuando_exige_armada_vs_simple": "Se usa mampostería armada cuando la tracción excede la resistencia del material o por exigencias de sismicidad/viento. La simple no fisura y no considera aporte de armadura.",
+      "refuerzo_horizontal": {
+        "diametro_maximo_juntas": "Ø máximo 6 mm (no mayor a la mitad del espesor de la junta)",
+        "armadura_transversal_vigas": "Cuantía mínima rho = 0,0007 * b * d; separación máxima menor a h/2 o 1200 mm"
+      },
+      "armadura_vertical_columnas": {
+        "cuantia_minima": "rho_min = 0,0025 * A_n",
+        "cuantia_maxima": "rho_max = 0,04 * A_n",
+        "minimo_barras": "Al menos 4 barras (una en cada esquina)",
+        "estribos_transversales": "Cerrados, mínimo Ø 6 mm, espaciamiento menor a 16 diámetros de barra longitudinal o 48 del estribo"
+      },
+      "dinteles": {
+        "criterio": "Se dimensionan a flexión con momentos nominales M_n mayores o iguales a 1,3 veces el momento de fisuración M_cr (Art. 9.1.5.4.2.2.2). Las deformaciones bajo cargas de servicio en mampostería simple se limitan al menor entre l/600 o 7,5 mm (Art. 7.5.1)."
+      }
+    },
+    "4_fuera_del_plano_viento": {
+      "modulo_rotura_flexional_fr": "Depende de la dirección y tipo de mortero (Tabla 6.4). Paralelo a juntas = 1,72 MPa; Normal a juntas = 0,5 a 1,1 MPa según mampuesto y nivel de relleno.",
+      "momento_fisuracion": "M_cr = S_n * f_r",
+      "control_deformacion_servicio": "delta_s <= 0,007 * h (Art. 9.1.5.5.4)"
+    }
+  }
+}

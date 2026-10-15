@@ -15,3 +15,14 @@ __pycache__/
 # --- Red de seguridad de pruebas (copias locales de resultados, no versionar) ---
 tests/golden/
 tests/_tmp/
+
+# --- Bibliografía: los JSON de datos sí se versionan; los PDF (reglamentos,
+# tablas) son pesados y se bajan por separado, no van al repo. ---
+Bibliografia/*.pdf
+Bibliografia/*.PDF
+
+# --- Temporales de prueba del proyecto ---
+_repro*.py
+_verif*.txt
+_gs*.txt
+_git_*.txt

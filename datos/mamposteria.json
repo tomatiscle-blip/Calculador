@@ -1,0 +1,103 @@
+{
+  "_fuente": "Reglamento CIRSOC 501 (Edición Septiembre de 2007) - INTI. Datos volcados desde Bibliografia/Datos_de_mamposterias.json y Datos_de_mamposterias_II.json.",
+  "_url_referencia": "https://www.cormela.com.ar/docs/CIRSOC501.pdf",
+  "zona_aplicacion": "Zona sísmica 0 (complementado con INPRES-CIRSOC 103 Parte III para otras zonas)",
+
+  "factores_reduccion_resistencia_phi": {
+    "flexion_axial_mamposteria_armada": 0.90,
+    "flexion_axial_mamposteria_simple": 0.60,
+    "corte": 0.80,
+    "anclajes_y_empalmes": 0.80
+  },
+
+  "resistencias_caracteristicas_fm_indicativas_tabla_6_3": {
+    "ladrillos_ceramicos_macizos": {
+      "mortero_elevado_e": 2.50,
+      "mortero_intermedio_i": 2.25,
+      "mortero_normal_n": 1.75
+    },
+    "bloques_huecos_portantes_ceramicos": {
+      "mortero_elevado_e": 6.50,
+      "mortero_intermedio_i": 5.85,
+      "mortero_normal_n": 4.55
+    },
+    "bloques_huecos_portantes_de_hormigon": {
+      "mortero_elevado_e": 6.50,
+      "mortero_intermedio_i": 5.85,
+      "mortero_normal_n": 4.55
+    }
+  },
+
+  "modulo_rotura_flexional_fr_mpa_tabla_6_4": {
+    "paralelo_a_juntas": 1.72,
+    "normal_a_juntas_min": 0.5,
+    "normal_a_juntas_max": 1.1
+  },
+
+  "deformabilidad": {
+    "modulo_elasticidad_longitudinal_em": "850 * fm (MPa)",
+    "modulo_corte_gm": "0.3 * Em (MPa)"
+  },
+
+  "limitaciones_geometricas_y_esbeltez": {
+    "relacion_esbeltez_maxima_hr_99": 99,
+    "espesor_minimo_columnas_b_mm": 180,
+    "altura_nominal_minima_vigas_h_mm": 190
+  },
+
+  "calculo_estructural": {
+    "compresion_axial": {
+      "descripcion": "Resistencia nominal a compresión Pn (Art. 9.1.6). Para mampostería simple se anula el término de armadura (As = 0).",
+      "factor_global": 0.80,
+      "factor_mamposteria": 0.80,
+      "formula_esbeltez_menor_99": "Pn = 0.80 * [ 0.80 * fm * (An - As) + fy * As ] * (1 - (h / (140 * r))^2)",
+      "formula_esbeltez_mayor_99": "Pn = 0.80 * [ 0.80 * fm * (An - As) + fy * As ] * (70 * r / h)^2",
+      "limite_esbeltez_hr": 99,
+      "fy_default_mpa": 420
+    },
+    "corte": {
+      "descripcion": "Resistencia nominal al corte Vn = Vm + Vs.",
+      "resistencia_mamposteria_Vm": "Vm = 0.083 * [ 4.0 - 1.75 * (M / (V * dv)) ] * An * sqrt(fm) + 0.25 * P",
+      "resistencia_armadura_Vs": "Vs = 0.5 * (Av / s) * fy * dv",
+      "limite_Vn_mv_bajo_0_25": 0.5,
+      "limite_Vn_mv_sobre_1_0": 0.3,
+      "mv_limite_inferior": 0.25,
+      "mv_limite_superior": 1.0,
+      "coef_vm": 0.083,
+      "aporte_carga_axial_Vm": 0.25,
+      "coef_vs": 0.5
+    },
+    "armadura": {
+      "cuando_exige_armada_vs_simple": "Se usa mampostería armada cuando la tracción excede la resistencia del material o por exigencias de sismicidad/viento. La simple no fisura y no considera aporte de armadura.",
+      "refuerzo_horizontal": {
+        "diametro_maximo_juntas_mm": 6,
+        "diametro_maximo_mitad_junta": true
+      },
+      "armadura_vertical_columnas": {
+        "cuantia_minima": 0.0025,
+        "cuantia_maxima": 0.04,
+        "minimo_barras": 4,
+        "estribos_diametro_min_mm": 6
+      },
+      "dinteles": {
+        "criterio": "Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2).",
+        "factor_momento_minimo": 1.3,
+        "flecha_limite_l": 600,
+        "flecha_limite_mm": 7.5
+      }
+    },
+    "fuera_del_plano_viento": {
+      "momento_fisuracion": "Mcr = Sn * fr",
+      "control_deformacion_servicio": "delta_s <= 0.007 * h",
+      "coef_deformacion": 0.007
+    }
+  },
+
+  "mapeo_material_a_unidad": {
+    "_nota": "Asocia la 'clave' de materiales.json con el tipo de unidad de la Tabla 6.3 para obtener fm.",
+    "ladrillo_comun": "ladrillos_ceramicos_macizos",
+    "ladrillo_hueco_portante": "bloques_huecos_portantes_ceramicos"
+  },
+  "mortero_default": "mortero_normal_n",
+  "_nota_hoja_resistente": "Para el chequeo estructural se toma la hoja de Mampostería de mayor espesor de la composición como hoja portante (de donde sale fm y el espesor t). Los revoques y aislantes no se cuentan como resistentes a compresión."
+}

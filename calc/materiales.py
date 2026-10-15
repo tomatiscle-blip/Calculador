@@ -52,7 +52,41 @@ def pesos_especificos(biblioteca: dict | None = None) -> dict:
         "Madera": tabla_por_clave("Madera", "gamma", biblioteca),
         "Mamposteria": tabla_por_clave("Mamposteria", "gamma", biblioteca),
         "Morteros": tabla_por_clave("Morteros_Revoques", "gamma", biblioteca),
+        "Aislantes": tabla_por_clave("Aislantes", "gamma", biblioteca),
     }
+
+
+def conductividades(biblioteca: dict | None = None) -> dict:
+    """Conductividades térmicas λ (W/m·K), agrupadas y por clave.
+
+    Lee el campo ``lambda_w_mk`` de cada material en ``materiales.json``. Solo se
+    listan los materiales que lo tengan: la cámara de aire no lleva λ porque su
+    resistencia se tabula por espesor (ver ``calc.muros``). Los grupos son los
+    mismos nombres que usa ``pesos_especificos`` (p. ej. «Morteros» →
+    ``Morteros_Revoques`` en el JSON).
+    """
+    datos = biblioteca if biblioteca is not None else cargar()
+    grupos_json = {
+        "Hormigon": "Hormigon",
+        "Madera": "Madera",
+        "Mamposteria": "Mamposteria",
+        "Morteros": "Morteros_Revoques",
+        "Aislantes": "Aislantes",
+    }
+    tabla: dict[str, dict] = {}
+    for nombre_grupo, grupo_json in grupos_json.items():
+        sub: dict[str, dict] = {}
+        for elemento in datos.get(grupo_json, []):
+            clave = elemento.get("clave")
+            lam = elemento.get("lambda_w_mk")
+            if not clave or lam is None:
+                continue
+            sub[clave] = {
+                "nombre": elemento.get("nombre", clave),
+                "lambda_w_mk": float(lam),
+            }
+        tabla[nombre_grupo] = sub
+    return tabla
 
 
 def sistemas(biblioteca: dict | None = None) -> dict:

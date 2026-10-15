@@ -16,6 +16,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QAbstractSpinBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -33,14 +34,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from calc import muros, rutas
+from calc import mamposteria, muros, rutas
 
 
 class EditorCapasMuro(QDialog):
     """Compone un muro en capas y calcula su peso propio en vivo."""
 
     def __init__(self, nombre: str, capas: list[dict], altura_m: float,
-                 longitud_m: float, parent=None):
+                 longitud_m: float, parent=None, altura_de_niveles: bool = False):
         super().__init__(parent)
         self.setWindowTitle(f"Composición del muro — {nombre}")
         self.nombre = nombre
@@ -48,7 +49,7 @@ class EditorCapasMuro(QDialog):
         self._ultimo: dict = {}
 
         self.tabla = QTableWidget(0, 3)
-        self.tabla.setHorizontalHeaderLabels(("Capa (material)", "Espesor (m)", "γ (kN/m³)"))
+        self.tabla.setHorizontalHeaderLabels(("Capa (material)", "Espesor (cm)", "γ (kN/m³)"))
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
 
@@ -62,6 +63,15 @@ class EditorCapasMuro(QDialog):
         self.altura.setDecimals(3)
         self.altura.setRange(0.1, 30.0)
         self.altura.setValue(max(0.1, altura_m))
+        # La altura sale de los niveles (nivel de arranque → nivel final); se
+        # muestra en solo-lectura para que no se pise a mano por error.
+        self.altura_de_niveles = altura_de_niveles
+        self.altura.setReadOnly(altura_de_niveles)
+        self.altura.setButtonSymbols(
+            QAbstractSpinBox.ButtonSymbols.NoButtons if altura_de_niveles
+            else QAbstractSpinBox.ButtonSymbols.UpDownArrows
+        )
+        etiqueta_altura = "Altura del paño (de los niveles):" if altura_de_niveles else "Altura del paño:"
         self.longitud = QDoubleSpinBox()
         self.longitud.setSuffix(" m")
         self.longitud.setDecimals(3)
@@ -83,7 +93,7 @@ class EditorCapasMuro(QDialog):
         fila.addStretch(1)
 
         forma = QFormLayout()
-        forma.addRow("Altura del paño:", self.altura)
+        forma.addRow(etiqueta_altura, self.altura)
         forma.addRow("Longitud del paño:", self.longitud)
 
         caja = QVBoxLayout(self)
@@ -113,18 +123,25 @@ class EditorCapasMuro(QDialog):
             for clave, info in tabla.items():
                 combo.addItem(f"{info['nombre']} ({grupo})", (grupo, clave))
         if capa:
-            indice = combo.findData((str(capa.get("grupo")), str(capa.get("clave"))))
-            if indice >= 0:
-                combo.setCurrentIndex(indice)
+            # findData con una tupla no matchea de forma confiable en PySide6,
+            # así que buscamos el índice comparando el dato guardado a mano.
+            objetivo = (str(capa.get("grupo")), str(capa.get("clave")))
+            for i in range(combo.count()):
+                if combo.itemData(i) == objetivo:
+                    combo.setCurrentIndex(i)
+                    break
         combo.currentIndexChanged.connect(self._recalcular)
         self.tabla.setCellWidget(fila, 0, combo)
 
+        # Espesor: se carga en CENTÍMETROS (cómodo para mampostería) y se
+        # convierte a metros al guardar. Rango 0,5 cm a 100 cm.
         espesor = QDoubleSpinBox()
-        espesor.setSuffix(" m")
-        espesor.setDecimals(3)
-        espesor.setRange(0.005, 1.0)
-        espesor.setSingleStep(0.005)
-        espesor.setValue(float(capa.get("espesor_m", 0.02)) if capa else 0.02)
+        espesor.setSuffix(" cm")
+        espesor.setDecimals(1)
+        espesor.setRange(0.5, 100.0)
+        espesor.setSingleStep(0.5)
+        espesor_cm = float(capa.get("espesor_m", 0.02)) * 100.0 if capa else 2.0
+        espesor.setValue(espesor_cm)
         espesor.valueChanged.connect(self._recalcular)
         self.tabla.setCellWidget(fila, 1, espesor)
 
@@ -149,20 +166,29 @@ class EditorCapasMuro(QDialog):
             if not datos:
                 continue
             grupo, clave = datos
-            capas.append({"grupo": grupo, "clave": clave, "espesor_m": espesor.value()})
+            # El espesor se muestra/carga en cm; el cálculo trabaja en metros.
+            espesor_m = espesor.value() / 100.0
+            capas.append({"grupo": grupo, "clave": clave, "espesor_m": espesor_m})
         return capas
 
     def _recalcular(self, *_args) -> None:
-        for fila in range(self.tabla.rowCount()):
-            combo = self.tabla.cellWidget(fila, 0)
-            datos = combo.currentData() if isinstance(combo, QComboBox) else None
-            texto = ""
-            if datos:
-                try:
-                    texto = f"{muros._gamma_de(datos[1], datos[0]):.2f}"
-                except ValueError:
-                    texto = "—"
-            self.tabla.setItem(fila, 2, QTableWidgetItem(texto))
+        # Bloqueamos las señales de la tabla mientras escribimos la columna de
+        # γ: si no, cada setItem emite itemChanged, que vuelve a llamar acá y
+        # desborda la pila (la app se cierra de golpe al tocar un material).
+        self.tabla.blockSignals(True)
+        try:
+            for fila in range(self.tabla.rowCount()):
+                combo = self.tabla.cellWidget(fila, 0)
+                datos = combo.currentData() if isinstance(combo, QComboBox) else None
+                texto = ""
+                if datos:
+                    try:
+                        texto = f"{muros._gamma_de(datos[1], datos[0]):.2f}"
+                    except ValueError:
+                        texto = "—"
+                self.tabla.setItem(fila, 2, QTableWidgetItem(texto))
+        finally:
+            self.tabla.blockSignals(False)
 
         capas = self._capas_actuales()
         try:
@@ -180,10 +206,59 @@ class EditorCapasMuro(QDialog):
             f"Carga lineal (por m de alto): {resultado['peso_lineal_kN_m']:.3f} kN/m",
             f"Peso total del paño ({resultado['longitud_m']:.2f} m × {resultado['altura_m']:.2f} m): "
             f"{resultado['peso_total_kN']:.2f} kN",
-            "",
-            "Pendiente de implementar: resistencia térmica, diseño estructural y "
-            "cimiento (requieren conductividades λ y reglamentación de mampostería).",
         ]
+        termica = resultado.get("resistencia_termica")
+        if termica:
+            lineas += [
+                "",
+                "Resistencia térmica (ISO 6946, muro vertical):",
+                f"  R de las capas: {termica['R_capas_m2K_W']:.3f} m²·K/W",
+                f"  R total (con Rsi={termica['R_si_m2K_W']:.2f}, Rse={termica['R_se_m2K_W']:.2f}): "
+                f"{termica['R_total_m2K_W']:.3f} m²·K/W",
+                f"  Transmitancia térmica U = 1/Rtotal: {termica['U_W_m2K']:.3f} W/m²·K",
+            ]
+        else:
+            lineas += [
+                "",
+                "Resistencia térmica: pendiente (faltan conductividades λ de "
+                "alguna capa en materiales.json).",
+            ]
+        lineas += [
+            "",
+            "Pendiente de implementar: cimiento (requiere reglamentación / datos "
+            "geotécnicos).",
+        ]
+
+        # Verificación estructural (CIRSOC 501) con la altura del paño.
+        try:
+            est = mamposteria.verificar_muro(
+                capas, altura_m=self.altura.value(), mortero="mortero_normal_n",
+            )
+        except (FileNotFoundError, KeyError):
+            est = {"ok": False,
+                   "pendiente": "Falta datos/mamposteria.json (biblioteca CIRSOC 501)."}
+        if est.get("ok"):
+            comp = est["compresion"]
+            cort = est["corte"]
+            lineas += [
+                "",
+                "Verificación estructural (CIRSOC 501) por metro de muro:",
+                f"  Hoja portante: {est['hoja_portante']['clave']} "
+                f"(fm = {est['hoja_portante']['fm_mpa']:.2f} MPa, "
+                f"e = {est['hoja_portante']['espesor_m']:.2f} m)",
+                f"  Esbeltez h/r = {est['esbeltez_hr']:.1f}"
+                f"{'  ⚠ ESBELTO' if est['es_esbelta'] else ''}",
+                f"  Compresión: φ·Pn = {comp['phi_Pn_kN']:.1f} kN "
+                f"(φ={comp['phi']:.2f}, {comp['rama']})",
+                f"  Corte:      φ·Vn = {cort['phi_Vn_kN']:.1f} kN (φ={cort['phi']:.2f})",
+                "  Recomendaciones:",
+            ]
+            lineas += [f"    · {r}" for r in est["recomendaciones"]]
+        else:
+            lineas += [
+                "",
+                "Verificación estructural: " + str(est.get("pendiente", "no disponible.")),
+            ]
         self.resultado.setPlainText("\n".join(lineas))
 
     def datos_guardar(self) -> tuple[list[dict], float, float, dict]:
@@ -289,9 +364,18 @@ class PaginaMuros(QWidget):
             nombre = next(iter(muros_est))
         datos = muros_est[nombre]
         capas = datos.get("capas", []) or []
-        altura = float(datos.get("altura_m", 0.0))
+        # La altura sale de los niveles definidos en el editor de muros
+        # (nivel de arranque → nivel final). Si no hay niveles, se cae al
+        # valor manual guardado en altura_m.
+        nivel_inicio = float(datos.get("nivel_inicio", 0.0) or 0.0)
+        nivel_fin = float(datos.get("nivel_fin", 0.0) or 0.0)
+        altura_de_niveles = nivel_fin > nivel_inicio
+        altura = (nivel_fin - nivel_inicio) if altura_de_niveles else float(datos.get("altura_m", 0.0))
         longitud = float(datos.get("longitud_m", 1.0))
-        dialogo = EditorCapasMuro(nombre, capas, altura, longitud, self)
+        dialogo = EditorCapasMuro(
+            nombre, capas, altura, longitud, self,
+            altura_de_niveles=altura_de_niveles,
+        )
         if dialogo.exec() != QDialog.DialogCode.Accepted:
             return
         nuevas_capas, nueva_altura, nueva_longitud, resultado = dialogo.datos_guardar()

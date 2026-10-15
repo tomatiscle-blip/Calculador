@@ -79,7 +79,8 @@
       "tipo": "volumetrico",
       "valor": 17,
       "unidad": "kN/m3",
-      "clave": "ladrillo_comun"
+      "clave": "ladrillo_comun",
+      "lambda_w_mk": 0.81
     },
     {
       "nombre": "Ladrillo común",
@@ -92,7 +93,8 @@
       "tipo": "volumetrico",
       "valor": 10.5,
       "unidad": "kN/m3",
-      "clave": "ladrillo_hueco"
+      "clave": "ladrillo_hueco",
+      "lambda_w_mk": 0.48
     },
     {
       "nombre": "Ladrillo hueco (no portante)",
@@ -105,7 +107,8 @@
       "tipo": "volumetrico",
       "valor": 12,
       "unidad": "kN/m3",
-      "clave": "ladrillo_hueco_portante"
+      "clave": "ladrillo_hueco_portante",
+      "lambda_w_mk": 0.6
     },
     {
       "nombre": "Ladrillo hueco (portante)",
@@ -120,7 +123,8 @@
       "tipo": "volumetrico",
       "valor": 17,
       "unidad": "kN/m3",
-      "clave": "cal_arena"
+      "clave": "cal_arena",
+      "lambda_w_mk": 0.87
     },
     {
       "nombre": "Mortero de cemento y arena",
@@ -128,7 +132,8 @@
       "valor": 21,
       "unidad": "kN/m3",
       "notas": "Carga superficial 0,63 kN/m2",
-      "clave": "cemento_arena"
+      "clave": "cemento_arena",
+      "lambda_w_mk": 1.4
     },
     {
       "nombre": "Enlucido de cal (fino)",
@@ -153,6 +158,61 @@
       "tipo": "volumetrico",
       "valor": 13,
       "unidad": "kN/m3"
+    }
+  ],
+  "Aislantes": [
+    {
+      "clave": "eps",
+      "nombre": "Poliestireno expandido (EPS)",
+      "tipo": "volumetrico",
+      "valor": 0.2,
+      "unidad": "kN/m3",
+      "lambda_w_mk": 0.037,
+      "notas": "Aislante térmico. Densidad ~20 kg/m3 = 0,20 kN/m3. λ = 0,037 W/m·K."
+    },
+    {
+      "clave": "xps",
+      "nombre": "Poliestireno extruido (XPS)",
+      "tipo": "volumetrico",
+      "valor": 0.35,
+      "unidad": "kN/m3",
+      "lambda_w_mk": 0.029,
+      "notas": "Aislante rígido de alta resistencia. λ = 0,029 W/m·K."
+    },
+    {
+      "clave": "lana_vidrio",
+      "nombre": "Lana de vidrio",
+      "tipo": "volumetrico",
+      "valor": 0.2,
+      "unidad": "kN/m3",
+      "lambda_w_mk": 0.04,
+      "notas": "Manta aislante flexible. λ = 0,040 W/m·K."
+    },
+    {
+      "clave": "lana_mineral",
+      "nombre": "Lana mineral (roca/escoria)",
+      "tipo": "volumetrico",
+      "valor": 0.4,
+      "unidad": "kN/m3",
+      "lambda_w_mk": 0.038,
+      "notas": "Aislante incombustible. λ = 0,038 W/m·K."
+    },
+    {
+      "clave": "poliuretano",
+      "nombre": "Espuma de poliuretano",
+      "tipo": "volumetrico",
+      "valor": 0.5,
+      "unidad": "kN/m3",
+      "lambda_w_mk": 0.026,
+      "notas": "Aislante de conductividad muy baja. λ = 0,026 W/m·K."
+    },
+    {
+      "clave": "camara_aire",
+      "nombre": "Cámara de aire (sin ventilar)",
+      "tipo": "volumetrico",
+      "valor": 0.0,
+      "unidad": "kN/m3",
+      "notas": "Sin peso propio. Su resistencia térmica se tabula por espesor (ISO 6946, flujo horizontal); no lleva λ."
     }
   ],
   "Pisos": [

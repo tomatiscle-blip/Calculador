@@ -1,0 +1,37 @@
+{
+  "fuente": "Reglamento CIRSOC 501 (Edición Septiembre de 2007) - INTI Instituto Nacional de Tecnología Industrial",
+  "url_referencia": "https://www.cormela.com.ar/docs/CIRSOC501.pdf",
+  "zona_aplicacion": "Zona sísmica 0 (complementado con INPRES-CIRSOC 103 Parte III para otras zonas)",
+  "factores_reduccion_resistencia_phi": {
+    "flexion_axial_mamposteria_armada": 0.90,
+    "flexion_axial_mamposteria_simple": 0.60,
+    "corte": 0.80,
+    "anclajes_y_empalmes": 0.80
+  },
+  "resistencias_caracteristicas_fm_indicativas_tabla_6_3": {
+    "ladrillos_ceramicos_macizos": {
+      "mortero_elevado_e": 2.50,
+      "mortero_intermedio_i": 2.25,
+      "mortero_normal_n": 1.75
+    },
+    "bloques_huecos_portantes_ceramicos": {
+      "mortero_elevado_e": 6.50,
+      "mortero_intermedio_i": 5.85,
+      "mortero_normal_n": 4.55
+    },
+    "bloques_huecos_portantes_de_hormigon": {
+      "mortero_elevado_e": 6.50,
+      "mortero_intermedio_i": 5.85,
+      "mortero_normal_n": 4.55
+    }
+  },
+  "deformabilidad": {
+    "modulo_elasticidad_longitudinal_em": "850 * fm (MPa)",
+    "modulo_corte_gm": "0.3 * Em (MPa)"
+  },
+  "limitaciones_geometricas_y_esbeltez": {
+    "relacion_esbeltez_maxima_columnas_muros": "h/r <= 99 para fórmulas estándar de pandeo (Cap. 9.1.5.4.1.1 y 9.1.6.3)",
+    "espesor_minimo_columnas": "b >= 180 mm",
+    "altura_nominal_minima_vigas": "h >= 190 mm"
+  }
+}

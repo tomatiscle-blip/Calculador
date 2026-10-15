@@ -68,6 +68,7 @@ CARPETAS_SALIDA = _carpetas_salida(SALIDAS)
 # ---------------------------------------------------------------------------
 ESTRUCTURA: Path = DATOS / "estructura.json"
 MATERIALES: Path = DATOS_GLOBAL / "materiales.json"
+MAMPOSTERIA: Path = DATOS_GLOBAL / "mamposteria.json"
 VIGUETAS: Path = DATOS_GLOBAL / "viguetas.json"
 PERFILES_METALICOS: Path = DATOS_GLOBAL / "perfiles_metalicos.json"
 COEFICIENTES_KD: Path = DATOS_GLOBAL / "coeficientes_kd.json"
