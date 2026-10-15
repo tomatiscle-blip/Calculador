@@ -589,8 +589,73 @@
     "x_fin": 22.0,
     "nivel_inicio": 0.0,
     "nivel_fin": 6.0,
-    "espesor_m": 0.2,
+    "espesor_m": 0.235,
     "offset": 0.0,
-    "longitud_m": 21.15
+    "longitud_m": 21.15,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.12
+      },
+      {
+        "grupo": "Morteros",
+        "clave": "cemento_arena",
+        "espesor_m": 0.01
+      },
+      {
+        "grupo": "Aislantes",
+        "clave": "eps",
+        "espesor_m": 0.025
+      },
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_hueco",
+        "espesor_m": 0.08
+      }
+    ],
+    "altura_m": 6.0,
+    "peso_propio_kN_m2": 3.0949999999999998,
+    "peso_lineal_kN_m": 18.57
+  },
+  "Muro 2": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 22.0,
+    "x_inicio": 0.0,
+    "x_fin": 11.65,
+    "nivel_inicio": 3.0,
+    "nivel_fin": 6.0,
+    "espesor_m": 0.22499999999999998,
+    "offset": 0.0,
+    "longitud_m": 11.65,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.12
+      },
+      {
+        "grupo": "Aislantes",
+        "clave": "eps",
+        "espesor_m": 0.025
+      },
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_hueco",
+        "espesor_m": 0.08
+      }
+    ],
+    "altura_m": 3.0,
+    "peso_propio_kN_m2": 2.885,
+    "peso_lineal_kN_m": 8.655
   }
 }
