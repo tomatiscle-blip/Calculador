@@ -25,6 +25,7 @@ Módulos:
     losas       -> el cálculo de una losa alivianada (por tipología)
     losas_macizas -> análisis elástico inicial de paños macizos unidireccionales
     portico     -> el MOTOR: resuelve el pórtico 2D y devuelve las solicitaciones (M, V, N)
+    mamposteria -> verificación estructural de muros (CIRSOC 501)
 """
 
-__all__ = ["rutas", "pipeline", "materiales", "cargas", "losas", "losas_macizas", "portico"]
+__all__ = ["rutas", "pipeline", "materiales", "cargas", "losas", "losas_macizas", "portico", "mamposteria"]
