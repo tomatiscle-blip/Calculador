@@ -1,9 +1,17 @@
+import os
+import sys
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parent.parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 app = QApplication.instance() or QApplication([])
-from app.ejes import EditorPorticoPorNiveles, EditorMuroPorNiveles
+from app.ejes import EditorPorticoPorNiveles, EditorMuroPorNiveles  # noqa: E402
 
 ejes = {
     "x": [

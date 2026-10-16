@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parent
+RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 from calc import rutas  # noqa: E402
 from anastruct import SystemElements  # noqa: E402

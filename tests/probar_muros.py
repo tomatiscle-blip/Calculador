@@ -4,8 +4,15 @@ Script de pruebas y análisis rápido para diferentes tipos de muros de mamposte
 según el módulo calc.mamposteria (CIRSOC 501).
 """
 
-from calc import mamposteria as mamp
-import pprint
+import sys
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parent.parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from calc import mamposteria as mamp  # noqa: E402
+import pprint  # noqa: E402
 
 
 def ejecutar_pruebas_muros():

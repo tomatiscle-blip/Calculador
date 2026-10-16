@@ -199,7 +199,7 @@ campos hasta que un flujo los necesite.
     (`cargas.FACTORES_COMBINACIONES`): el motor las reusa, no las reescribe.
   - **Límite conocido (heredado de P01):** las **cargas puntuales** se aplican **enteras** en
     todas las combinaciones (no se escalan por fD/fL). Es a propósito, para reproducir P01.
-- **Validado contra anaStruct fresco por combinación** (control `_tmp_validar_motor.py`):
+- **Validado contra anaStruct fresco por combinación** (control `tests/_tmp_validar_motor.py`):
   reacciones, M, V y N coinciden en las 5 combinaciones; la única diferencia (~0,04 kN·m) es
   el momento de campo, por la malla de 50 del control.
 - **Pantalla de inicio en la app (`app/principal.py`)**: la ventana ahora abre en la pestaña

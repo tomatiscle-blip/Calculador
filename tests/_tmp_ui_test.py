@@ -2,13 +2,13 @@
 Prueba temporal de la interfaz: levanta la ventana SIN mostrarla, refresca y
 muestra en texto lo que quedó en la pestaña Inicio. No abre ninguna ventana.
 
-    py _tmp_ui_test.py
+    py tests/_tmp_ui_test.py
 """
 
 import sys
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parent
+RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
 from PySide6.QtWidgets import QApplication, QTabWidget  # noqa: E402

@@ -1,10 +1,17 @@
 import os
+import sys
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parent.parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-from PySide6.QtWidgets import QApplication, QTabWidget
+from PySide6.QtWidgets import QApplication, QTabWidget  # noqa: E402
 app = QApplication.instance() or QApplication([])
 
-from app.principal import VentanaPrincipal
-from app.muros_proyecto import EditorCapasMuro, PaginaMuros
+from app.principal import VentanaPrincipal  # noqa: E402
+from app.muros_proyecto import EditorCapasMuro, PaginaMuros  # noqa: E402
 
 v = VentanaPrincipal()
 v.refrescar()

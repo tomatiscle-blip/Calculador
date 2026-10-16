@@ -2,13 +2,13 @@
 Control temporal: corre anaStruct FRESCO por combinación (con voladizos y
 cargas puntuales enteras, igual que P01) y lo compara contra calc.portico.
 
-    py _tmp_validar_motor.py
+    py tests/_tmp_validar_motor.py
 """
 
 import sys
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parent
+RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
 from calc import portico as motor  # noqa: E402
