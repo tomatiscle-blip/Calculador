@@ -1124,6 +1124,35 @@ class EditorPorticoPorNiveles(QDialog):
             self._familia_columnas(), posicion_transversal,
             rango_long_nuevo, rango_niveles_nuevo,
         )
+        # Un pórtico no puede arrancar en un nivel intermedio si no hay pórtico
+        # en planta baja sobre el mismo eje (lógica constructiva: nunca solo en PA).
+        cota_inicio_nuevo = float(self.niveles[0]["cota_m"])
+        cota_pb = float(self.niveles_disponibles[0]["cota_m"])
+        if cota_inicio_nuevo > cota_pb + 1e-6:
+            direccion_nueva = self._familia_columnas()
+            hay_portico_pb = False
+            for datos_existente in self.estructura_existente.values():
+                if not isinstance(datos_existente, dict):
+                    continue
+                if str(datos_existente.get("tipo", "")).lower() == "muro":
+                    continue
+                ref = datos_existente.get("referencia_planta", {}) or {}
+                if str(ref.get("eje_id", "")) != str(eje_id):
+                    continue
+                if str(ref.get("direccion", "")) != direccion_nueva:
+                    continue
+                rango_existente = self._rango_niveles_elemento(datos_existente)
+                if (
+                    rango_existente is not None
+                    and rango_existente[0] <= cota_pb + 1e-4
+                ):
+                    hay_portico_pb = True
+                    break
+            if not hay_portico_pb:
+                raise ValueError(
+                    "No se puede crear un pórtico que arranque en un nivel superior "
+                    "sin que exista un pórtico en planta baja sobre el mismo eje."
+                )
         niveles = []
         cota_base = float(self.niveles[0]["cota_m"])
         for nivel in self.niveles:
@@ -2506,6 +2535,82 @@ class EditorMuroPorNiveles(QDialog):
             None,
         )
 
+    @staticmethod
+    def _solapa(
+        rango_a: tuple[float, float], rango_b: tuple[float, float],
+        tolerancia: float = 1e-4,
+    ) -> bool:
+        """True si los intervalos se solapan con longitud > 0."""
+        return (
+            rango_a[0] < rango_b[1] - tolerancia
+            and rango_b[0] < rango_a[1] - tolerancia
+        )
+
+    def _rango_longitudinal_elemento(self, datos: dict) -> tuple[float, float] | None:
+        """Rango longitudinal global [min, max] que ocupa un elemento en planta."""
+        referencia = datos.get("referencia_planta", {}) or {}
+        try:
+            origen = float(referencia.get("origen_longitudinal_m", 0.0))
+        except (TypeError, ValueError):
+            origen = 0.0
+        es_muro = str(datos.get("tipo", "")).lower() == "muro"
+        if es_muro:
+            try:
+                a = float(datos.get("x_inicio", 0.0))
+                b = float(datos.get("x_fin", 0.0))
+            except (TypeError, ValueError):
+                return None
+            return (min(a, b), max(a, b))
+        extremos: list[float] = []
+        for viga in (datos.get("vigas", {}) or {}).values():
+            if not isinstance(viga, dict):
+                continue
+            for tramo in viga.get("tramos", []):
+                if not isinstance(tramo, dict):
+                    continue
+                for extremo in (tramo.get("x_inicio"), tramo.get("x_fin")):
+                    try:
+                        extremos.append(origen + float(extremo))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            for columna in (datos.get("columnas", {}) or {}).values():
+                if isinstance(columna, dict):
+                    try:
+                        extremos.append(origen + float(columna.get("x", 0.0)))
+                    except (TypeError, ValueError):
+                        continue
+        if not extremos:
+            return None
+        return (min(extremos), max(extremos))
+
+    def _rango_niveles_elemento(self, datos: dict) -> tuple[float, float] | None:
+        """Rango vertical [cota_inferior, cota_superior] global de un elemento."""
+        es_muro = str(datos.get("tipo", "")).lower() == "muro"
+        if es_muro:
+            try:
+                a = float(datos.get("nivel_inicio", 0.0))
+                b = float(datos.get("nivel_fin", 0.0))
+            except (TypeError, ValueError):
+                return None
+            return (min(a, b), max(a, b))
+        cotas: list[float] = []
+        for nivel in (datos.get("niveles_geometria", []) or []):
+            if isinstance(nivel, dict):
+                try:
+                    cotas.append(float(nivel.get("cota_origen_m", nivel.get("cota_m", 0.0))))
+                except (TypeError, ValueError):
+                    continue
+        for viga in (datos.get("vigas", {}) or {}).values():
+            if isinstance(viga, dict) and viga.get("cota_m") is not None:
+                try:
+                    cotas.append(float(viga["cota_m"]))
+                except (TypeError, ValueError):
+                    continue
+        if not cotas:
+            return None
+        return (min(cotas), max(cotas))
+
     def datos_muro(self, mostrar_errores: bool = True) -> dict:
         # direccion = familia del eje donde SE ALOJA el muro (Opción A).
         direccion = str(self.direccion.currentData())
@@ -2536,6 +2641,8 @@ class EditorMuroPorNiveles(QDialog):
                 QMessageBox.warning(self, "Niveles incorrectos", "El nivel final debe ser mayor.")
             return {}
 
+
+
         coord_inicio = float(eje_inicio.get("coordenada_m", 0.0))
         coord_fin = float(eje_fin.get("coordenada_m", 0.0))
         posicion = float(eje_transversal.get("coordenada_m", 0.0))
@@ -2553,6 +2660,42 @@ class EditorMuroPorNiveles(QDialog):
             x_inicio, x_fin = x_fin, x_inicio
             eje_referencia = eje_fin
         longitud = x_fin - x_inicio
+
+        # Validaciones de ocupación en el mismo eje transversal.
+        for nombre_existente, datos_existente in self.estructura.items():
+            if not isinstance(datos_existente, dict):
+                continue
+            ref = datos_existente.get("referencia_planta", {}) or {}
+            if str(ref.get("eje_id", "")) != str(eje_transversal.get("id", "")):
+                continue
+            rango_long_existente = self._rango_longitudinal_elemento(datos_existente)
+            if rango_long_existente is None:
+                continue
+            if not self._solapa(rango_long_existente, (x_inicio, x_fin)):
+                continue  # hay lugar libre a lo largo: no estorba
+            rango_niveles_existente = self._rango_niveles_elemento(datos_existente)
+            if rango_niveles_existente is None:
+                continue
+            solapa_niveles = self._solapa(
+                rango_niveles_existente,
+                (float(nivel_inicio["cota_m"]), float(nivel_fin["cota_m"])),
+            )
+            es_muro_existente = str(datos_existente.get("tipo", "")).lower() == "muro"
+            if es_muro_existente and solapa_niveles:
+                # Dos muros no pueden ocupar el mismo eje, tramo y niveles.
+                if mostrar_errores:
+                    QMessageBox.warning(
+                        self,
+                        "Muro sobre muro",
+                        f"No se puede poner el muro sobre «{nombre_existente}\": "
+                        "ya hay un muro en ese mismo eje, tramo y niveles. "
+                        "El muro debe ir entre pórticos o sobre un pórtico existente, "
+                        "nunca ocupar el lugar de otro muro.",
+                    )
+                return {}
+            # Un muro puede apoyarse sobre un pórtico existente (peso propio del
+            # muro transmitido a la viga del pórtico): se permite el solapamiento
+            # de niveles con un pórtico, nunca ocupar su lugar.
 
         # Vista interna: "direccion" = familia por la que CORRE la línea = familia
         # de los cruces (opuesta a la de alojamiento). Así la vista no se toca.

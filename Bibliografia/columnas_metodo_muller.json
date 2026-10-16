@@ -1,0 +1,46 @@
+{
+  "algoritmo": "Diagrama de Interaccion Columna - Metodo Analitico (Compatibilidad de Deformaciones)",
+  "pasos_logica_python": [
+    {
+      "paso": 1,
+      "nombre": "Inputs de Seccion y Materiales",
+      "parametros": {
+        "b": "Ancho de la seccion (cm)",
+        "h": "Altura de la seccion (cm)",
+        "recubrimiento": "Distancia del borde al centro de las barras (cm)",
+        "fc": "Resistencia especificada del hormigon (MPa)",
+        "fy": "Tension de fluencia del acero (MPa)",
+        "Es": "Modulo de elasticidad del acero (200000 MPa)",
+        "barras": "Lista de areas de acero (As) y sus posiciones (di)"
+      }
+    },
+    {
+      "paso": 2,
+      "nombre": "Bucle de Iteracion del Eje Neutro (c)",
+      "descripcion": "Variar la profundidad del eje neutro c desde 0.01*h hasta un valor muy alto para barrer todo el diagrama."
+    },
+    {
+      "paso": 3,
+      "nombre": "Calculo de Deformaciones y Tensiones",
+      "reglas": [
+        "Deformacion maxima del hormigon en fibra extrema = 0.003",
+        "Deformacion en cada barra de acero calculada por relacion geometrica lineal (Bernoulli)",
+        "Tension en el acero: min(Es * epsilon_s, fy) con signo segun traccion o compresion",
+        "Hormigon: Aplicar bloque equivalente de Whitney (profundidad a = beta1 * c)"
+      ]
+    },
+    {
+      "paso": 4,
+      "nombre": "Ecuaciones de Equilibrio Estatico",
+      "formulas": {
+        "Carga_Axial_Pn": "Sumatoria de fuerzas en el acero + Resultante de compresion del hormigon",
+        "Momento_Flector_Mn": "Sumatoria de momentos de cada fuerza respecto al centro de gravedad geometrico de la seccion"
+      }
+    },
+    {
+      "paso": 5,
+      "nombre": "Aplicacion de Factores de Minoracion (CIRSOC)",
+      "descripcion": "Multiplicar Pn y Mn por los factores de reduccion de resistencia phi (ej. 0.65 a 0.90 segun el nivel de compresion y tipo de estribo) para obtener Pu y Mu admisible."
+    }
+  ]
+}

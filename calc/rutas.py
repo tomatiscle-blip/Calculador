@@ -154,7 +154,7 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
     if copiar_actual:
         origen_datos = DATOS
         for archivo in ("cargas.json", "estructura.json", "losas.json", "terreno.json",
-                        "tipos_losa.json", "moments_input.json"):
+                        "tipos_losa.json", "moments_input.json", "ejes.json", "niveles.json"):
             origen = origen_datos / archivo
             if origen.is_file():
                 shutil.copy2(origen, carpeta / "datos" / archivo)
@@ -167,6 +167,9 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
             "elementos": {}, "aplicaciones": [],
         })
         guardar_json(carpeta / "datos" / "estructura.json", {})
+        # Ejes y niveles empiezan vacíos para la nueva obra
+        guardar_json(carpeta / "datos" / "ejes.json", {"x": [], "y": []})
+        guardar_json(carpeta / "datos" / "niveles.json", {"niveles": []})
     cargas = leer_json(carpeta / "datos" / "cargas.json", {}) or {}
     ficha = {
         "nombre": str(cargas.get("obra") or limpio),

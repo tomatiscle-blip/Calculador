@@ -199,7 +199,8 @@ campos hasta que un flujo los necesite.
     (`cargas.FACTORES_COMBINACIONES`): el motor las reusa, no las reescribe.
   - **Límite conocido (heredado de P01):** las **cargas puntuales** se aplican **enteras** en
     todas las combinaciones (no se escalan por fD/fL). Es a propósito, para reproducir P01.
-- **Validado contra anaStruct fresco por combinación** (control `tests/_tmp_validar_motor.py`):
+- **Validado contra anaStruct fresco por combinación** (control histórico, hoy archivado
+  en `tests/test_validar_motor.py`; la comparación permanente la hace `tools/comparar_motores.py`):
   reacciones, M, V y N coinciden en las 5 combinaciones; la única diferencia (~0,04 kN·m) es
   el momento de campo, por la malla de 50 del control.
 - **Pantalla de inicio en la app (`app/principal.py`)**: la ventana ahora abre en la pestaña
@@ -470,7 +471,9 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 | `salidas/` | Todo lo calculado: vigas, columnas, bases, losas, cargas, **reacciones**, planos |
 | `tools/` | Utilidades de trabajo (regresión, informe de cambios, comparación de motores) |
 | `tools/regresion.py` · `tools/comparar_motores.py` | Red de seguridad de resultados y validación cruzada anaStruct ↔ Pynite |
+| `tests/` | Pruebas automatizadas: una por archivo. Los unittest se corren desde la raíz con `py -m unittest tests.test_x`; los de humo con `py tests\test_x.py`. No se guardan temporales |
 | `tests/golden/` | Copias congeladas de resultados de referencia (no se suben a git) |
+| `Bibliografia/` | Reglamentos en PDF (CIRSOC/IRAM, no se versionan) y los criterios de cálculo en `.txt`/`.json` escritos a mano para consulta de las IAs |
 | `00_…`, `P00_…` a `P06_…`, `L00_…`, `C00_…`, `V0x_…` | Los scripts de cálculo de hoy; se migran de a uno a `calc/` |
 
 ## 9. Documentos hermanos
@@ -522,6 +525,7 @@ Calculador\
 │   └─ diagramas_interaccion\
 ├─ salidas\              <- resultados (no se editan a mano)
 │   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  reacciones\  dxf\
+├─ Bibliografia\         <- reglamentos PDF (no se versionan) + criterios .txt/.json para las IAs
 ├─ docs\                 <- los .txt explicativos y la memoria de cálculo
 ├─ legacy\               <- los scripts viejos ya migrados, solo de referencia
 ├─ tools\  tests\  imagenes\
@@ -537,6 +541,7 @@ Calculador\
 | `datos\` | todo número que se elige (materiales, geometría, coeficientes) | resultados |
 | `salidas\` | todo lo que produce el cálculo | datos de entrada |
 | `docs\` | explicaciones para humanos | código |
+| `Bibliografia\` | reglamentos PDF y criterios de cálculo (`.txt`/`.json`) para consulta de las IAs | datos de obra ni resultados |
 | `legacy\` | los scripts viejos ya migrados | **nada de `calc\` ni de `app\` los importa** |
 
 ### Lo que se puede ordenar ya, sin riesgo

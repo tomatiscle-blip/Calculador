@@ -1,4 +1,4 @@
-"""Alta geométrica de paños de losa vinculados a pórticos y ejes."""
+﻿"""Alta geométrica de paños de losa vinculados a pórticos, muros y ejes."""
 
 from __future__ import annotations
 
@@ -29,10 +29,12 @@ class VistaPanelLosa(QWidget):
         super().__init__(parent)
         self.ejes: dict[str, list[dict]] = {"x": [], "y": []}
         self.porticos: dict[str, dict] = {}
+        self.muros: dict[str, dict] = {}
         self.ejes_seleccionados: dict[str, list[str]] = {"x": [], "y": []}
         self.direccion_luz = "x"
         self.coordenadas_paño: tuple[float, float, float, float] | None = None
         self.apoyos: dict[str, str] = {}
+        self.muros_apoyo: set[str] = set()
         self.setMinimumSize(560, 320)
 
     def establecer_datos(
@@ -42,7 +44,8 @@ class VistaPanelLosa(QWidget):
         ejes_seleccionados: dict[str, list[str]],
         direccion_luz: str,
         coordenadas_paño: tuple[float, float, float, float] | None,
-        apoyos: dict[str, str],
+        apoyos: dict[str, dict],
+        cota_apoyo: float | None = None,
     ) -> None:
         self.ejes = ejes
         self.ejes_seleccionados = {
@@ -50,8 +53,18 @@ class VistaPanelLosa(QWidget):
         }
         self.direccion_luz = direccion_luz
         self.coordenadas_paño = coordenadas_paño
-        self.apoyos = apoyos
+        self.cota_apoyo = cota_apoyo
         self.porticos = {}
+        self.muros = {}
+        self.muros_apoyo = set()
+        self.apoyos = {}
+        for lado, apoyo in (apoyos or {}).items():
+            if not isinstance(apoyo, dict):
+                continue
+            if str(apoyo.get("tipo", "")) == "portico":
+                self.apoyos[str(apoyo.get("portico", ""))] = str(apoyo.get("viga", ""))
+            elif str(apoyo.get("tipo", "")) == "muro":
+                self.muros_apoyo.add(str(apoyo.get("nombre", "")))
         for nombre, datos in estructura.items():
             referencia = datos.get("referencia_planta", {}) or {}
             direccion = str(referencia.get("direccion", "x")).lower()
@@ -72,7 +85,55 @@ class VistaPanelLosa(QWidget):
                     longitudinal["coordenada_m"] if longitudinal else 0.0,
                 )
             )
+            if str(datos.get("tipo", "")).lower() == "muro":
+                # Los muros son flexibles: se muestran independientemente del nivel de apoyo.
+                try:
+                    fin_muro = float(datos.get("x_fin", origen))
+                except (TypeError, ValueError):
+                    fin_muro = origen
+                self.muros[str(nombre)] = {
+                    "direccion": direccion,
+                    "posicion": float(eje["coordenada_m"]),
+                    "origen": origen,
+                    "fin": fin_muro,
+                    "espesor_m": float(datos.get("espesor_m", 0.0)),
+                    "altura_m": float(datos.get("altura_m", 0.0)),
+                }
+                continue
+            # Pórtico: solo mostrar vigas cuya cota coincida con el nivel de apoyo seleccionado.
             for viga_id, viga in (datos.get("vigas", {}) or {}).items():
+                try:
+                    cota_viga = float(viga.get("cota_m"))
+                except (TypeError, ValueError):
+                    continue
+                if cota_apoyo is not None and abs(cota_viga - cota_apoyo) > 1e-4:
+                    continue
+                tramos = [
+                    tramo
+                    for tramo in viga.get("tramos", [])
+                    if isinstance(tramo, dict)
+                    and math.isfinite(float(tramo.get("x_inicio", 0.0)))
+                    and math.isfinite(float(tramo.get("x_fin", 0.0)))
+                ]
+                if not tramos:
+                    continue
+                inicio = origen + min(
+                    min(float(t["x_inicio"]), float(t["x_fin"])) for t in tramos
+                )
+                fin = origen + max(
+                    max(float(t["x_inicio"]), float(t["x_fin"])) for t in tramos
+                )
+                self.porticos.setdefault(str(nombre), {
+                    "direccion": direccion,
+                    "posicion": float(eje["coordenada_m"]),
+                    "origen": origen,
+                    "vigas": {},
+                })["vigas"][str(viga_id)] = {
+                    "nivel_nombre": str(viga.get("nivel_nombre", "")),
+                    "cota_m": viga.get("cota_m"),
+                    "inicio": inicio,
+                    "fin": fin,
+                }
                 tramos = [
                     tramo for tramo in viga.get("tramos", [])
                     if isinstance(tramo, dict)
@@ -160,6 +221,12 @@ class VistaPanelLosa(QWidget):
             else:
                 coords_x.append(datos["posicion"])
                 coords_y.extend(extremos)
+        for datos in self.muros.values():
+            familia_longitudinal = "x" if datos["direccion"] == "x" else "y"
+            if familia_longitudinal == "x":
+                coords_y.append(datos["posicion"])
+            else:
+                coords_x.append(datos["posicion"])
         return coords_x, coords_y
 
     def _limites_pantalla(self) -> tuple[float, float, float, float]:
@@ -171,7 +238,7 @@ class VistaPanelLosa(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor("#ffffff"))
         painter.setPen(QColor("#334155"))
-        painter.drawText(12, 20, "Planta · clic en dos ejes X y dos ejes Y para delimitar el paño")
+        painter.drawText(12, 20, "Planta Â· clic en dos ejes X y dos ejes Y para delimitar el paño")
 
         izquierda, derecha, arriba, abajo = self._limites_pantalla()
         coords_x, coords_y = self._coordenadas_referencia()
@@ -251,17 +318,55 @@ class VistaPanelLosa(QWidget):
                         QPoint(centro_x + 7, centro_y - 9),
                         QPoint(centro_x, centro_y),
                     ]))
-                    painter.drawText(centro_x + 8, centro_y - 8, f"{nombre} · {viga_id}")
+                    painter.drawText(centro_x + 8, centro_y - 8, f"{nombre} Â· {viga_id}")
 
-        painter.setPen(QColor("#64748b"))
+        for nombre, datos in self.muros.items():
+            direccion = datos["direccion"]
+            espesor = datos["espesor_m"]
+            origen = float(datos.get("origen", 0.0))
+            fin = float(datos.get("fin", origen))
+            if direccion == "x":
+                p_inicio = punto(origen, datos["posicion"])
+                p_fin = punto(fin, datos["posicion"])
+            else:
+                p_inicio = punto(datos["posicion"], origen)
+                p_fin = punto(datos["posicion"], fin)
+            es_apoyo_muro = nombre in self.muros_apoyo
+            color_linea = QColor("#2563eb") if es_apoyo_muro else QColor("#94a3b8")
+            pintor_linea = QPen(color_linea, 5 if es_apoyo_muro else 2)
+            painter.setPen(pintor_linea)
+            painter.drawLine(*p_inicio, *p_fin)
+            if es_apoyo_muro:
+                centro_x = (p_inicio[0] + p_fin[0]) // 2
+                centro_y = (p_inicio[1] + p_fin[1]) // 2
+                painter.setBrush(QColor("#2563eb"))
+                painter.setPen(QPen(QColor("#1d4ed8"), 1))
+                painter.drawPolygon(QPolygon([
+                    QPoint(centro_x - 7, centro_y - 9),
+                    QPoint(centro_x + 7, centro_y - 9),
+                    QPoint(centro_x, centro_y),
+                ]))
+                espesor_txt = f"{espesor:.2f} m" if espesor > 0 else ""
+                painter.drawText(
+                    centro_x + 8, centro_y - 8,
+                    f"Muro {nombre}{' Â· ' + espesor_txt if espesor_txt else ''}"
+                )
+
+        pintor_leyenda = QColor("#64748b")
+        partes_leyenda = [
+            "Verde: viga de pórtico seleccionada como apoyo",
+            "Azul: muro estructural seleccionado como apoyo",
+            "Gris: elemento disponible no seleccionado",
+            "flecha roja: dirección de trabajo",
+        ]
+        painter.setPen(pintor_leyenda)
         painter.drawText(
             12, self.height() - 12,
-            "Verde: vigas de apoyo seleccionadas  ·  flecha roja: dirección de trabajo",
+            "  Â·  ".join(partes_leyenda),
         )
 
-
 class EditorLosaDesdeEjes(QDialog):
-    """Delimita un paño, vincula dos vigas de pórtico y devuelve su geometría."""
+    """Delimita un paño, vincula apoyos (pórtico+viga o muro) y devuelve su geometría."""
 
     def __init__(
         self,
@@ -288,8 +393,8 @@ class EditorLosaDesdeEjes(QDialog):
         indice_tipo = self.tipologia.findData(tipo_actual)
         self.tipologia.setCurrentIndex(max(indice_tipo, 0))
         self.direccion_luz = QComboBox()
-        self.direccion_luz.addItem("Luz en X · apoyos en X mínimo/máximo", "x")
-        self.direccion_luz.addItem("Luz en Y · apoyos en Y mínimo/máximo", "y")
+        self.direccion_luz.addItem("Luz en X Â· apoyos en ejes X", "x")
+        self.direccion_luz.addItem("Luz en Y Â· apoyos en ejes Y", "y")
         direccion_previa = str(
             (self.elemento.get("panel_ejes") or {}).get("direccion_luz", "x")
         )
@@ -298,7 +403,7 @@ class EditorLosaDesdeEjes(QDialog):
         )
         self.nivel_apoyo = QComboBox()
         for cota, nivel in self._niveles_de_vigas():
-            self.nivel_apoyo.addItem(f"{nivel} · {cota:g} m", cota)
+            self.nivel_apoyo.addItem(f"{nivel} Â· {cota:g} m", cota)
         nivel_previo = (self.elemento.get("panel_ejes") or {}).get("cota_apoyo_m")
         if nivel_previo is not None:
             indice = self.nivel_apoyo.findData(float(nivel_previo))
@@ -334,8 +439,8 @@ class EditorLosaDesdeEjes(QDialog):
         self.formulario.addRow("Tipología:", self.tipologia)
         self.formulario.addRow("Dirección de trabajo:", self.direccion_luz)
         self.formulario.addRow("Nivel de las vigas de apoyo:", self.nivel_apoyo)
-        self.formulario.addRow("Viga de apoyo en el primer borde:", self.selector_vigas["izq"])
-        self.formulario.addRow("Viga de apoyo en el segundo borde:", self.selector_vigas["der"])
+        self.formulario.addRow("Apoyo en el primer borde:", self.selector_vigas["izq"])
+        self.formulario.addRow("Apoyo en el segundo borde:", self.selector_vigas["der"])
         self.formulario.addRow("Desfase del borde libre inicial (m):", self.desfase_inicio)
         self.formulario.addRow("Desfase del borde libre final (m):", self.desfase_fin)
         self.formulario.addRow("Apoyos encontrados:", self.etiqueta_apoyos)
@@ -355,9 +460,9 @@ class EditorLosaDesdeEjes(QDialog):
         caja = QVBoxLayout(self)
         instrucciones = QLabel(
             "Hacé clic en dos ejes X y dos ejes Y para dibujar el paño. Elegí la dirección "
-            "de trabajo: los apoyos deben ser dos pórticos paralelos al borde y ubicados "
-            "exactamente sobre sus ejes. Los bordes libres pueden desplazarse solo dentro "
-            "del tramo de viga disponible en ambos apoyos."
+            "de trabajo: los bordes de apoyo (izq/der) se detectan automáticamente según "
+            "lo que haya en esos ejes (muro estructural o pórtico con viga). Los bordes "
+            "libres pueden desplazarse con los desfases."
         )
         instrucciones.setWordWrap(True)
         caja.addLayout(self.formulario)
@@ -387,6 +492,78 @@ class EditorLosaDesdeEjes(QDialog):
                 nombre = str(viga.get("nivel_nombre", f"Nivel {cota:g}"))
                 niveles.setdefault(cota, nombre)
         return sorted((cota, nombre) for cota, nombre in niveles.items())
+
+    def _elemento_en_eje(self, eje: dict, direccion_apoyo: str) -> dict | None:
+        """Detecta qué hay apoyado en un eje: muro estructural o pórtico.
+
+        Busca en self.estructura un elemento cuya referencia_planta coincida
+        con el eje (mismo eje_id y coordenada) y cuya dirección de planta
+        sea paralela al borde de apoyo.
+        """
+        eje_id = str(eje.get("id", ""))
+        for nombre, datos in self.estructura.items():
+            if not isinstance(datos, dict):
+                continue
+            ref = datos.get("referencia_planta", {}) or {}
+            ref_eje_id = str(ref.get("eje_id", ""))
+            if ref_eje_id != eje_id:
+                continue
+            # El eje transversal ya queda identificado por eje_id; no hay que
+            # comparar la coordenada longitudinal del origen porque pertenece a
+            # otro sistema de ejes (familia de columnas, no de apoyos).
+            ref_direccion = str(ref.get("direccion", "x")).lower()
+            if ref_direccion == direccion_apoyo:
+                return {"nombre": str(nombre), "datos": datos, "tipo": str(datos.get("tipo", "portico"))}
+        return None
+
+    def _poblar_vigas(self, lado: str, eje: dict, direccion: str, cota: float) -> str | None:
+        selector = self.selector_vigas[lado]
+        previo = str(selector.currentData() or "")
+        selector.blockSignals(True)
+        selector.clear()
+        elemento = self._elemento_en_eje(eje, direccion)
+        if elemento and str(elemento["tipo"]).lower() == "portico":
+            portico_nombre = str(elemento["nombre"])
+            datos = self.estructura.get(portico_nombre, {})
+            for viga_id, viga in (datos.get("vigas", {}) or {}).items():
+                try:
+                    cota_viga = float(viga.get("cota_m"))
+                except (TypeError, ValueError):
+                    continue
+                if abs(cota_viga - cota) > 1e-4:
+                    continue
+                extremos = self._viga_extremos(portico_nombre, str(viga_id))
+                if extremos is None:
+                    continue
+                selector.addItem(
+                    f"{viga_id} Â· {extremos[0]:g}â€“{extremos[1]:g} m",
+                    f"portico:{portico_nombre}:{viga_id}",
+                )
+            indice = selector.findData(previo)
+            selector.setCurrentIndex(indice if indice >= 0 else (0 if selector.count() else -1))
+        selector.blockSignals(False)
+        return portico_nombre if (elemento and str(elemento["tipo"]).lower() == "portico") else None
+
+    def _poblar_muro(self, lado: str, eje: dict, direccion: str) -> str | None:
+        """Si en el eje hay un muro estructural, lo agrega al selector como única opción."""
+        selector = self.selector_vigas[lado]
+        previo = str(selector.currentData() or "")
+        selector.blockSignals(True)
+        selector.clear()
+        elemento = self._elemento_en_eje(eje, direccion)
+        if elemento and str(elemento["tipo"]).lower() == "muro":
+            datos = elemento["datos"]
+            ref = datos.get("referencia_planta", {}) or {}
+            ref_direccion = str(ref.get("direccion", "x")).lower()
+            espesor = float(datos.get("espesor_m", 0.0))
+            altura = float(datos.get("altura_m", 0.0))
+            selector.addItem(
+                f"Muro {str(elemento['nombre'])} ({ref_direccion}, {espesor:.2f}Ã—{altura:.2f} m)",
+                f"muro:{str(elemento['nombre'])}",
+            )
+            selector.setCurrentIndex(0 if selector.count() else -1)
+        selector.blockSignals(False)
+        return str(elemento["nombre"]) if (elemento and str(elemento["tipo"]).lower() == "muro") else None
 
     def _eje_por_id(self, familia: str, eje_id: str) -> dict | None:
         return VistaPlantaPorticos._buscar_eje(self.ejes, familia, eje_id)
@@ -446,117 +623,115 @@ class EditorLosaDesdeEjes(QDialog):
         tramos = viga.get("tramos", [])
         if not tramos:
             return None
-        return (
-            origen + min(
-                min(float(t["x_inicio"]), float(t["x_fin"])) for t in tramos
-            ),
-            origen + max(
-                max(float(t["x_inicio"]), float(t["x_fin"])) for t in tramos
-            ),
-        )
+        intervalos = [
+            (
+                min(float(t["x_inicio"]), float(t["x_fin"])),
+                max(float(t["x_inicio"]), float(t["x_fin"])),
+            )
+            for t in tramos
+            if isinstance(t, dict)
+            and math.isfinite(float(t.get("x_inicio", 0.0)))
+            and math.isfinite(float(t.get("x_fin", 0.0)))
+        ]
+        if not intervalos:
+            return None
+        return origen + min(i[0] for i in intervalos), origen + max(i[1] for i in intervalos)
 
     def _viga_cubre(
         self, portico: str, viga_id: str, inicio: float, fin: float
     ) -> bool:
-        datos = self.estructura.get(portico, {})
-        referencia = datos.get("referencia_planta", {}) or {}
-        direccion = str(referencia.get("direccion", "x"))
-        eje = self._eje_por_id(
-            direccion, str(referencia.get("eje_longitudinal_id", ""))
-        )
-        origen = float(
-            referencia.get(
-                "origen_longitudinal_m",
-                eje["coordenada_m"] if eje else 0.0,
-            )
-        )
-        viga = (datos.get("vigas", {}) or {}).get(viga_id, {})
-        intervalos = sorted(
-            (
-                origen + min(float(tramo["x_inicio"]), float(tramo["x_fin"])),
-                origen + max(float(tramo["x_inicio"]), float(tramo["x_fin"])),
-            )
-            for tramo in viga.get("tramos", [])
-        )
-        cubierto_hasta = inicio
-        for tramo_inicio, tramo_fin in intervalos:
-            if tramo_inicio > cubierto_hasta + 1e-6:
+        extremos = self._viga_extremos(portico, viga_id)
+        if extremos is None:
+            return False
+        vi, vf = extremos
+        cubierto = vi
+        for ti, tf in sorted(((vi, vf),), key=lambda p: p[0]):
+            if ti > cubierto + 1e-6:
                 break
-            cubierto_hasta = max(cubierto_hasta, tramo_fin)
-        return cubierto_hasta >= fin - 1e-6
+            cubierto = max(cubierto, tf)
+        return cubierto >= fin - 1e-6
 
-    def _poblar_vigas(self, lado: str, eje: dict, direccion: str, cota: float) -> str | None:
-        selector = self.selector_vigas[lado]
-        previo = str(selector.currentData() or "")
-        selector.blockSignals(True)
-        selector.clear()
-        portico = self._portico_en_eje(
-            "y" if direccion == "x" else "x",
-            "x" if direccion == "x" else "y",
-            eje,
-        )
-        if portico:
-            datos = self.estructura[portico]
-            for viga_id, viga in (datos.get("vigas", {}) or {}).items():
-                try:
-                    cota_viga = float(viga.get("cota_m"))
-                except (TypeError, ValueError):
-                    continue
-                if abs(cota_viga - cota) > 1e-4:
-                    continue
-                extremos = self._viga_extremos(portico, str(viga_id))
-                if extremos is None:
-                    continue
-                selector.addItem(
-                    f"{viga_id} · {extremos[0]:g}–{extremos[1]:g} m",
-                    str(viga_id),
-                )
-            indice = selector.findData(previo)
-            selector.setCurrentIndex(indice if indice >= 0 else (0 if selector.count() else -1))
-        selector.blockSignals(False)
-        return portico
+    def _apoyo_texto(self, lado: str) -> str:
+        dato = str(self.selector_vigas[lado].currentData() or "")
+        if dato.startswith("muro:"):
+            return f"{lado}: muro {dato.split(':', 1)[1]}"
+        if dato.startswith("portico:"):
+            partes = dato.split(":")
+            return f"{lado}: {partes[1]} Â· viga {partes[2]}"
+        return f"{lado}: sin apoyo"
+
+    def _apoyo_dato(self, lado: str) -> tuple[str, str | None, str | None]:
+        dato = str(self.selector_vigas[lado].currentData() or "")
+        if dato.startswith("muro:"):
+            return "muro", dato.split(":", 1)[1], None
+        if dato.startswith("portico:"):
+            partes = dato.split(":")
+            return "portico", partes[1], partes[2]
+        return "ninguno", None, None
 
     def _actualizar(self) -> None:
         direccion = str(self.direccion_luz.currentData() or "x")
         coordenadas = self._coordenadas_ejes()
-        nivel_data = self.nivel_apoyo.currentData()
-        apoyos: dict[str, str] = {}
-        porticos_borde: dict[str, str | None] = {}
+        cota_apoyo = self.nivel_apoyo.currentData()
+        nivel_data = float(cota_apoyo) if cota_apoyo is not None else None
+        apoyos: dict[str, dict] = {}
         ejes_soporte = []
+        # La dirección del elemento de apoyo es perpendicular a la luz:
+        # si la luz corre en X, los bordes de apoyo están en ejes X y el
+        # muro/pórtico que los soporta corre en Y (y viceversa).
+        direccion_apoyo = "y" if direccion == "x" else "x"
         if coordenadas and nivel_data is not None:
             x_ejes, y_ejes = coordenadas
             ejes_soporte = x_ejes if direccion == "x" else y_ejes
             for lado, eje in zip(("izq", "der"), ejes_soporte):
-                portico = self._poblar_vigas(
-                    lado, eje, direccion, float(nivel_data)
-                )
-                porticos_borde[lado] = portico
-                viga_id = str(self.selector_vigas[lado].currentData() or "")
-                if portico and viga_id:
-                    apoyos[portico] = viga_id
+                elemento = self._elemento_en_eje(eje, direccion_apoyo)
+                tipo_el = str((elemento or {}).get("tipo", "")).lower()
+                if tipo_el == "portico":
+                    portico = self._poblar_vigas(lado, eje, direccion_apoyo, float(nivel_data))
+                    dato = str(self.selector_vigas[lado].currentData() or "")
+                    if dato.startswith("portico:"):
+                        partes = dato.split(":")
+                        apoyos[lado] = {"tipo": "portico", "portico": partes[1], "viga": partes[2]}
+                elif tipo_el == "muro":
+                    nombre_muro = self._poblar_muro(lado, eje, direccion_apoyo)
+                    dato = str(self.selector_vigas[lado].currentData() or "")
+                    if dato.startswith("muro:"):
+                        apoyos[lado] = {"tipo": "muro", "nombre": dato.split(":", 1)[1]}
 
-        intervalos = []
-        for lado in ("izq", "der"):
-            portico = porticos_borde.get(lado)
-            viga_id = str(self.selector_vigas[lado].currentData() or "")
-            intervalos.append(
-                self._viga_extremos(portico, viga_id)
-                if portico and viga_id else None
-            )
         intervalo_comun = None
-        if all(intervalos):
-            inicio = max(intervalo[0] for intervalo in intervalos if intervalo)
-            fin = min(intervalo[1] for intervalo in intervalos if intervalo)
-            if fin > inicio:
-                intervalo_comun = (inicio, fin)
+        if coordenadas and nivel_data is not None:
+            x_ejes, y_ejes = coordenadas
+            ejes_libres = y_ejes if direccion == "x" else x_ejes
+            coord_inicio_ejes = float(ejes_libres[0]["coordenada_m"])
+            coord_fin_ejes = float(ejes_libres[1]["coordenada_m"])
+
+            rangos = []
+            hay_apoyo_valido = all(apoyos.get(lado) for lado in ("izq", "der"))
+            if hay_apoyo_valido:
+                for lado in ("izq", "der"):
+                    if apoyos[lado].get("tipo") == "portico":
+                        portico_nombre = str(apoyos[lado]["portico"])
+                        viga_id = str(apoyos[lado]["viga"])
+                        extremos = self._viga_extremos(portico_nombre, viga_id)
+                        if extremos:
+                            rangos.append(extremos)
+                    # muro: no restringe el intervalo (usa el eje completo)
+
+            if rangos:
+                # Al menos un lado es pórtico: intersección de los rangos de viga
+                inicio = max(r[0] for r in rangos)
+                fin = min(r[1] for r in rangos)
+                if fin > inicio:
+                    intervalo_comun = (inicio, fin)
+            elif hay_apoyo_valido:
+                # Ambos lados son muro: el paño ocupa todo el tramo entre ejes
+                intervalo_comun = (coord_inicio_ejes, coord_fin_ejes)
 
         self.desfase_inicio.blockSignals(True)
         self.desfase_fin.blockSignals(True)
         if intervalo_comun and coordenadas:
-            x_ejes, y_ejes = coordenadas
-            ejes_libres = y_ejes if direccion == "x" else x_ejes
-            coord_inicio = float(ejes_libres[0]["coordenada_m"])
-            coord_fin = float(ejes_libres[1]["coordenada_m"])
+            coord_inicio = coord_inicio_ejes
+            coord_fin = coord_fin_ejes
             inicio_min = max(intervalo_comun[0], coord_inicio - 10000)
             inicio_max = min(intervalo_comun[1], coord_fin - 1e-6)
             fin_min = max(intervalo_comun[0], inicio_min + 1e-6)
@@ -582,15 +757,6 @@ class EditorLosaDesdeEjes(QDialog):
                 inicio_paño < intervalo_comun[0] - 1e-6
                 or fin_paño > intervalo_comun[1] + 1e-6
                 or inicio_paño >= fin_paño
-                or not all(
-                    self._viga_cubre(
-                        str(porticos_borde.get(lado) or ""),
-                        str(self.selector_vigas[lado].currentData() or ""),
-                        inicio_paño,
-                        fin_paño,
-                    )
-                    for lado in ("izq", "der")
-                )
             ):
                 intervalo_comun = None
         else:
@@ -615,37 +781,37 @@ class EditorLosaDesdeEjes(QDialog):
                 fin_paño if direccion == "x" else y1,
             )
             nombres_ejes = (
-                f"Paño X: {x_ejes[0]['nombre']}–{x_ejes[1]['nombre']} · "
-                f"Y: {y_ejes[0]['nombre']}–{y_ejes[1]['nombre']}"
+                f"Paño X: {x_ejes[0]['nombre']}â€“{x_ejes[1]['nombre']} Â· "
+                f"Y: {y_ejes[0]['nombre']}â€“{y_ejes[1]['nombre']}"
             )
 
-        self.etiqueta_apoyos.setText(
-            " · ".join(
-                f"{lado}: {porticos_borde.get(lado) or 'sin pórtico compatible'}"
-                + (
-                    f" / {self.selector_vigas[lado].currentData()}"
-                    if self.selector_vigas[lado].currentData() else ""
-                )
-                for lado in ("izq", "der")
-            )
-        )
+        self.etiqueta_apoyos.setText(" Â· ".join(
+            self._apoyo_texto(lado) for lado in ("izq", "der")
+        ))
         if not coordenadas:
             estado = nombres_ejes
-        elif not all(porticos_borde.get(lado) for lado in ("izq", "der")):
-            estado = "Falta un pórtico sobre uno de los ejes de apoyo. Asociá los pórticos a esos ejes."
-        elif not all(self.selector_vigas[lado].currentData() for lado in ("izq", "der")):
-            estado = "Los pórticos seleccionados no tienen una viga en el nivel elegido."
+        elif not all(apoyos.get(lado) for lado in ("izq", "der")):
+            faltan = [lado for lado in ("izq", "der") if not apoyos.get(lado)]
+            estado = f"Falta apoyo en el borde {', '.join(faltan)} (no hay muro ni pórtico en ese eje)."
         elif intervalo_comun is None:
-            estado = "Las vigas de apoyo no cubren el ancho completo del paño."
+            ambos_muros = all(
+                apoyos.get(lado, {}).get("tipo") == "muro" for lado in ("izq", "der")
+            )
+            if not ambos_muros:
+                estado = "Las vigas de apoyo no cubren el ancho completo del paño."
+            else:
+                estado = (
+                    f"{nombres_ejes} Â· apoyos en muro estructural"
+                )
         else:
             estado = (
-                f"{nombres_ejes} · luz {direccion.upper()} "
+                f"{nombres_ejes} Â· luz {direccion.upper()} "
                 f"{abs(float(ejes_soporte[1]['coordenada_m']) - float(ejes_soporte[0]['coordenada_m'])):.3f} m"
             )
         self.estado.setText(estado)
         self.vista.establecer_datos(
             self.ejes, self.estructura, self.vista.ejes_seleccionados,
-            direccion, coordenadas_paño, apoyos,
+            direccion, coordenadas_paño, apoyos, cota_apoyo,
         )
 
     def resultado(self) -> tuple[str, dict]:
@@ -658,19 +824,25 @@ class EditorLosaDesdeEjes(QDialog):
         x_ejes, y_ejes = coordenadas
         direccion = str(self.direccion_luz.currentData())
         ejes_soporte = x_ejes if direccion == "x" else y_ejes
-        apoyos = {}
+        apoyos: dict[str, dict] = {}
         for lado, eje in zip(("izq", "der"), ejes_soporte):
-            portico = self._portico_en_eje(
-                "y" if direccion == "x" else "x",
-                "x" if direccion == "x" else "y",
-                eje,
-            )
-            viga_id = str(self.selector_vigas[lado].currentData() or "")
-            if not portico or not viga_id:
+            tipo, nombre_el, viga_id = self._apoyo_dato(lado)
+            if tipo == "muro":
+                if not nombre_el:
+                    raise ValueError(
+                        f"Seleccioná un muro estructural para el apoyo {lado}."
+                    )
+                apoyos[lado] = {"tipo": "muro", "nombre": nombre_el}
+            elif tipo == "portico":
+                if not nombre_el or not viga_id:
+                    raise ValueError(
+                        f"Falta un pórtico y una viga de apoyo en el eje {eje['nombre']}."
+                    )
+                apoyos[lado] = {"tipo": "portico", "portico": nombre_el, "viga": viga_id}
+            else:
                 raise ValueError(
-                    f"Falta un pórtico y una viga de apoyo en el eje {eje['nombre']}."
+                    f"No hay apoyo válido en el borde {lado} (eje {eje['nombre']})."
                 )
-            apoyos[lado] = {"portico": portico, "viga": viga_id}
         span = abs(
             float(ejes_soporte[1]["coordenada_m"])
             - float(ejes_soporte[0]["coordenada_m"])
@@ -681,23 +853,25 @@ class EditorLosaDesdeEjes(QDialog):
         coord_fin = float(eje_fin["coordenada_m"]) + self.desfase_fin.value()
         if coord_fin <= coord_inicio:
             raise ValueError("Los desfases hacen que el ancho del paño sea nulo o negativo.")
-        if not all(
-            self._viga_cubre(
-                str(apoyos[lado]["portico"]),
-                str(apoyos[lado]["viga"]),
-                coord_inicio,
-                coord_fin,
-            )
-            for lado in ("izq", "der")
-        ):
-            raise ValueError(
-                "Las vigas de apoyo no cubren el ancho completo del paño y sus desfases."
-            )
+        es_portico = lambda lado: apoyos.get(lado, {}).get("tipo") == "portico"
+        if es_portico("izq") and es_portico("der"):
+            if not all(
+                self._viga_cubre(
+                    str(apoyos[lado]["portico"]),
+                    str(apoyos[lado]["viga"]),
+                    coord_inicio,
+                    coord_fin,
+                )
+                for lado in ("izq", "der")
+            ):
+                raise ValueError(
+                    "Las vigas de apoyo no cubren el ancho completo del paño y sus desfases."
+                )
         ancho = coord_fin - coord_inicio
         if not math.isfinite(span) or not math.isfinite(ancho) or span <= 0 or ancho <= 0:
             raise ValueError("La luz y el ancho del paño deben ser positivos.")
         cota = float(self.nivel_apoyo.currentData())
-        nivel_nombre = self.nivel_apoyo.currentText().split(" · ", 1)[0]
+        nivel_nombre = self.nivel_apoyo.currentText().split(" Â· ", 1)[0]
         geometria = {
             "tipologia": str(self.tipologia.currentData()),
             "luz_transversal_m": span,

@@ -715,7 +715,17 @@ def resumen_reacciones(conjunto: dict) -> str:
         for reaccion in elemento["reacciones"]:
             c = reaccion["cargas"]
             destino = reaccion.get("apoya_en")
-            donde = f"  → {destino['portico']} {destino['viga']}" if destino else ""
+            if destino:
+                tipo = str(destino.get("tipo", ""))
+                if tipo == "muro":
+                    donde = f"  → muro {destino.get('nombre', '')}"
+                else:
+                    donde = (
+                        f"  → {destino.get('portico', '')} "
+                        f"{destino.get('viga', '')}"
+                    )
+            else:
+                donde = ""
             lineas.append(
                 f"    apoyo {reaccion['apoyo']:<4} D={c['D']:7.2f}  L={c['L']:7.2f}  "
                 f"W={c['W']:6.2f}{donde}"

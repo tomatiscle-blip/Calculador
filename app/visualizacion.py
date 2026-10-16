@@ -317,7 +317,65 @@ class VistaPortico(QWidget):
         self.viento_lineal_kN_m = 0.0
         self.viento_nodos: list[dict] = []
         self.capas_carga = 0
-        
+        self.niveles: list[dict] = []
+
+    def establecer_niveles(self, niveles: list[dict]) -> None:
+        """Recibe los niveles de la obra activa para mostrarlos como referencia en el visor."""
+        self.niveles = list(niveles or [])
+        self.update()
+
+    # ------------------------------------------------------------------
+    # Helpers de referencia cruzada muro ↔ pórtico (estructura mixta)
+    # ------------------------------------------------------------------
+    def _datos_portico_activo(self) -> dict:
+        if not self.nombre:
+            return {}
+        estructura = rutas.cargar_estructura() or {}
+        return estructura.get(self.nombre, {})
+
+    def _muros_referencia_para_portico(self) -> list[dict]:
+        portico = self._datos_portico_activo()
+        if not portico:
+            return []
+        ref_p = portico.get("referencia_planta", {}) or {}
+        dir_p = str(ref_p.get("direccion", "x")).lower()
+        pos_p = float(portico.get("posicion_planta_m", 0.0))
+        resultado: list[dict] = []
+        for muro in self.muros.values():
+            ref_m = muro.get("referencia_planta", {}) or {}
+            dir_m = str(ref_m.get("direccion", "x")).lower()
+            pos_m = float(muro.get("posicion_planta_m", 0.0))
+            if dir_m == dir_p and abs(pos_m - pos_p) <= 1e-4:
+                resultado.append(muro)
+        return resultado
+
+    def _portico_referencia_para_muro(self) -> dict | None:
+        if self.tipo != "muro" or not self.muro_nombre:
+            return None
+        muro = self.muros.get(self.muro_nombre)
+        if not muro:
+            return None
+        ref_m = muro.get("referencia_planta", {}) or {}
+        dir_m = str(ref_m.get("direccion", "x")).lower()
+        pos_m = float(muro.get("posicion_planta_m", 0.0))
+        estructura = rutas.cargar_estructura() or {}
+        for nombre, datos in estructura.items():
+            # Un pórtico en planta se reconoce por tener referencia_planta +
+            # posicion_planta_m (no siempre tiene campo "tipo"). Se excluyen
+            # los muros para no auto-referenciarse.
+            if str(datos.get("tipo", "")).lower() == "muro":
+                continue
+            ref_p = datos.get("referencia_planta", {}) or {}
+            if not ref_p or "direccion" not in ref_p:
+                continue
+            pos_p = float(datos.get("posicion_planta_m", 0.0))
+            dir_p = str(ref_p.get("direccion", "x")).lower()
+            if dir_p == dir_m and abs(pos_p - pos_m) <= 1e-4:
+                datos = dict(datos)
+                datos["nombre"] = nombre
+                return datos
+        return None
+
     def actualizar(self, nombre: str) -> None:
         self.nombre = nombre
         estructura = rutas.cargar_estructura().get(nombre, {}) if nombre else {}
@@ -475,6 +533,15 @@ class VistaPortico(QWidget):
                 xs.append(float(muro.get("x_fin", 0.0)))
                 ys.append(float(muro.get("nivel_inicio", 0.0)))
                 ys.append(float(muro.get("nivel_fin", 0.0)))
+            # Pórtico de referencia: incluir sus columnas en el escalado
+            portico_ref = self._portico_referencia_para_muro()
+            if portico_ref:
+                for col in (portico_ref.get("columnas", {}) or {}).values():
+                    cx = float(col.get("x", 0.0))
+                    cy0 = float(col.get("nivel", 0.0))
+                    cy1 = cy0 + float(col.get("altura_m", 0.0))
+                    xs.append(cx)
+                    ys.extend((cy0, cy1))
             if not xs or not ys:
                 painter.setPen(QColor("#64748b"))
                 painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No hay geometría de muro seleccionada")
@@ -491,6 +558,11 @@ class VistaPortico(QWidget):
             for tramo in self.tramos:
                 xs.extend((tramo["x0"], tramo["x1"]))
                 ys.append(tramo["y"])
+            # Muros que apoyan en este pórtico: se incluyen en el escalado
+            # para que se vean como referencia dentro del visor.
+            for muro_ref in self._muros_referencia_para_portico():
+                xs.extend((float(muro_ref.get("x_inicio", 0.0)), float(muro_ref.get("x_fin", 0.0))))
+                ys.extend((float(muro_ref.get("nivel_inicio", 0.0)), float(muro_ref.get("nivel_fin", 0.0))))
             if not xs or not ys:
                 return
         ancho, alto = self.width(), self.height()
@@ -510,29 +582,84 @@ class VistaPortico(QWidget):
         def punto(x, y):
             return QPointF(origen_x + (x - xmin) * escala, origen_y - (y - ymin) * escala)
 
-        # Contexto: muros existentes dibujados TENUES detrás del pórtico.
-        # Usan la MISMA escala del pórtico (no se modifica) y comparten el eje Y
-        # de cotas. Se recortan a la zona de dibujo para no invadir los márgenes.
-        if self.tipo != "muro" and self.muros:
-            region = QRectF(origen_x, origen_y - dibujar_alto, dibujar_ancho, dibujar_alto)
-            painter.save()
-            painter.setClipRect(region)
-            for muro in self.muros.values():
-                x0 = float(muro.get("x_inicio", 0.0))
-                x1 = float(muro.get("x_fin", 0.0))
-                y0 = float(muro.get("nivel_inicio", 0.0))
-                y1 = float(muro.get("nivel_fin", 0.0))
-                relleno = QColor("#0f766e")
-                relleno.setAlpha(45)
-                painter.setBrush(relleno)
-                painter.setPen(QPen(QColor("#0f766e"), 1))
-                a = punto(min(x0, x1), min(y0, y1))
-                b = punto(max(x0, x1), max(y0, y1))
-                painter.drawRect(QRectF(a, b).normalized())
-            painter.restore()
+        # ------------------------------------------------------------------
+        # Líneas de nivel como referencia visual (el elemento no queda flotando)
+        # ------------------------------------------------------------------
+        if self.niveles:
+            cota_minima = min(float(nn["cota_m"]) for nn in self.niveles)
+            for n in self.niveles:
+                cota = float(n["cota_m"])
+                y_pantalla = punto(0.0, cota).y()
+                nombre = n.get("nombre", "?")
+                es_pb = abs(cota - cota_minima) < 1e-6
+                color = QColor("#7c3aed") if es_pb else QColor("#15803d")
+                grosor = 2 if es_pb else 1
+                painter.setPen(QPen(color, grosor, Qt.PenStyle.DashLine))
+                painter.drawLine(
+                    int(margen_x), int(y_pantalla), int(ancho - margen_x), int(y_pantalla)
+                )
+                etiqueta = (
+                    f"PLANTA BAJA · {nombre}  {cota:g} m" if es_pb
+                    else f"{nombre}  {cota:g} m"
+                )
+                painter.setPen(color)
+                painter.drawText(
+                    int(margen_x + 4), int(y_pantalla) - 4, etiqueta
+                )
 
-        # Dibujar muros SOLO cuando el elemento seleccionado es un muro.
-        # Si es un pórtico, self.muros queda vacío y no se dibuja nada aquí.
+        # ------------------------------------------------------------------
+        # Dibujar elemento de referencia (estructura mixta) detrás del activo
+        # ------------------------------------------------------------------
+        if self.tipo != "muro":
+            # Muros que apoyan en este pórtico: se dibujan como referencia tenue
+            for muro_ref in self._muros_referencia_para_portico():
+                x0 = float(muro_ref.get("x_inicio", 0.0))
+                x1 = float(muro_ref.get("x_fin", 0.0))
+                y0 = float(muro_ref.get("nivel_inicio", 0.0))
+                y1 = float(muro_ref.get("nivel_fin", 0.0))
+                espesor = float(muro_ref.get("espesor_m", 0.20))
+                offset = float(muro_ref.get("offset", 0.0))
+                nombre_muro = muro_ref.get("nombre", "muro")
+                a = punto(x0 + offset, y0)
+                b = punto(x1 + offset, y0)
+                c = punto(x1 + offset, y1)
+                d = punto(x0 + offset, y1)
+                painter.setBrush(QColor(13, 148, 136, 90))  # teal muy tenue
+                painter.setPen(QPen(QColor(13, 148, 136, 160), 2))
+                painter.drawPolygon(QPolygonF([a, b, c, d]))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.setPen(QColor(13, 148, 136, 160))
+                cx = (a.x() + c.x()) / 2
+                painter.drawText(
+                    QPointF(cx, min(a.y(), b.y()) - 8),
+                    f"{nombre_muro} · muro de ref.",
+                )
+        else:
+            # Muro activo: dibujar el pórtico que lo soporta como referencia
+            portico_ref = self._portico_referencia_para_muro()
+            if portico_ref:
+                columnas_ref = portico_ref.get("columnas", {}) or {}
+                color_ref = QColor(120, 130, 145, 150)
+                painter.setPen(QPen(color_ref, 2))
+                painter.setBrush(color_ref)
+                for col in columnas_ref.values():
+                    cx = float(col.get("x", 0.0))
+                    cy0 = float(col.get("nivel", 0.0))
+                    cy1 = cy0 + float(col.get("altura_m", 0.0))
+                    painter.drawLine(punto(cx, cy0), punto(cx, cy1))
+                    painter.drawEllipse(punto(cx, cy0), 3, 3)
+                nombre_portico = portico_ref.get("nombre", "pórtico")
+                if columnas_ref:
+                    primera_col = next(iter(columnas_ref.values()))
+                    cx = float(primera_col.get("x", 0.0))
+                    cy0 = float(primera_col.get("nivel", 0.0))
+                    cy1 = cy0 + float(primera_col.get("altura_m", 0.0))
+                    painter.setPen(color_ref)
+                    painter.drawText(
+                        QPointF(punto(cx, cy1).x(), punto(cx, cy1).y() + 10),
+                        f"{nombre_portico} · pórtico de ref.",
+                    )
+
         if self.tipo == "muro":
             for indice, (nombre, muro) in enumerate(self.muros.items()):
                 x0 = float(muro.get("x_inicio", 0.0))
@@ -730,3 +857,41 @@ class VistaPortico(QWidget):
         if self.aviso:
             painter.setPen(QColor("#b91c1c"))
             painter.drawText(8, 17, self.aviso)
+
+        # ------------------------------------------------------------------
+        # Barra de referencia de niveles (línea punteada fina por cota)
+        # ------------------------------------------------------------------
+        if self.niveles:
+            cotas = [float(n["cota_m"]) for n in self.niveles]
+            cmin, cmax = min(cotas), max(cotas)
+            if cmax - cmin < 1e-6:
+                cmax = cmin + 1.0
+            y0 = self.height() - 22
+            y1 = self.height() - 8
+            x0 = 8
+            largo_barra = 110
+            for n in self.niveles:
+                cota = float(n["cota_m"])
+                t = (cota - cmin) / (cmax - cmin)
+                yy = int(y0 + t * (y1 - y0))
+                painter.setPen(QPen(QColor("#7c3aed"), 1, Qt.PenStyle.DashLine))
+                painter.drawLine(int(x0), yy, int(x0 + largo_barra), yy)
+                painter.setPen(QColor("#5b21b6"))
+                nombre = n.get("nombre", "?")
+                texto = f"{nombre}  {cota:g} m"
+                # Detectar si es el primer nivel (planta baja)
+                if cota == cmin:
+                    texto = f"PLANTA BAJA · {nombre}  {cota:g} m"
+                painter.drawText(int(x0 + largo_barra + 6), yy + 4, texto)
+
+        # Título de nivel activo (el primero de la lista, normalmente PB)
+        if self.niveles:
+            primero = self.niveles[0]
+            cota0 = float(primero.get("cota_m", 0.0))
+            nombre0 = primero.get("nombre", "PB")
+            painter.setPen(QColor("#5b21b6"))
+            painter.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+            painter.drawText(
+                8, 18,
+                f"Nivel activo: {nombre0}  ({cota0:g} m)",
+            )

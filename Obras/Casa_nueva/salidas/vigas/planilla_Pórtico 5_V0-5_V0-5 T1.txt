@@ -9,15 +9,15 @@ Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg)
 4    | 3     | 20   | Sup. apoyo der        | 1.66    | 12.24     
 5    | 2     | 8    | Auxiliar superior     | 5.94    | 4.69      
 6    | 33    | 6    | Estribo apoyo_izq     | 2.06    | 15.09      | c/6cm (Ø6)
-7    | 10    | 6    | Estribo central       | 2.06    | 4.57       | c/20cm (Ø6)
+7    | 9     | 6    | Estribo central       | 2.06    | 4.12       | c/20cm (Ø6)
 8    | 33    | 6    | Estribo apoyo_der     | 2.06    | 15.09      | c/6cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 105.44 kg
+TOTAL PESO                                            | 104.98 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 8.89 cm²
+   As requerida       = 9.09 cm²
    As mínima          = 6.67 cm²
    As máxima          = 30.36 cm²
    As adoptada        = 9.42 cm²
@@ -37,7 +37,7 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 1279427 cm⁴
-- Inercia efectiva global Ief   = 444462 cm⁴
+- Inercia efectiva global Ief   = 443606 cm⁴
 - Relación Ief / Ig             = 0.347  (fisuración elevada – revisar flechas)
 - Momento de fisuración Mcr     = 83.47 kNm (tramo)
 - c (eje neutro)                = 21.07 cm
@@ -56,21 +56,21 @@ NOTAS TÉCNICAS
    As apoyo der = 9.42 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 76 unidades (s_teor≈58.5 mm → s_final=6 cm)
-   Cantidad total Ø8 = 50 unidades (s_teor≈104.1 mm → s_final=10 cm)
-   Zonificación   = apoyo_izq=0.00-1.94 m | central=1.94-3.76 m | apoyo_der=3.76-5.70 m
+   Cantidad total Ø6 = 75 unidades (s_teor≈56.8 mm → s_final=6 cm)
+   Cantidad total Ø8 = 49 unidades (s_teor≈101.0 mm → s_final=10 cm)
+   Zonificación   = apoyo_izq=0.00-1.96 m | central=1.96-3.74 m | apoyo_der=3.74-5.70 m
 
 9 FLECHA DE SERVICIO
    Método: estimación elástica para viga con carga distribuida equivalente
-   δmax = 13.46 mm
+   δmax = 13.74 mm
    Caso: piso · carga variable sin mayorar
-   Límite: δ ≤ ℓ/360 = 15.83 mm | q variable = 100.02 kN/m → ✅ Cumple
-   Inercia equivalente usada = 4.859e-03 m⁴
+   Límite: δ ≤ ℓ/360 = 15.83 mm | q variable = 101.89 kN/m → ✅ Cumple
+   Inercia equivalente usada = 4.849e-03 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 4.267e-03 m⁴
-   Ie apoyo izq   = 4.622e-03 m⁴
-   Ie apoyo der   = 4.622e-03 m⁴
+   Ie tramo       = 4.258e-03 m⁴
+   Ie apoyo izq   = 4.614e-03 m⁴
+   Ie apoyo der   = 4.614e-03 m⁴
    c (eje neutro) = 21.07 cm | d = 80.00 cm
 
 10 ABERTURA DE FISURAS

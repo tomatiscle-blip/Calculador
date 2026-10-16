@@ -1,0 +1,60 @@
+================================================================================
+CRITERIOS DE APLICACIÓN DE VIENTO Y FLEXOCOMPRESIÓN BIAXIAL (MÉTODO DE BRESLER)
+================================================================================
+
+1. APLICACIÓN DE CARGAS DE VIENTO EN ESTRUCTURAS MIXTAS (PÓRTICOS 2D + LOSAS)
+--------------------------------------------------------------------------------
+- El concepto del Diafragma Rígido:
+  Aunque analices pórticos planos de forma independiente (en dirección X o Y), 
+  las losas de hormigón armado actúan como un diafragma horizontal rígido a nivel 
+  de cada piso.
+  
+- Distribución de la fuerza lateral:
+  * La fuerza total de viento (calculada por el reglamento, ej. CIRSOC) no golpea 
+    a un solo pórtico de manera aislada.
+  * Se reparte de manera horizontal hacia todos los pórticos y muros paralelos en 
+    proporción directa a la rigidez lateral de cada elemento.
+  * Los muros de mampostería absorben la mayor parte del corte horizontal debido 
+    a su altísima rigidez en su plano, aliviando drásticamente a las columnas de H°A°.
+
+- Cómo cargarlo en los nudos del programa:
+  1. Se calcula el corte de viento total por nivel.
+  2. Se descuenta la porción que absorben los muros rígidos.
+  3. El remanente se distribuye como fuerzas puntuales horizontales (Fx o Fy) 
+     aplicadas directamente en los nudos de encuentro entre columnas y vigas/losas 
+     de cada nivel. Esto representa un análisis estático lineal de primer orden.
+
+
+2. CÓMO APLICAR EL MÉTODO DE BRESLER (FLEXOCOMPRESIÓN BIAXIAL EN COLUMNAS DE ESQUINA)
+--------------------------------------------------------------------------------
+¿Por qué se usa?
+Las columnas de esquina en una estructura espacial reciben simultáneamente:
+- Carga axial (P_u)
+- Momento flector en el plano X (M_ux)
+- Momento flector en el plano Y (M_uy)
+Los nomogramas o diagramas de interacción tradicionales del CIRSOC son unidireccionales. 
+El Método de Bresler (Carga Recíproca) permite estimar la resistencia combinada 
+de forma muy sencilla y segura sin recurrir a complejas iteraciones no lineales.
+
+Fórmula de Bresler:
+1 / P_n  approx  1 / P_nx  +  1 / P_ny  -  1 / P_0
+
+Donde:
+- P_n   = Carga axial última resistente bajo la combinación biaxial de momentos (M_ux y M_uy).
+- P_nx  = Resistencia axial nominal calculada considerando únicamente el momento M_ux 
+          en el plano X (usando tus diagramas habituales del CIRSOC).
+- P_ny  = Resistencia axial nominal calculada considerando únicamente el momento M_uy 
+          en el plano Y (usando tus diagramas habituales del CIRSOC).
+- P_0   = Resistencia a compresión pura centrada de la columna (sin excentricidad).
+          Fórmula orientativa: P_0 = 0.85 * f'c * (A_g - A_st) + f_y * A_st
+
+Algoritmo de aplicación en tu app / código:
+1. Para una sección de columna dada y una carga axial aplicada (P_u), entrás a tus 
+   diagramas de interacción unidireccionales y obtenés:
+   - El momento nominal admisible en X y su P_nx asociado.
+   - El momento nominal admisible en Y y su P_ny asociado.
+2. Evaluás la ecuación recíproca de Bresler para verificar si la capacidad 
+   resultante supera o iguala la carga actuante (P_u <= P_n).
+3. Si el resultado no es satisfactorio, incrementás levemente la sección de la 
+   columna o la armadura simétrica dispuesta en las 4 esquinas/caras.
+================================================================================

@@ -1,0 +1,70 @@
+================================================================================
+CRITERIOS DE DISEÑO Y MODELADO DE LOSAS PARA APLICACIÓN ESTRUCTURAL (PYNITE)
+================================================================================
+
+1. CRITERIO DE SELECCIÓN DE TIPOLOGÍAS
+--------------------------------------------------------------------------------
+- Losa Casetonada (Nervurada bidireccional):
+  * Cuándo conviene: Para luces grandes (> 5 a 6 metros) donde una losa maciza 
+    resultaría muy pesada y gruesa. Emplea nervios cruzados y una capa de 
+    compresión (topping).
+  * Modelado FEM: No es necesario dibujar cada nervio individualmente; se modela 
+    como una placa única aplicando factores de reducción ortótropos (kx_mod, ky_mod) 
+    para simular la menor rigidez frente a una sección maciza.
+
+- Losa Maciza Unidireccional (Armada en una dirección):
+  * Cuándo conviene: Relación de lados alargada (Ly / Lx > 2). Las cargas se 
+    transmiten principalmente hacia los dos apoyos opuestos de menor luz.
+
+- Losa Maciza Cruzada (Armada en dos direcciones):
+  * Cuándo conviene: Planta más cuadrada (Ly / Lx <= 2) apoyada en sus 4 lados.
+  * Continuidad: Si los bordes continúan sobre muros/vigas formando paños adyacentes, 
+    es continua (genera momentos negativos en apoyos). Si es un paño aislado, es 
+    simplemente apoyada.
+
+
+2. CONDICIONES DE BORDE EN ESTRUCTURAS MIXTAS (MUROS VS. PÓRTICOS)
+--------------------------------------------------------------------------------
+- Apoyo sobre Muros de Mampostería:
+  * Comportamiento: La mampostería no aporta empotramiento real debido a su baja 
+    resistencia a tracción y a las juntas de mortero.
+  * Modelado: Se define como apoyo simple (restringir únicamente el desplazamiento 
+    vertical DZ = True), permitiendo el giro libre del borde de la losa.
+
+- Apoyo sobre Pórticos de Hormigón (Vigas y Columnas):
+  * Comportamiento: Las vigas monolíticas otorgan rigidez torsional y continuidad.
+  * Modelado: El borde se vincula compartiendo nodos con la viga o asumiendo 
+    continuidad estructural si hay paños colindantes.
+
+
+3. FLUJO DE DATOS REQUERIDO POR EL PROGRAMA (INPUTS)
+--------------------------------------------------------------------------------
+Para procesar un paño de losa sin necesidad de un modelo 3D global masivo, 
+el motor necesita recibir la siguiente estructura de datos:
+
+A. Geometría y Materiales:
+   - Coordenadas o dimensiones en planta (Lx, Ly) y espesor total de la losa (t).
+   - Propiedades del material: Módulo de elasticidad (E), Coeficiente de Poisson (nu), 
+     y Peso específico (rho) del hormigón.
+
+B. Malla de Elementos Finitos (PyNite):
+   - Subdivisión del paño mediante [Rectangular plate elements](https://pynite.readthedocs.io/en/latest/plate.html) 
+     o [Quad Plate elements](https://pynite.readthedocs.io/en/latest/plate.html).
+   - Aplicación de restricciones de borde (`def_support`) en los nodos perimetrales 
+     según corresponda a muros o vigas.
+
+C. Estados de Carga:
+   - Carga muerta o permanente (Peso propio + contrapiso + piso + tabiques).
+   - Sobrecarga de uso reglamentaria según destino del local.
+   - Presión superficial aplicada mediante [`add_plate_surface_pressure`](https://pynite.readthedocs.io/en/latest/plate.html).
+
+
+4. EXTRACCIÓN DE RESULTADOS PARA DISEÑO (OUTPUTS)
+--------------------------------------------------------------------------------
+Tras ejecutar el análisis lineal (`analyze_linear`), el programa consulta los 
+valores clave en los puntos críticos de la malla:
+- Momentos flectores máximos por metro (Mx, My) para el cálculo de armadura inferior.
+- Momentos negativos en apoyos (si es continua) para la armadura superior.
+- Fuerzas de corte (Qx, Qy) para verificar la capacidad resistente del hormigón 
+    al corte y definir si requiere armadura transversal.
+================================================================================

@@ -558,7 +558,10 @@ class VentanaPrincipal(QMainWindow):
         self.boton_definir_ejes.setToolTip("Definir las coordenadas de los ejes X e Y.")
         self.boton_definir_niveles.setToolTip("Definir cotas de niveles y entrepisos.")
         self.boton_asociar_porticos.setToolTip(
-            "Vincular cada pórtico existente con sus ejes de planta."
+            "Vincula cada pórtico existente a los ejes de planta (plano y primera columna). "
+            "Sirve para decir sobre qué eje transversal y a qué distancia queda cada pórtico, "
+            "sin desfases. Úsalo después de definir ejes y niveles; no es obligatorio si los "
+            "pórticos ya tienen su referencia de planta cargada."
         )
         self.resumen_ejes_inicio = QLabel()
         self.resumen_ejes_inicio.setWordWrap(True)
@@ -891,6 +894,11 @@ class VentanaPrincipal(QMainWindow):
     def refrescar(self) -> None:
         obras = rutas.listar_obras()
         activa = rutas.CARPETA_OBRA
+        # Recargar ejes y niveles de la obra activa (cambian al cambiar de obra)
+        from app.ejes import cargar_ejes, cargar_niveles
+        self.ejes = cargar_ejes()
+        self.niveles = cargar_niveles()
+        self.vista_portico.establecer_niveles(self.niveles)
         self.combo_obras.blockSignals(True)
         self.combo_obras.clear()
         for carpeta in obras:
@@ -1128,6 +1136,7 @@ class VentanaPrincipal(QMainWindow):
         self.responsable_proyecto.setText(str(ficha.get("responsable", "")))
         self.notas_proyecto.setPlainText(str(proyecto.get("notas", "")))
         self.vista_portico.actualizar(portico)
+        self.vista_portico.establecer_niveles(self.niveles)
         estructura_completa = rutas.cargar_estructura()
         estructura = estructura_completa.get(portico, {}) if portico else {}
         referencia = estructura.get("referencia_planta", {}) or {}

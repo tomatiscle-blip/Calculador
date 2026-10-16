@@ -15,7 +15,6 @@ def definir_fck(nombre_columna, Pu_kN):
     C0 = planta baja
     C1, C2 = pisos superiores
     """
-
     # planta baja → permitir H25
     if nombre_columna.startswith("C0"):
         if Pu_kN > 600:      # umbral razonable
@@ -26,35 +25,38 @@ def definir_fck(nombre_columna, Pu_kN):
     # pisos superiores → casi siempre H20
     return 20
 
-import math
 
 def predimensionar_seccion(Pu_kN, Mu_kNm, fck_MPa):
     """
-    Predimensionado de columna rectangular:
-    - b = 20 cm mínimo normativo
-    - h = 20 cm base
-    - Ajuste por excentricidad si e > 20 cm
+    Predimensionado controlado para columnas rectangulares:
+    - Escala el ancho 'b' de forma inteligente si el momento es muy alto.
+    - h limitado constructivamente con topes realistas (30 a 55-60 cm).
     """
 
-    # Convertir unidades
     Pu = abs(Pu_kN) * 1000  # N
     Mu = abs(Mu_kNm) * 1e6  # Nmm
 
-    # Excentricidad en cm
     if Pu > 0:
-        e_cm = Mu / Pu / 10.0  # pasar de mm a cm
+        e_cm = Mu / Pu / 10.0  # cm
     else:
         e_cm = 0
 
-    b = 20.0
-    h = 20.0
+    # 1. Ajuste dinámico del ancho base 'b' según la magnitud del momento flector
+    if abs(Mu_kNm) > 200:
+        b = 30.0  # Base mayor para momentos pesados (ej. losas grandes)
+    elif abs(Mu_kNm) > 120:
+        b = 25.0  # Base intermedia
+    else:
+        b = 20.0  # Mínimo normativo
 
-    # Activación del ajuste
-    if e_cm > b:
-        h = b + 0.1 * e_cm
+    # 2. Altura inicial basada en excentricidad
+    h = b + 0.15 * e_cm
 
-    # Redondear a 0.5 cm para practicidad
-    h = round(h, 1)
+    # 3. Acotar h de forma realista: mínimo 30 cm, máximo 55 cm para estas secciones
+    h = max(30.0, min(h, 55.0))
+
+    # Redondear a múltiplos de 5 cm para que quede prolijo en obra
+    h = math.ceil(h / 5.0) * 5.0
 
     return b, h, e_cm
 
@@ -810,7 +812,9 @@ else:
             TIPOS_SECCION = {"1": "I", "2": "II"}
             seccion_tipo = TIPOS_SECCION.get(seccion_tipo_input, "I")
 
-            b = 20.0  # fijo reglamentario
+            # 🛠️ CORRECCIÓN: Respetamos el 'b' que calculó predimensionar_seccion
+            # (ya no lo pisamos por 20.0 fijo, sino que usamos la variable b que viene de arriba)
+            b = b
             dprima_cm = 4.0 if e_cm >= 20 else 3.6
 
         h_sugerido = h

@@ -1,0 +1,36 @@
+{
+  "x": [
+    {
+      "id": "22241197-7976-4dc1-b6c0-b105daa5662f",
+      "nombre": "X1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "3584daa5-3101-4dbf-b30e-32adba25d6ba",
+      "nombre": "X2",
+      "coordenada_m": 4.5
+    },
+    {
+      "id": "ea852f58-9dc1-49df-8e34-6d4ee1c52ff0",
+      "nombre": "X3",
+      "coordenada_m": 9.0
+    }
+  ],
+  "y": [
+    {
+      "id": "d5067e9a-fe04-4d34-a247-e0ec73b87f6c",
+      "nombre": "Y1",
+      "coordenada_m": 0.0
+    },
+    {
+      "id": "10751b50-2407-4a46-b336-92b902d44362",
+      "nombre": "Y2",
+      "coordenada_m": 3.5
+    },
+    {
+      "id": "f7008adc-6445-495f-9576-3f7820331f35",
+      "nombre": "Y3",
+      "coordenada_m": 7.0
+    }
+  ]
+}

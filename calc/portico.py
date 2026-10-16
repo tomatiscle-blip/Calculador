@@ -123,7 +123,7 @@ def _peso_propio_viga_kN_m(viga: dict) -> tuple[float, float, bool]:
 def _aplicaciones_losas_portico(
     nombre_portico: str, elementos: dict, estructura_completa: dict
 ) -> tuple[list[dict], list[str]]:
-    """Convierte reacciones de paños por ejes en cargas lineales sobre sus vigas."""
+    """Convierte reacciones de paños por ejes en cargas lineales sobre sus vigas o muros."""
     estructura = estructura_completa.get(nombre_portico, {})
     referencia = estructura.get("referencia_planta", {}) or {}
     direccion_portico = str(referencia.get("direccion", "x")).lower()
@@ -138,10 +138,7 @@ def _aplicaciones_losas_portico(
             or not isinstance(apoyos, dict)
             or direccion_portico
             != ("y" if str(panel.get("direccion_luz", "x")) == "x" else "x")
-            or not any(
-                (apoyos.get(lado) or {}).get("portico") == nombre_portico
-                for lado in ("izq", "der")
-            )
+            or not apoyos
         ):
             continue
         losas_asociadas.append((nombre_losa, elemento, panel, apoyos))
@@ -183,6 +180,90 @@ def _aplicaciones_losas_portico(
 
         for lado, borde in zip(("izq", "der"), ("inicio", "fin")):
             destino = apoyos.get(lado) or {}
+            tipo = str(destino.get("tipo", "")).lower()
+            if tipo == "muro":
+                _muro_nombre = str(destino.get("nombre", ""))
+                _muro = estructura_completa.get(_muro_nombre)
+                if not isinstance(_muro, dict) or str(_muro.get("tipo", "")).lower() != "muro":
+                    avisos.append(
+                        f"{nombre_losa}: el muro «{_muro_nombre}» no existe en la "
+                        "estructura; no se aplicó."
+                    )
+                    continue
+                _ref_m = _muro.get("referencia_planta", {}) or {}
+                if str(_ref_m.get("direccion", "x")).lower() != direccion_portico:
+                    continue
+                _fam_trans = "y" if direccion_portico == "x" else "x"
+                _pos_m = None
+                for _e in ejes.get(_fam_trans, []):
+                    if str(_e.get("id", "")) == str(_ref_m.get("eje_id", "")):
+                        try:
+                            _pos_m = float(_e["coordenada_m"])
+                        except (TypeError, ValueError):
+                            _pos_m = None
+                        break
+                if _pos_m is None:
+                    _pos_m = float(_muro.get("posicion_planta_m", 0.0) or 0.0)
+                if abs(_pos_m - float(estructura.get("posicion_planta_m", 0.0) or 0.0)) <= 1e-4:
+                    _origen = referencia.get("origen_longitudinal_m")
+                    if _origen is None:
+                        _eje_long_id = str(referencia.get("eje_longitudinal_id", ""))
+                        _ejes_p = ejes.get(direccion_portico, [])
+                        _eje_l = next((e for e in _ejes_p if str(e.get("id", "")) == _eje_long_id), None)
+                        _origen = float(_eje_l["coordenada_m"]) if _eje_l is not None else 0.0
+                    _origen = float(_origen or 0.0)
+                    try:
+                        _x_ini = float(_muro.get("x_inicio", 0.0)) - _origen
+                        _x_fin = float(_muro.get("x_fin", 0.0)) - _origen
+                    except (TypeError, ValueError):
+                        continue
+                    _ancho_trib = luz / 2.0
+                    for _vid, _v in vigas.items():
+                        for _tramo in _v.get("tramos", []):
+                            _tid = str(_tramo.get("id", ""))
+                            _long = float(_tramo.get("longitud_m", 0.0))
+                            _li = float(_tramo.get("x_inicio", 0.0))
+                            _lf = float(_tramo.get("x_fin", _li + _long))
+                            _si = max(_li, _x_ini)
+                            _sf = min(_lf, _x_fin)
+                            if _sf <= _si + 1e-8:
+                                continue
+                            aplicaciones.append(
+                                {
+                                    "id": f"losa:{elemento.get('id', nombre_losa)}:{lado}:muro:{_muro_nombre}:{_tid}",
+                                    "carga_id": elemento.get("id"),
+                                    "portico": nombre_portico,
+                                    "tramo_id": _tid,
+                                    "x_inicio_m": _si - _li,
+                                    "x_fin_m": _sf - _li,
+                                    "ancho_modo": "manual",
+                                    "ancho_tributario_m": _ancho_trib,
+                                    "modo_cargas_previas": "sumar",
+                                    "activa": True,
+                                }
+                            )
+                else:
+                    try:
+                        _a = float(_muro.get("x_inicio", 0.0))
+                        _b = float(_muro.get("x_fin", 0.0))
+                        _rango = (min(_a, _b), max(_a, _b))
+                    except (TypeError, ValueError):
+                        _rango = None
+                    aplicaciones.append(
+                        {
+                            "id": f"losa:{elemento.get('id', nombre_losa)}:{lado}:muro:{_muro_nombre}",
+                            "carga_id": elemento.get("id"),
+                            "portico": _muro_nombre,
+                            "tramo_id": "MURO",
+                            "x_inicio_m": 0.0,
+                            "x_fin_m": float(_rango[1] - _rango[0]) if _rango else 0.0,
+                            "ancho_modo": "manual",
+                            "ancho_tributario_m": luz / 2.0,
+                            "modo_cargas_previas": "sumar",
+                            "activa": True,
+                        }
+                    )
+                continue
             if destino.get("portico") != nombre_portico:
                 continue
             viga_id = str(destino.get("viga", ""))

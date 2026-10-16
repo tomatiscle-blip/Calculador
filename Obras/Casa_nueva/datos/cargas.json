@@ -9,10 +9,10 @@
       "ubicacion": {
         "pais": "Argentina",
         "provincia": "Santa Fe",
-        "ciudad": "Santa Fe"
+        "ciudad": "Rosario"
       },
-      "categoria_riesgo": "I",
-      "V_basica_ms": 58.3,
+      "categoria_riesgo": "II",
+      "V_basica_ms": 61.2,
       "fuente": "CIRSOC 102-25, Figura 1.5-1D"
     }
   },
@@ -109,7 +109,7 @@
     "Lm01": {
       "id": "Carga 0-3",
       "tipo": "losa",
-      "activo": 1,
+      "activo": true,
       "ancho_tributario_m": 1.0,
       "componentes": [
         {
@@ -183,6 +183,86 @@
         "coordenada_libre_fin_m": 5.7
       },
       "espesor_automatico": true
+    },
+    "L0-3": {
+      "id": "Carga 0-4",
+      "tipo": "losa",
+      "activo": true,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.1,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "porcelanato",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 2.2,
+      "ancho_losa_m": 6.15,
+      "apoya_en": {
+        "izq": {
+          "tipo": "muro",
+          "nombre": "Muro 4"
+        },
+        "der": {
+          "tipo": "muro",
+          "nombre": "Muro 3"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "x",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "30dad11f-09ae-4327-89df-4823d9241b66",
+              "nombre": "X2",
+              "coordenada_m": 5.7
+            },
+            "fin": {
+              "id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+              "nombre": "X3",
+              "coordenada_m": 7.9
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "6c9c4587-f143-4730-8fa2-ad3fd9340274",
+              "nombre": "Y3",
+              "coordenada_m": 4.85
+            },
+            "fin": {
+              "id": "552db56f-d372-4746-ac79-0842fabc6eb9",
+              "nombre": "Y4",
+              "coordenada_m": 11.0
+            }
+          }
+        },
+        "desfase_inicio_m": 0.0,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 4.85,
+        "coordenada_libre_fin_m": 11.0
+      }
     }
   },
   "aplicaciones": [

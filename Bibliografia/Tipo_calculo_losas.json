@@ -1,0 +1,79 @@
+{
+  "reglamento_base": "CIRSOC",
+  "sistemas_de_losas": [
+    {
+      "tipo_sistema": "Losas Cruzadas",
+      "descripcion": "Armadas en dos direcciones (Ly/Lx <= 2)",
+      "metodos_calculo": [
+        {
+          "nombre": "Método de Marcus",
+          "tipo": "Tablas y coeficientes semi-empíricos",
+          "descripcion": "Corrección al método elástico clásico mediante el uso de tablas de coeficientes para estimar momentos flectores según condiciones de borde."
+        },
+        {
+          "nombre": "Método de Líneas de Rotura (Plástico)",
+          "tipo": "Analítico / Cinemático",
+          "descripcion": "Basado en el análisis de colapso plástico y equilibrio de momentos últimos, mediante mecanismos de líneas de rotura."
+        },
+        {
+          "nombre": "Elementos Finitos (FEM)",
+          "tipo": "Numérico computacional",
+          "descripcion": "Modelado matricial por computadora para obtener mapas de tensiones, momentos y cortes."
+        }
+      ]
+    },
+    {
+      "tipo_sistema": "Losas Casetonadas",
+      "descripcion": "Alivianadas o nervuradas (unidireccionales o bidireccionales)",
+      "metodos_calculo": [
+        {
+          "nombre": "Análisis por Nervios Equivalentes (Vigas T)",
+          "tipo": "Analítico / Seccional",
+          "descripcion": "Cálculo de las nervaduras individuales asimilándolas a vigas T o doble T con los anchos colaborantes de la capa de compresión."
+        },
+        {
+          "nombre": "Grilla de Vigas / Elementos Finitos",
+          "tipo": "Numérico computacional",
+          "descripcion": "Análisis espacial de la retícula para casetonados bidireccionales, evaluando la rigidez torsional y flexional."
+        }
+      ]
+    },
+    {
+      "tipo_sistema": "Losas Continuas",
+      "descripcion": "Losas que se extienden sobre múltiples apoyos",
+      "metodos_calculo": [
+        {
+          "nombre": "Análisis Elástico Lineal (Coeficientes reglamentarios)",
+          "tipo": "Tablas y fórmulas analíticas",
+          "descripcion": "Uso de coeficientes tabulados por el reglamento o métodos de Cross/tres momentos para luces y cargas compatibles."
+        },
+        {
+          "nombre": "Redistribución de Momentos",
+          "tipo": "Plástico / Elástico modificado",
+          "descripcion": "Reducción porcentual de momentos negativos en apoyos basada en la ductilidad del hormigón armado."
+        }
+      ]
+    },
+    {
+      "tipo_sistema": "Entrepisos sin Vigas",
+      "descripcion": "Losas placa o Flat Slabs que descargan directo sobre columnas",
+      "metodos_calculo": [
+        {
+          "nombre": "Método de Carga Directa (Direct Design Method)",
+          "tipo": "Empírico-analítico reglamentario",
+          "descripcion": "Procedimiento simplificado basado en franjas de columna y franjas centrales para geometrías regulares."
+        },
+        {
+          "nombre": "Método del Pórtico Equivalente (Equivalent Frame Method)",
+          "tipo": "Analítico por rigideces",
+          "descripcion": "Descomposición de la estructura en pórticos virtuales transversales y longitudinales con rigidez torsional equivalente."
+        },
+        {
+          "nombre": "Elementos Finitos (FEM con verificación de punzonamiento)",
+          "tipo": "Numérico computacional",
+          "descripcion": "Modelado espacial completo para geometrías irregulares, con control riguroso de tensiones tangenciales de corte punzante."
+        }
+      ]
+    }
+  ]
+}

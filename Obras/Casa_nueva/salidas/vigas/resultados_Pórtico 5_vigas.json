@@ -25,7 +25,7 @@
   "flexion": [
     {
       "tramo": "V0-5 T1",
-      "As_req_cm2": 8.89,
+      "As_req_cm2": 9.09,
       "As_adop_cm2": 9.42477796076938,
       "cumple": true
     }
@@ -92,9 +92,9 @@
       "zona": "central",
       "diam_mm": 6,
       "separacion_cm": 20,
-      "cantidad": 10,
+      "cantidad": 9,
       "longitud_m": 2.06,
-      "peso_kg": 4.5732
+      "peso_kg": 4.11588
     },
     {
       "tramo": "V0-5.V0-5 T1",
@@ -110,8 +110,8 @@
     {
       "tramo": "V0-5.V0-5 T1",
       "Ig_cm4": 1279427.083333333,
-      "Ief_cm4": 444461.86444535555,
-      "ratio_Ief_Ig": 0.3473913208772981,
+      "Ief_cm4": 443605.5955182401,
+      "ratio_Ief_Ig": 0.3467220612232938,
       "Mcr_tramo_kNm": 83.47055421008591,
       "c_usado_cm": 21.069483954921,
       "criterio_Ief": "0.50·tramo + 0.25·apoyo_izq + 0.25·apoyo_der"
@@ -123,23 +123,23 @@
       "tramo": "V0-5 T1",
       "tipo_tramo": "interior",
       "L_m": 5.7,
-      "q_serv_kN_m": 100.01750000000001,
-      "delta_mm": 13.461438865646336,
+      "q_serv_kN_m": 101.89250000000001,
+      "delta_mm": 13.74026394394485,
       "limite_divisor": 360,
       "limite_mm": 15.833333333333334,
       "tipo_flecha": "piso",
       "cumple": true,
-      "Ie_tramo_cm4": 426675.03266901267,
-      "Ie_apoyo_izq_cm4": 462248.6962216984,
-      "Ie_apoyo_der_cm4": 462248.69622169854,
+      "Ie_tramo_cm4": 425842.0160494371,
+      "Ie_apoyo_izq_cm4": 461369.174987043,
+      "Ie_apoyo_der_cm4": 461369.1749870432,
       "criterio": "Carga virtual – rigidez variable"
     }
   ],
   "corte": [
     {
       "tramo": "V0-5.V0-5 T1",
-      "V_izq_kN": 355.179825,
-      "V_der_kN": 355.1798250000001,
+      "V_izq_kN": 362.661075,
+      "V_der_kN": 362.6610750000001,
       "cumple": true
     }
   ],
