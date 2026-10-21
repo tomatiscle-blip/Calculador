@@ -55,8 +55,12 @@ class EditorElemento(QDialog):
         self.componentes = QTableWidget(0, 3)
         self.componentes.setHorizontalHeaderLabels(("Material", "Espesor (m)", "Tipo"))
         self.componentes.horizontalHeader().setStretchLastSection(True)
+        # Anchos tope: los nombres de material son largos y el combo los toma
+        # como ancho mínimo; sin tope el diálogo se va de pantalla.
         self.grupo = QComboBox()
+        self.grupo.setMaximumWidth(180)
         self.material = QComboBox()
+        self.material.setMaximumWidth(320)
         grupos = list(biblioteca.items())
         preferidos = (
             ("Forjados", "Hormigon") if self.tipo == "losa"
@@ -162,21 +166,25 @@ class EditorElemento(QDialog):
                     "Peso propio base de losa alivianada (kN/m²):", self.peso_propio_alivianada
                 )
                 self.caja_datos.addWidget(self.campo_peso_alivianada)
-                self.caja_datos.addWidget(QLabel(
+                nota_tipologia = QLabel(
                     "La alivianada agrega el forjado base de catálogo y la maciza calcula "
                     "su peso con el espesor. La casetonada no agrega un forjado automáticamente: "
                     "incluí sus componentes permanentes en esta composición; su motor de cálculo "
                     "todavía está pendiente. El peso de catálogo de la alivianada es editable "
                     "y aún no se recalibra según la vigueta elegida."
-                ))
+                )
+                nota_tipologia.setWordWrap(True)
+                self.caja_datos.addWidget(nota_tipologia)
                 self.luz_completa.valueChanged.connect(self._actualizar_espesor_cirsoc)
                 self.espesor_automatico.toggled.connect(self._actualizar_espesor_cirsoc)
                 self.tipologia.currentTextChanged.connect(self._actualizar_campos_tipologia)
                 self._actualizar_campos_tipologia()
-            self.caja_datos.addWidget(QLabel(
+            nota_panos = QLabel(
                 "En paños creados desde ejes, las cargas D/L se transfieren automáticamente "
                 "a las vigas de apoyo; las losas legadas usan el ancho tributario de su aplicación."
-            ))
+            )
+            nota_panos.setWordWrap(True)
+            self.caja_datos.addWidget(nota_panos)
             self.sobrecarga = QComboBox()
             for uso in biblioteca.get("Sobrecargas", []):
                 if uso.get("clave"):
@@ -213,6 +221,7 @@ class EditorElemento(QDialog):
             self._cargar_componentes()
         elif self.tipo == "muro":
             self.material_muro = QComboBox()
+            self.material_muro.setMaximumWidth(380)
             self.claves_muro: list[str] = []
             for e in biblioteca.get("Mamposteria", []):
                 if e.get("clave"):
@@ -574,12 +583,19 @@ class EditorAplicaciones(QDialog):
         selector.blockSignals(True)
         selector.clear()
         portico = self.estructura.get(nombre, {})
-        for viga in portico.get("vigas", {}).values():
-            for tramo in viga.get("tramos", []):
-                tid = tramo.get("id")
-                longitud = float(tramo.get("longitud_m", 0))
-                if tid and longitud > 0:
-                    selector.addItem(f"{tid} ({longitud:.2f} m)", (tid, longitud))
+        if portico.get("tipo") == "muro":
+            # Un muro estructural no tiene vigas ni tramos: se ofrece el muro
+            # completo como único tramo sintético.
+            longitud = float(portico.get("longitud_m", 0) or 0.0)
+            if longitud > 0:
+                selector.addItem(f"Muro completo ({longitud:.2f} m)", ("MURO_COMPLETO", longitud))
+        else:
+            for viga in portico.get("vigas", {}).values():
+                for tramo in viga.get("tramos", []):
+                    tid = tramo.get("id")
+                    longitud = float(tramo.get("longitud_m", 0))
+                    if tid and longitud > 0:
+                        selector.addItem(f"{tid} ({longitud:.2f} m)", (tid, longitud))
         selector.blockSignals(False)
 
     def _cargar_tramos(self, *_args) -> None:
@@ -1339,13 +1355,23 @@ class PaginaCargas(QWidget):
                 (lado, apoyos.get(lado) or {})
                 for lado in ("izq", "der")
             ]
-            destinos = [
-                (lado, destino) for lado, destino in destinos
-                if destino.get("portico") and destino.get("viga")
-            ]
+            # Filtro: solo apoyos válidos (pórtico+viga, O muro estructural)
+            destinos_validos = []
+            for lado, destino in destinos:
+                tipo = str(destino.get("tipo", "")).lower()
+                if tipo == "muro" and destino.get("nombre"):
+                    destinos_validos.append((lado, destino))
+                elif destino.get("portico") and destino.get("viga"):
+                    destinos_validos.append((lado, destino))
+            destinos = destinos_validos
             if elemento.get("tipo") == "losa" and panel:
+                def _nombre_apoyo(destino: dict) -> str:
+                    tipo = str(destino.get("tipo", "")).lower()
+                    if tipo == "muro":
+                        return f"Muro {destino.get('nombre', '?')}"
+                    return f"{destino.get('portico', '?')} / {destino.get('viga', '?')}"
                 resumen_apoyos = " + ".join(
-                    f"{destino['portico']} / {destino['viga']}"
+                    _nombre_apoyo(destino)
                     for _, destino in destinos
                 )
                 if not elemento.get("activo", True):
@@ -1358,7 +1384,7 @@ class PaginaCargas(QWidget):
                     estado_apoyos = f"Aplicada automáticamente · {resumen_apoyos}"
                     color_estado = Qt.GlobalColor.darkGreen
                     ayuda_estado = (
-                        "Paño asociado a sus dos vigas. Sus cargas D/L se transfieren "
+                        "Paño asociado a sus dos apoyos. Sus cargas D/L se transfieren "
                         "automáticamente con ancho tributario igual a media luz."
                     )
                 else:
@@ -1366,7 +1392,7 @@ class PaginaCargas(QWidget):
                     color_estado = Qt.GlobalColor.darkYellow
                     ayuda_estado = (
                         "El paño necesita dos apoyos válidos para transferir sus cargas "
-                        "automáticamente a los pórticos."
+                        "automáticamente a los pórticos o muros."
                     )
             else:
                 estado_apoyos = "—"

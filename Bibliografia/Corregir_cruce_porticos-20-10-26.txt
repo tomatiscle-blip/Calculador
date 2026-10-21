@@ -1,0 +1,10 @@
+Por favor, corrige la arquitectura y la lógica de generación de pórticos y estructuras en el código para resolver el problema de los nodos compartidos y los pórticos en dos direcciones. Aplica estrictamente las siguientes directrices técnicas:
+
+1. Base de Datos de Nodos Global y Única:
+   - Elimina la lógica de generar pórticos planos 2D completamente independientes que luego se intentan superponer o "pegar".
+   - Todo elemento (columnas y vigas) debe registrarse sobre un sistema de coordenadas tridimensional global (X, Y, Z).
+   - Antes de crear un nodo o una barra, el script debe verificar obligatoriamente si ya existe un nodo en las coordenadas exactas `(x, y, z)` (por ejemplo, en las intersecciones de ejes longitudinales y transversales). Si el nodo ya existe, debe reutilizarse el objeto nodo preexistente en lugar de sobrescribirlo o duplicarlo. Esto asegura que la columna de la esquina acumule correctamente las rigideces, fuerzas y momentos de ambos planos ortogonales sin "desaparecer" ni corromper la matriz global.
+
+2. Compatibilidad con Análisis Espacial y PyNite:
+   - Asegúrate de que las columnas compartidas en las intersecciones conserven todos sus grados de libertad espaciales activos (desplazamientos y giros en X, Y, Z).
+   - Cuando se incorporen elementos tridimensionales como losas macizas, casetonadas (mediante mallas de placas `Quad` o emparrillados) y pórticos transversales, la estructura debe ser capaz de procesar flexión esviada y transferir correctamente los momentos torsores y cortantes hacia las vigas de borde perimetrales, evitando que el programa descarte grados de libertad fuera del plano.

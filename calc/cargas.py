@@ -370,13 +370,38 @@ def _items_muro(nombre: str, elemento: dict, biblioteca: dict) -> list[dict]:
     gamma = material["gamma"]
     espesor = float(elemento["espesor_m"])
     altura = float(elemento["altura_m"])
-    return [{
+    items = [{
         "descripcion": f"Muro de {material['nombre']} (e={int(espesor*100)} cm · h={altura:.2f} m)",
         "tipo": "D",
         "valor": carga_lineal_muro(gamma, espesor, altura),
         "unidad": "kN/m",
         "composicion": f"γ={gamma} kN/m3 · e={espesor} m · h={altura} m",
     }]
+    # Cargas adicionales sobre el muro (cubierta, muro divisorio, otras estructuras de peso).
+    # Se definen como componentes con grupo/clave y espesor_m; se convierten de kN/m2 a kN/m
+    # usando el ancho tributario del muro (si existe) o 1.0 m.
+    componentes = elemento.get("componentes", [])
+    if componentes:
+        b = float(elemento.get("ancho_tributario_m", 1.0) or 1.0)
+        for c in componentes:
+            try:
+                desc, q_superficial = _componente_valor(c, biblioteca)
+                items.append({
+                    "descripcion": f"Carga sobre muro: {desc}",
+                    "tipo": "D",
+                    "valor": carga_lineal_desde_superficie(q_superficial, b),
+                    "unidad": "kN/m",
+                    "composicion": f"q = {q_superficial:.2f} kN/m2 · b = {b:.2f} m",
+                })
+            except (KeyError, ValueError, TypeError) as exc:
+                items.append({
+                    "descripcion": f"Carga sobre muro (error): {c.get('clave', '?')}",
+                    "tipo": "D",
+                    "valor": 0.0,
+                    "unidad": "kN/m",
+                    "composicion": f"Error: {exc}",
+                })
+    return items
 
 
 def _items_encadenado(nombre: str, elemento: dict, biblioteca: dict) -> list[dict]:
@@ -495,7 +520,23 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
         tramo = next((t for v in estructura.get(portico, {}).get("vigas", {}).values()
                       for t in v.get("tramos", []) if t.get("id") == tramo_id), None)
         if not tramo:
-            continue
+            # Si el destino es un muro estructural (no tiene vigas/tramos), se crea
+            # un tramo sintético que representa todo el muro, para que la carga
+            # pueda aplicarse y aparecer en el informe.
+            muro_datos = estructura.get(portico, {})
+            if isinstance(muro_datos, dict) and muro_datos.get("tipo") == "muro":
+                longitud_muro = float(muro_datos.get("longitud_m", 0.0) or 0.0)
+                if longitud_muro > 0:
+                    tramo = {
+                        "id": f"{portico} MURO",
+                        "longitud_m": longitud_muro,
+                        "x_inicio": 0.0,
+                        "x_fin": longitud_muro,
+                    }
+                else:
+                    continue
+            else:
+                continue
         longitud = float(tramo.get("longitud_m", 0.0))
         x0 = float(aplicacion.get("x_inicio_m", 0.0))
         x1 = float(aplicacion.get("x_fin_m", longitud))

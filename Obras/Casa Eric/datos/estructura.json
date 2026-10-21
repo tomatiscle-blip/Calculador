@@ -35,8 +35,7 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": [],
-    "posicion_planta_m": 0.0
+    "cargas_puntuales": []
   },
   "1": {
     "vigas": {
@@ -58,9 +57,7 @@
             "x_fin": 8.0,
             "cargas_puntuales": []
           }
-        ],
-        "b_cm": 20.0,
-        "fc_MPa": 20
+        ]
       }
     },
     "columnas": {
@@ -94,15 +91,14 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": [],
-    "posicion_planta_m": 5.0
+    "cargas_puntuales": []
   },
   "2": {
     "vigas": {
-      "V0-2": {
+      "V0-1": {
         "tramos": [
           {
-            "id": "V0-2 T1",
+            "id": "V0-1 T1",
             "longitud_m": 5.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
@@ -110,7 +106,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V0-2 T2",
+            "id": "V0-1 T2",
             "longitud_m": 6.0,
             "es_voladizo": false,
             "x_inicio": 5.0,
@@ -118,7 +114,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V0-2 T3",
+            "id": "V0-1 T3",
             "longitud_m": 4.5,
             "es_voladizo": false,
             "x_inicio": 11.0,
@@ -126,7 +122,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V0-2 tv_izq",
+            "id": "V0-1 tv_izq",
             "longitud_m": 1.0,
             "es_voladizo": true,
             "x_inicio": -1.0,
@@ -134,7 +130,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V0-2 tv_der",
+            "id": "V0-1 tv_der",
             "longitud_m": 1.0,
             "es_voladizo": true,
             "x_inicio": 15.5,
@@ -145,10 +141,10 @@
         "b_cm": 20.0,
         "fc_MPa": 20
       },
-      "V1-2": {
+      "V1-1": {
         "tramos": [
           {
-            "id": "V1-2 T1",
+            "id": "V1-1 T1",
             "longitud_m": 5.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
@@ -156,7 +152,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V1-2 T2",
+            "id": "V1-1 T2",
             "longitud_m": 6.0,
             "es_voladizo": false,
             "x_inicio": 5.0,
@@ -164,7 +160,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V1-2 T3",
+            "id": "V1-1 T3",
             "longitud_m": 4.5,
             "es_voladizo": false,
             "x_inicio": 11.0,
@@ -172,7 +168,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V1-2 tv_izq",
+            "id": "V1-1 tv_izq",
             "longitud_m": 1.0,
             "es_voladizo": true,
             "x_inicio": -1.0,
@@ -180,7 +176,7 @@
             "cargas_puntuales": []
           },
           {
-            "id": "V1-2 tv_der",
+            "id": "V1-1 tv_der",
             "longitud_m": 1.0,
             "es_voladizo": true,
             "x_inicio": 15.5,
@@ -252,66 +248,6 @@
         "tipo": "empotramiento"
       }
     },
-    "cargas_puntuales": [],
-    "posicion_planta_m": 10.0
-  },
-  "3": {
-    "vigas": {
-      "V0-3": {
-        "tramos": [
-          {
-            "id": "V0-3 T1",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "x_inicio": 0.0,
-            "x_fin": 4.0,
-            "cargas_puntuales": []
-          },
-          {
-            "id": "V0-3 T2",
-            "longitud_m": 4.0,
-            "es_voladizo": false,
-            "x_inicio": 4.0,
-            "x_fin": 8.0,
-            "cargas_puntuales": []
-          }
-        ],
-        "b_cm": 20.0,
-        "fc_MPa": 20
-      }
-    },
-    "columnas": {
-      "C0-a": {
-        "x": 0.0,
-        "altura_m": 3.0,
-        "nivel": 0.0
-      },
-      "C0-b": {
-        "x": 4.0,
-        "altura_m": 3.0,
-        "nivel": 0.0
-      },
-      "C0-c": {
-        "x": 8.0,
-        "altura_m": 3.0,
-        "nivel": 0.0
-      }
-    },
-    "bases": {
-      "B0-a": {
-        "x": 0.0,
-        "tipo": "empotramiento"
-      },
-      "B0-b": {
-        "x": 4.0,
-        "tipo": "empotramiento"
-      },
-      "B0-c": {
-        "x": 8.0,
-        "tipo": "empotramiento"
-      }
-    },
-    "cargas_puntuales": [],
-    "posicion_planta_m": 15.0
+    "cargas_puntuales": []
   }
 }

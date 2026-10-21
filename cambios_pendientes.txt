@@ -1,0 +1,9 @@
+MODIFICACIONES PUNTUALES — CALCULADOR (PySide6)
+==============================================
+
+1. Pestaña INICIO:
+   - Retirar los botones y controles de "Solicitaciones del pórtico" de esta pestaña.
+   - Asegurar que el botón de "Crear muro" (dentro de "Muros de esta obra") quede ubicado físicamente en el panel lateral, justo debajo de los ejes.
+
+2. Pestaña PÓRTICOS:
+   - Incorporar en esta pestaña el bloque correspondiente a "Solicitaciones del pórtico", incluyendo sus controles y botones ("Resolver motor", "Ver JSON", "Diagrama de momentos"), operando directamente vinculados al pórtico activo.

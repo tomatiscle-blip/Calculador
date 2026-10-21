@@ -3,26 +3,26 @@ PLANILLA DE DOBLADO – V0-2 – TRAMO INTERIOR – TRAMO V0-2 T1
 ================================================================================
 Pos  | Cant  | Ø    | Detalle               | L (m)   | Peso (kg) 
 --------------------------------------------------------------------------------
-1    | 6     | 8    | Sup. apoyo izq        | 0.92    | 2.18      
-2    | 3     | 8    | Inf. tramo            | 2.99    | 3.55      
-3    | 3     | 8    | Inf. tramo completo   | 4.19    | 4.97      
-4    | 6     | 8    | Sup. apoyo der        | 0.92    | 2.18      
-5    | 2     | 8    | Auxiliar superior     | 4.24    | 3.35      
+1    | 6     | 8    | Sup. apoyo izq        | 1.07    | 2.54      
+2    | 3     | 8    | Inf. tramo            | 3.69    | 4.38      
+3    | 3     | 8    | Inf. tramo completo   | 5.19    | 6.15      
+4    | 4     | 12   | Sup. apoyo der        | 1.23    | 4.37      
+5    | 2     | 8    | Auxiliar superior     | 5.24    | 4.14      
 6    | 2     | 6    | Estribo apoyo_izq     | 1.16    | 0.52       | c/16cm (Ø6)
-7    | 21    | 6    | Estribo central       | 1.16    | 5.41       | c/18cm (Ø6)
-8    | 1     | 6    | Estribo apoyo_der     | 1.16    | 0.26       | c/16cm (Ø6)
+7    | 23    | 6    | Estribo central       | 1.16    | 5.92       | c/18cm (Ø6)
+8    | 4     | 6    | Estribo apoyo_der     | 1.16    | 1.03       | c/16cm (Ø6)
 --------------------------------------------------------------------------------
-TOTAL PESO                                            | 22.40 kg
+TOTAL PESO                                            | 29.04 kg
 
 NOTAS TÉCNICAS
 --------------------------------------------------------------------------------
 1 FLEXIÓN
-   As requerida       = 2.16 cm²
+   As requerida       = 2.60 cm²
    As mínima          = 2.92 cm²
    As máxima          = 13.28 cm²
    As adoptada        = 3.02 cm²
    Estado             = ✅ Cuantía dentro del rango permitido
-   Luz libre = 4.00 m
+   Luz libre = 5.00 m
 
 2 SECCIÓN
    b = 25.0 cm
@@ -37,40 +37,40 @@ NOTAS TÉCNICAS
 
 4 INERCIAS (Rigidez global de la viga)
 - Inercia bruta Ig              = 133333 cm⁴
-- Inercia efectiva global Ief   = 43596 cm⁴
-- Relación Ief / Ig             = 0.327  (fisuración elevada – revisar flechas)
+- Inercia efectiva global Ief   = 39388 cm⁴
+- Relación Ief / Ig             = 0.295  (fisuración elevada – revisar flechas)
 - Momento de fisuración Mcr     = 18.48 kNm (tramo)
 - c (eje neutro)                = 8.06 cm
 
 5 HORMIGÓN
-   Volumen = 0.400 m³
-   Peso ≈ 1000 kg
+   Volumen = 0.500 m³
+   Peso ≈ 1250 kg
 
 6 PUNTOS DE INFLEXIÓN
-   PI izquierdo = 0.60 m
-   PI derecho   = 3.40 m
+   PI izquierdo = 0.75 m
+   PI derecho   = 4.25 m
 
 7 ARMADURAS (As calculadas)
    As apoyo izq = 3.02 cm²
    As tramo     = 3.02 cm²
-   As apoyo der = 3.02 cm²
+   As apoyo der = 4.52 cm²
 
 8 ESTRIBOS
-   Cantidad total Ø6 = 24 unidades (s_teor≈1045.9 mm → s_final=16 cm)
-   Cantidad total Ø8 = 24 unidades (s_teor≈1859.4 mm → s_final=16 cm)
-   Zonificación   = apoyo_izq=0.00-0.19 m | central=0.19-3.89 m | apoyo_der=3.89-4.00 m
+   Cantidad total Ø6 = 29 unidades (s_teor≈768.4 mm → s_final=16 cm)
+   Cantidad total Ø8 = 29 unidades (s_teor≈1366.0 mm → s_final=16 cm)
+   Zonificación   = apoyo_izq=0.00-0.28 m | central=0.28-4.40 m | apoyo_der=4.40-5.00 m
 
 9 FLECHA DE SERVICIO
    Método: estimación elástica para viga con carga distribuida equivalente
-   δmax = 6.96 mm
+   δmax = 16.98 mm
    Caso: piso · carga variable sin mayorar
-   Límite: δ ≤ ℓ/360 = 11.11 mm | q variable = 20.54 kN/m → ✅ Cumple
-   Inercia equivalente usada = 4.679e-04 m⁴
+   Límite: δ ≤ ℓ/360 = 13.89 mm | q variable = 18.52 kN/m → ❌ No cumple
+   Inercia equivalente usada = 4.224e-04 m⁴
 
    Inercias usadas (tramo + apoyos)
-   Ie tramo       = 3.607e-04 m⁴
-   Ie apoyo izq   = 4.790e-04 m⁴
-   Ie apoyo der   = 5.435e-04 m⁴
+   Ie tramo       = 3.237e-04 m⁴
+   Ie apoyo izq   = 4.397e-04 m⁴
+   Ie apoyo der   = 4.884e-04 m⁴
    c (eje neutro) = 8.06 cm | d = 35.00 cm
 
 10 ABERTURA DE FISURAS

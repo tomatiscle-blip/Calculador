@@ -16,6 +16,7 @@ app avise "ojo, cambiaste la geometría: hay que recalcular vigas y columnas".
 
 from __future__ import annotations
 
+import copy
 import csv
 import os
 import subprocess
@@ -463,12 +464,71 @@ def portico_por_defecto(portico: str = "") -> str:
     return disponibles[-1] if disponibles else ""
 
 
+# ---------------------------------------------------------------------------
+# Caché del semáforo
+# ---------------------------------------------------------------------------
+# Calcular el estado de una etapa implica mirar archivos y leer JSON. En un
+# refresco de la app eso se repite muchas veces (el semáforo se consulta en
+# varios lugares) y produce un montón de accesos al disco.
+#
+# La caché se invalida sola: la "huella" de una etapa combina la generación de
+# datos (cambia con cada guardado JSON) con las fechas de sus archivos de
+# entrada y salida. Si algo cambia, la huella cambia y el estado se recalcula.
+
+_cache_etapas: dict[tuple[str, str], tuple[tuple, dict]] = {}
+
+# Rutas ya resueltas por etapa+pórtico+obra (evita volver a expandir comodines).
+_cache_resueltas: dict[tuple[str, str, str], tuple[tuple[Path, ...], tuple[Path, ...]]] = {}
+
+
+def _rutas_etapa(clave: str, portico: str) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
+    """(entradas, salidas) de una etapa, ya resueltas para ese pórtico y obra."""
+    obra = str(rutas.CARPETA_OBRA or "")
+    llave = (clave, portico, obra)
+    guardada = _cache_resueltas.get(llave)
+    if guardada is None:
+        etapa = ETAPAS_POR_CLAVE[clave]
+        guardada = (_resolver(etapa.entradas, portico), _resolver(etapa.salidas, portico))
+        _cache_resueltas[llave] = guardada
+    return guardada
+
+
+def _huella_etapa(clave: str, portico: str) -> tuple:
+    """Huella de los insumos de una etapa (para saber si hay que recalcular)."""
+    entradas, salidas = _rutas_etapa(clave, portico)
+    generacion = rutas.generacion_datos()
+    # La obra activa entra en la huella: si se cambia de obra, todo cambia.
+    obra = str(rutas.CARPETA_OBRA or "")
+    # Firma por ruta (no un máximo global): así se detecta cualquier cambio,
+    # incluso si el archivo quedó con una fecha más vieja que la de otro.
+    firma_entradas = tuple(rutas.firma_ruta(p) for p in entradas)
+    firma_salidas = tuple(rutas.firma_ruta(p) for p in salidas)
+    return (obra, generacion, firma_entradas, firma_salidas)
+
+
+def invalidar_cache_etapas() -> None:
+    """Olvida los estados cacheados (por ejemplo, al cambiar de obra)."""
+    _cache_etapas.clear()
+    _cache_resueltas.clear()
+
+
 def estado_etapa(clave: str, portico: str = "") -> dict:
     """Estado de una etapa: {'estado': 'ok'|'pendiente'|..., 'detalle': ...}."""
+    portico = portico_por_defecto(portico)
+    huella = _huella_etapa(clave, portico)
+    guardada = _cache_etapas.get((clave, portico))
+    if guardada is not None and guardada[0] == huella:
+        return copy.deepcopy(guardada[1])
+    resultado = _estado_etapa(clave, portico)
+    _cache_etapas[(clave, portico)] = (huella, resultado)
+    return copy.deepcopy(resultado)
+
+
+def _estado_etapa(clave: str, portico: str) -> dict:
+    """Calcula el estado de una etapa (sin caché)."""
     etapa = ETAPAS_POR_CLAVE[clave]
     portico = portico_por_defecto(portico)
-    entradas = _resolver(etapa.entradas, portico)
-    salidas = _resolver(etapa.salidas, portico)
+    entradas, salidas = _rutas_etapa(clave, portico)
 
     dato = {
         "clave": etapa.clave,
@@ -617,6 +677,10 @@ def ejecutar(
             "salida": "",
             "error": f"no se pudo lanzar {script.name}: {exc}",
         }
+    finally:
+        # El script pudo escribir resultados: las fechas cacheadas ya no valen.
+        rutas.invalidar_cache_firmas()
+        invalidar_cache_etapas()
 
     return {
         "ok": proceso.returncode == 0,

@@ -17,6 +17,7 @@ from __future__ import annotations
 import csv
 import importlib
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -76,7 +77,7 @@ from app.ejes import (  # noqa: E402
     resumen_ejes,
     resumen_niveles,
 )
-from app.visualizacion import VistaDiagramaMomentos, VistaPortico  # noqa: E402
+from app.visualizacion import VistaDiagramaMomentos, VistaPortico, VistaPlantaPorticos  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Colores del semáforo: (fondo, texto)
@@ -477,6 +478,7 @@ class VentanaPrincipal(QMainWindow):
         self.combo_portico.setMinimumWidth(190)
         self.combo_obras = QComboBox()
         self.combo_obras.setMinimumWidth(190)
+        self.combo_nivel_planta = QComboBox()
         self.boton_nueva_obra = QPushButton("Nueva obra")
         self.boton_actualizar = QPushButton("Actualizar")
         self.etiqueta_resumen = QLabel()
@@ -528,6 +530,8 @@ class VentanaPrincipal(QMainWindow):
 
         # --- pestaña Inicio ---
         self.etiqueta_inicio = QLabel()
+        # Inicializar widgets que se conectarán después
+        self.boton_crear_muro = None
         self.etiqueta_inicio.setWordWrap(True)
         self.nombre_proyecto = QLineEdit()
         self.id_proyecto_inicio = QLabel()
@@ -546,7 +550,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_crear_portico.setToolTip(
             "Crear la geometría de un pórtico y definir columnas y vigas por nivel."
         )
-        self.boton_crear_muro = QPushButton("Crear muro…")
+        self.boton_crear_muro = QPushButton("Crear muro…", self)
         self.boton_crear_muro.setToolTip(
             "Crear la geometría de un muro y definir sus parámetros."
         )
@@ -573,6 +577,12 @@ class VentanaPrincipal(QMainWindow):
         self.boton_inicio_aplicaciones = QPushButton("Asignar cargas a barras")
         self.boton_inicio_losas = QPushButton("Nueva losa en ejes…")
         self.vista_portico = VistaPortico()
+        self.vista_planta = VistaPlantaPorticos()
+        self.scroll_vista_portico_p = QScrollArea()
+        self.scroll_vista_portico_p.setWidgetResizable(True)
+        self.scroll_vista_portico_p.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_vista_portico_p.setMinimumHeight(340)
+        self.scroll_vista_portico_p.setWidget(self.vista_planta)
         self.boton_referencias_cargas = QPushButton("Referencias de cargas…")
         self.boton_referencias_cargas.setToolTip(
             "Abrir en otra ventana los nombres, tipos y categorías de las cargas representadas."
@@ -593,6 +603,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_diagrama_momentos = QPushButton("Ver diagrama de momentos")
         self.boton_diagrama_momentos.setEnabled(False)
         self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
+        self.tabla_portico_resumen = self._tabla(("Elemento", "Cantidad", "Detalle"))
         self.ultimo_analisis: Path | None = None
 
         # --- inicializar estructura, ejes y niveles ---
@@ -627,6 +638,19 @@ class VentanaPrincipal(QMainWindow):
         tabla.verticalHeader().setVisible(False)
         tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         return tabla
+
+    def _llenar(self, tabla: QTableWidget, filas) -> None:
+        """filas = [(celdas, esta_mal), ...]"""
+        tabla.setRowCount(len(filas))
+        for i, (celdas, malo) in enumerate(filas):
+            for j, valor in enumerate(celdas):
+                item = QTableWidgetItem(str(valor))
+                item.setToolTip(str(valor))
+                alineacion = Qt.AlignmentFlag.AlignLeft if j == 0 else Qt.AlignmentFlag.AlignCenter
+                item.setTextAlignment(alineacion | Qt.AlignmentFlag.AlignVCenter)
+                if malo:
+                    item.setBackground(COLOR_MAL)
+                tabla.setItem(i, j, item)
 
     def _pagina(self, texto_etiqueta: str, tabla: QTableWidget):
         pagina = QWidget()
@@ -668,6 +692,7 @@ class VentanaPrincipal(QMainWindow):
         pestanias.setDocumentMode(True)
         pestanias.addTab(self._pagina_inicio(), "Inicio")
         pestanias.addTab(self.pagina_cargas, "Cargas")
+        pestanias.addTab(self._pagina_porticos(), "Pórticos")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
         pagina = QWidget()
@@ -775,6 +800,39 @@ class VentanaPrincipal(QMainWindow):
         caja.addWidget(division, 1)
         return pagina
 
+    def _pagina_porticos(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+
+        grupo_portico = QGroupBox("Pórtico activo")
+        form_portico = QFormLayout(grupo_portico)
+        form_portico.addWidget(QLabel("Elegí el pórtico que mirás en este visor:"))
+        form_portico.addWidget(self.combo_portico)
+        caja.addWidget(grupo_portico)
+
+        panel_visor = QWidget()
+        panel_visor.setMinimumSize(500, 400)
+        caja_vista = QVBoxLayout(panel_visor)
+        caja_vista.addWidget(self.scroll_vista_portico, 1)
+        caja.addWidget(panel_visor, 1)
+
+        fila_resumen = QHBoxLayout()
+        fila_resumen.addWidget(self.tabla_portico_resumen)
+        caja.addLayout(fila_resumen)
+
+        grupo_motor = QGroupBox("Solicitaciones del pórtico")
+        caja_motor = QVBoxLayout(grupo_motor)
+        caja_motor.addWidget(self.lbl_motor)
+        fila_motor = QHBoxLayout()
+        fila_motor.addWidget(self.boton_resolver_motor)
+        fila_motor.addWidget(self.boton_ver_motor)
+        fila_motor.addStretch(1)
+        caja_motor.addLayout(fila_motor)
+        caja_motor.addWidget(self.boton_diagrama_momentos)
+        caja.addWidget(grupo_motor)
+
+        return pagina
+
     def _pagina_archivos(self) -> QWidget:
         pagina = QWidget()
         caja = QVBoxLayout(pagina)
@@ -811,7 +869,8 @@ class VentanaPrincipal(QMainWindow):
         self.boton_diagrama_momentos.clicked.connect(self._mostrar_diagrama_momentos)
         self.combo_portico.currentTextChanged.connect(lambda _: self.refrescar())
         self.combo_portico.currentTextChanged.connect(self.pagina_cargas.actualizar_portico)
-        self.combo_portico.currentTextChanged.connect(self.vista_portico.actualizar)
+        self.combo_portico.currentTextChanged.connect(self.vista_planta.set_portico_activo)
+        self.combo_nivel_planta.currentTextChanged.connect(self._cambiar_nivel_planta)
         self.tabla_etapas.itemSelectionChanged.connect(self._al_elegir_etapa)
         self.boton_ejecutar.clicked.connect(self._ejecutar_etapa)
         self.boton_abrir_salida.clicked.connect(self._abrir_salida_etapa)
@@ -839,13 +898,15 @@ class VentanaPrincipal(QMainWindow):
             if not datos:
                 return
 
-            # Generar nombre único (plano, al mismo nivel que los pórticos)
-            siguiente = 1
-            while True:
-                nombre = f"Muro {siguiente}"
-                if nombre not in self.estructura:
-                    break
-                siguiente += 1
+            # Generar nombre único contando solo muros existentes, para no
+            # chocar con la numeración independiente de los pórticos.
+            muros_existentes = {
+                int(m.group(1))
+                for nombre_e in self.estructura
+                if (m := re.search(r"^Muro\s*(\d+)\s*$", str(nombre_e)))
+            }
+            siguiente = max(muros_existentes, default=0) + 1
+            nombre = f"Muro {siguiente}"
 
             self.estructura[nombre] = datos
             rutas.guardar_estructura(self.estructura)
@@ -878,18 +939,43 @@ class VentanaPrincipal(QMainWindow):
         except ValueError:
             return str(ruta)
 
-    def _llenar(self, tabla: QTableWidget, filas) -> None:
-        """filas = [(celdas, esta_mal), ...]"""
-        tabla.setRowCount(len(filas))
-        for i, (celdas, malo) in enumerate(filas):
-            for j, valor in enumerate(celdas):
-                item = QTableWidgetItem(str(valor))
-                item.setToolTip(str(valor))
-                alineacion = Qt.AlignmentFlag.AlignLeft if j == 0 else Qt.AlignmentFlag.AlignCenter
-                item.setTextAlignment(alineacion | Qt.AlignmentFlag.AlignVCenter)
-                if malo:
-                    item.setBackground(COLOR_MAL)
-                tabla.setItem(i, j, item)
+    def _cambiar_nivel_planta(self, nombre_nivel: str) -> None:
+        """Filtra la vista de planta al nivel seleccionado."""
+        if str(nombre_nivel).strip().casefold() == "todos los niveles":
+            self.vista_planta.set_nivel_activo(None)
+            return
+        cota = None
+        for n in self.niveles:
+            if str(n.get("nombre", "")) == str(nombre_nivel):
+                try:
+                    cota = float(n.get("cota_m", 0.0))
+                except (TypeError, ValueError):
+                    cota = None
+                break
+        self.vista_planta.set_nivel_activo(cota)
+
+    def _actualizar_tabla_portico_resumen(self) -> None:
+        """Llena la tabla resumen con el número de elementos del pórtico activo."""
+        portico = self._portico()
+        if not portico:
+            self.tabla_portico_resumen.setRowCount(0)
+            return
+        estructura = rutas.cargar_estructura() or {}
+        datos = estructura.get(portico, {}) or {}
+        columnas = datos.get("columnas", {}) or {}
+        vigas = datos.get("vigas", {}) or {}
+        bases = datos.get("bases", {}) or {}
+        filas: list[tuple[str, str, str]] = [
+            ("Columnas", str(len(columnas)), "N<nivel>-<columna>"),
+            ("Vigas", str(len(vigas)), "V<nivel>-N T<tramo>"),
+            ("Bases", str(len(bases)), "B0-<columna global>"),
+        ]
+        for nombre, cantidad, detalle in filas:
+            fila = self.tabla_portico_resumen.rowCount()
+            self.tabla_portico_resumen.insertRow(fila)
+            self.tabla_portico_resumen.setItem(fila, 0, QTableWidgetItem(nombre))
+            self.tabla_portico_resumen.setItem(fila, 1, QTableWidgetItem(cantidad))
+            self.tabla_portico_resumen.setItem(fila, 2, QTableWidgetItem(detalle))
 
     def refrescar(self) -> None:
         obras = rutas.listar_obras()
@@ -898,7 +984,13 @@ class VentanaPrincipal(QMainWindow):
         from app.ejes import cargar_ejes, cargar_niveles
         self.ejes = cargar_ejes()
         self.niveles = cargar_niveles()
-        self.vista_portico.establecer_niveles(self.niveles)
+        # Releer la estructura desde disco: si se creó, editó o eliminó un
+        # pórtico/muro, la planta tiene que mostrar el estado real y no la
+        # copia que quedó en memoria.
+        self.estructura = rutas.cargar_estructura()
+        self.vista_planta.set_datos(self.ejes, self.niveles, self.estructura)
+        # El selector de nivel se repuebla en _cargar_inicio (único lugar que
+        # lo gobierna) para no duplicar la lista de niveles.
         self.combo_obras.blockSignals(True)
         self.combo_obras.clear()
         for carpeta in obras:
@@ -917,6 +1009,9 @@ class VentanaPrincipal(QMainWindow):
         self.boton_eliminar_portico.setEnabled(bool(porticos))
 
         portico = self._portico()
+
+        self.vista_portico.establecer_niveles(self.niveles)
+        self.vista_portico.actualizar(portico)
         self.pagina_cargas.actualizar_portico()
         if porticos:
             self.etiqueta_resumen.setText(resumen_etapas(portico))
@@ -936,6 +1031,7 @@ class VentanaPrincipal(QMainWindow):
         self.statusBar().showMessage(
             f"{len(porticos)} pórtico(s) en {rutas.CARPETA_OBRA or rutas.RAIZ}"
         )
+        self._actualizar_tabla_portico_resumen()
 
     def _seleccionar_obra_ui(self, indice: int) -> None:
         ruta = self.combo_obras.itemData(indice)
@@ -991,12 +1087,11 @@ class VentanaPrincipal(QMainWindow):
 
         grupo_porticos = QGroupBox("Pórticos y muros de esta obra")
         caja_porticos = QVBoxLayout(grupo_porticos)
-        caja_porticos.addWidget(QLabel("Pórtico y Muro activo:"))
-        caja_porticos.addWidget(self.combo_portico)
         for boton in (self.boton_crear_portico, self.boton_eliminar_portico):
             boton.setMinimumHeight(34)
             boton.setStyleSheet("QPushButton { padding: 5px 9px; font-weight: 600; }")
             caja_porticos.addWidget(boton)
+        caja.addWidget(grupo_porticos)
 
         grupo_muros = QGroupBox("Muros de esta obra")
         caja_muros = QVBoxLayout(grupo_muros)
@@ -1005,8 +1100,12 @@ class VentanaPrincipal(QMainWindow):
         #caja_muros.addWidget(QLabel("Muro activo:"))
         #caja_muros.addWidget(self.combo_muro)
         caja_muros.addWidget(self.boton_crear_muro)
-        caja_porticos.addStretch(1)
-        caja_porticos.addWidget(grupo_muros)
+        # grupo_muros se reubica en el panel lateral, justo debajo de los ejes
+        # caja_porticos.addStretch(1)         # selector de pórtico en la pestaña "Pórticos"
+        # caja_porticos.addWidget(grupo_muros)  # selector de pórtico en la pestaña "Pórticos"
+        # caja_muros.addWidget(self.boton_crear_muro)  # duplicado, eliminado
+        # caja_porticos.addStretch(1)          # selector de pórtico en la pestaña "Pórticos"
+        # caja_porticos.addWidget(grupo_muros)   # selector de pórtico en la pestaña "Pórticos"
 
         fila_accesos = QVBoxLayout()
         fila_accesos.setSpacing(4)
@@ -1023,15 +1122,6 @@ class VentanaPrincipal(QMainWindow):
         fila_cargas.addWidget(self.boton_ver_cargas)
         fila_cargas.addStretch(1)
         caja_cargas.addLayout(fila_cargas)
-        grupo_motor = QGroupBox("Solicitaciones del pórtico")
-        caja_motor = QVBoxLayout(grupo_motor)
-        caja_motor.addWidget(self.lbl_motor)
-        fila_motor = QHBoxLayout()
-        fila_motor.addWidget(self.boton_resolver_motor)
-        fila_motor.addWidget(self.boton_ver_motor)
-        fila_motor.addStretch(1)
-        caja_motor.addLayout(fila_motor)
-        caja_motor.addWidget(self.boton_diagrama_momentos)
         panel_lateral = QWidget()
         panel_lateral.setMaximumWidth(420)
         panel_lateral.setMinimumWidth(300)
@@ -1039,7 +1129,7 @@ class VentanaPrincipal(QMainWindow):
         estados.setContentsMargins(0, 0, 0, 0)
         estados.setSpacing(5)
         estados.addWidget(self.etiqueta_inicio)
-        estados.addWidget(grupo_porticos)
+        # estados.addWidget(grupo_porticos)  # Selector de pórtico en la pestaña "Pórticos"
         estados.addWidget(self.resumen_ejes_inicio)
         estados.addWidget(self.resumen_niveles_inicio)
         referencias = QVBoxLayout()
@@ -1053,10 +1143,10 @@ class VentanaPrincipal(QMainWindow):
             boton.setStyleSheet("QPushButton { padding: 4px 8px; }")
             referencias.addWidget(boton)
         estados.addLayout(referencias)
+        estados.addWidget(grupo_muros)   # "Crear muro", justo debajo de los ejes
         estados.addWidget(self.referencia_portico_inicio)
         estados.addWidget(grupo_accesos)
         estados.addWidget(grupo_cargas)
-        estados.addWidget(grupo_motor)
         estados.addStretch(1)
         panel_lateral_scroll = QScrollArea()
         panel_lateral_scroll.setWidgetResizable(True)
@@ -1085,14 +1175,21 @@ class VentanaPrincipal(QMainWindow):
             boton.setMinimumHeight(34)
             boton.setStyleSheet("QPushButton { padding: 5px 8px; font-weight: 600; }")
 
-        self.grupo_esquema_inicio = QGroupBox("Esquema del pórtico seleccionado")
-        caja_vista = QVBoxLayout(self.grupo_esquema_inicio)
-        caja_vista.addWidget(
-            self.boton_referencias_cargas, 0, Qt.AlignmentFlag.AlignRight
-        )
-        caja_vista.addWidget(self.scroll_vista_portico, 1)
+        self.grupo_planta_inicio = QGroupBox("Planta de la obra")
+        caja_planta = QVBoxLayout(self.grupo_planta_inicio)
+
+        # Barra de herramientas superior: solo el selector de nivel activo.
+        fila_nivel = QHBoxLayout()
+        fila_nivel.addWidget(QLabel("Nivel visible:"))
+        self.combo_nivel_planta.addItems(["Todos los niveles"])
+        fila_nivel.addWidget(self.combo_nivel_planta, 1)
+        fila_nivel.addStretch(1)
+        caja_planta.addLayout(fila_nivel)
+
+        caja_planta.addWidget(self.scroll_vista_portico_p, 1)
+
         self.division_inicio = QSplitter(Qt.Orientation.Horizontal)
-        self.division_inicio.addWidget(self.grupo_esquema_inicio)
+        self.division_inicio.addWidget(self.grupo_planta_inicio)
         self.division_inicio.addWidget(panel_lateral_scroll)
         self.division_inicio.setStretchFactor(0, 3)
         self.division_inicio.setStretchFactor(1, 1)
@@ -1108,13 +1205,11 @@ class VentanaPrincipal(QMainWindow):
     def _cargar_inicio(self, portico: str) -> None:
         import html
 
-        self.grupo_esquema_inicio.setTitle(
-            f"Esquema del pórtico — {portico}" if portico
-            else "Esquema del pórtico seleccionado"
-        )
-        ejes = cargar_ejes()
-        self.resumen_ejes_inicio.setText(resumen_ejes(ejes))
-        self.resumen_niveles_inicio.setText(resumen_niveles(cargar_niveles()))
+        self.grupo_planta_inicio.setTitle("Planta de la obra")
+        self.ejes = cargar_ejes()
+        self.niveles = cargar_niveles()
+        self.resumen_ejes_inicio.setText(resumen_ejes(self.ejes))
+        self.resumen_niveles_inicio.setText(resumen_niveles(self.niveles))
         proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
         ficha = (
             rutas.leer_json(rutas.CARPETA_OBRA / "obra.json", {}) or {}
@@ -1135,8 +1230,29 @@ class VentanaPrincipal(QMainWindow):
         self.comitente_proyecto.setText(str(ficha.get("comitente", "")))
         self.responsable_proyecto.setText(str(ficha.get("responsable", "")))
         self.notas_proyecto.setPlainText(str(proyecto.get("notas", "")))
-        self.vista_portico.actualizar(portico)
-        self.vista_portico.establecer_niveles(self.niveles)
+        # Visor de planta general de la obra: muestra TODOS los ejes y niveles,
+        # no el foco de un pórtico particular.
+        self.vista_planta.set_portico_activo("")
+        self.vista_planta.set_datos(self.ejes, self.niveles, self.estructura)
+        self.combo_nivel_planta.blockSignals(True)
+        nivel_previo = self.combo_nivel_planta.currentText()
+        self.combo_nivel_planta.clear()
+        opciones_nivel = ["Todos los niveles"]
+        opciones_nivel += [
+            str(n.get("nombre", "")) for n in self.niveles if str(n.get("nombre", ""))
+        ]
+        self.combo_nivel_planta.addItems(opciones_nivel)
+        # Conservar el nivel que ya estaba visible: refrescar la planta no
+        # debe cambiar el filtro elegido por el usuario.
+        if nivel_previo in opciones_nivel:
+            self.combo_nivel_planta.setCurrentText(nivel_previo)
+        else:
+            self.combo_nivel_planta.setCurrentIndex(0)
+        self.combo_nivel_planta.blockSignals(False)
+        self._cambiar_nivel_planta(self.combo_nivel_planta.currentText())
+        cargas_datos = rutas.leer_json(rutas.CARGAS, {}) or {}
+        elementos_carga = cargas_datos.get("elementos", {}) or {}
+        self.vista_planta.set_losas(elementos_carga)
         estructura_completa = rutas.cargar_estructura()
         estructura = estructura_completa.get(portico, {}) if portico else {}
         referencia = estructura.get("referencia_planta", {}) or {}
@@ -1145,7 +1261,7 @@ class VentanaPrincipal(QMainWindow):
         eje_longitudinal_id = referencia.get("eje_longitudinal_id")
         ejes_por_id = {
             str(item.get("id", f"{familia}:{str(item['nombre']).casefold()}")): item
-            for familia, items in ejes.items()
+            for familia, items in self.ejes.items()
             for item in items
         }
         eje = ejes_por_id.get(str(eje_id)) if eje_id else None
@@ -1367,10 +1483,28 @@ class VentanaPrincipal(QMainWindow):
             QMessageBox.warning(self, "Geometría incompleta", str(exc))
             return None
 
+    def _siguiente_numero_portico_disponible(self, estructura: dict | None = None) -> int:
+        """Proponé el siguiente número de pórtico contando solo pórticos reales.
+
+        Los muros estructurales (tipo == \"muro\") se excluyen para que su
+        numeración no desplace la de los pórticos.
+        """
+        estructura = estructura or rutas.cargar_estructura()
+        usados: set[int] = set()
+        for nombre, datos in estructura.items():
+            if not isinstance(datos, dict):
+                continue
+            if str(datos.get("tipo", "")).lower() == "muro":
+                continue
+            m = re.search(r"(\d+)\s*$", str(nombre))
+            if m:
+                usados.add(int(m.group(1)))
+        return max(usados, default=0) + 1
+
     def _crear_portico(self) -> None:
         """Crea geometría básica desde Inicio, dentro de la obra actual."""
         estructura = rutas.cargar_estructura()
-        siguiente_numero = rutas.numero_portico("", estructura)
+        siguiente_numero = self._siguiente_numero_portico_disponible(estructura)
         numero_ingresado, ok = QInputDialog.getInt(
             self,
             "Nuevo pórtico",
@@ -2461,13 +2595,30 @@ class VentanaPrincipal(QMainWindow):
 # Arranque
 # ---------------------------------------------------------------------------
 def main() -> int:
+    import traceback
     rutas.inicializar_obras()
     importlib.reload(pipeline)
     rutas.asegurar_directorios()
     aplicacion = QApplication.instance() or QApplication(sys.argv)
     aplicacion.setApplicationName("Calculador")
-    ventana = VentanaPrincipal()
-    ventana.show()
+    try:
+        ventana = VentanaPrincipal()
+        with open("arranco.txt", "a", encoding="utf-8") as _f:
+            _f.write("VentanaPrincipal ok\\n")
+    except Exception:
+        with open("arranco.txt", "a", encoding="utf-8") as _f:
+            _f.write("VentanaPrincipal ERROR:\\n")
+            traceback.print_exc(file=_f)
+        raise
+    try:
+        ventana.show()
+        with open("arranco.txt", "a", encoding="utf-8") as _f:
+            _f.write("show ok\\n")
+    except Exception:
+        with open("arranco.txt", "a", encoding="utf-8") as _f:
+            _f.write("show ERROR:\\n")
+            traceback.print_exc(file=_f)
+        raise
     return aplicacion.exec()
 
 

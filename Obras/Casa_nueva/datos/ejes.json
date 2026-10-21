@@ -1,51 +1,46 @@
 {
   "x": [
     {
-      "id": "55cc1b19-fdad-42a9-bea7-595f1f7be838",
+      "id": "501e4602-7556-4e8a-b69b-17ba6626d3e4",
       "nombre": "X1",
       "coordenada_m": 0.0
     },
     {
-      "id": "30dad11f-09ae-4327-89df-4823d9241b66",
+      "id": "19b989a7-172e-4d9e-a25e-1ad64f4b3bd5",
       "nombre": "X2",
-      "coordenada_m": 5.7
+      "coordenada_m": 5.0
     },
     {
-      "id": "273f63d2-3a8e-4667-9623-ccda5e881ef8",
+      "id": "ad021954-dfd8-4618-9518-b1de073031ce",
       "nombre": "X3",
-      "coordenada_m": 7.9
+      "coordenada_m": 10.0
     },
     {
-      "id": "927c5424-9dab-4e86-bd21-896711752460",
+      "id": "8b3b585e-2e2c-49a3-a8ab-3ffe5a08c62f",
       "nombre": "X4",
-      "coordenada_m": 11.65
+      "coordenada_m": 15.0
     }
   ],
   "y": [
     {
-      "id": "fb9237bd-1ca2-41c8-b2fb-784fd84e7c31",
+      "id": "386c6d3e-d862-46fe-942c-fbaa02449ea9",
       "nombre": "Y1",
       "coordenada_m": 0.0
     },
     {
-      "id": "7a4cf2c9-3a92-4c9c-b097-54c42ffc751d",
+      "id": "5af3a6b3-6dc2-42d4-a676-4284f415d014",
       "nombre": "Y2",
-      "coordenada_m": 0.85
+      "coordenada_m": 5.0
     },
     {
-      "id": "6c9c4587-f143-4730-8fa2-ad3fd9340274",
+      "id": "99cd3336-9556-447b-9893-f18f179c6a72",
       "nombre": "Y3",
-      "coordenada_m": 4.85
+      "coordenada_m": 10.0
     },
     {
-      "id": "552db56f-d372-4746-ac79-0842fabc6eb9",
+      "id": "23eb017d-0267-4280-9c9e-a372c39b797e",
       "nombre": "Y4",
-      "coordenada_m": 11.0
-    },
-    {
-      "id": "9b7aaf0d-54b1-419f-b6fe-9cd0362845b1",
-      "nombre": "Y5",
-      "coordenada_m": 22.0
+      "coordenada_m": 15.0
     }
   ]
 }

@@ -34,7 +34,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from calc import mamposteria, muros, rutas
+from calc import cargas, mamposteria, muros, rutas
+from app.visualizacion import VistaPortico
 
 
 class EditorCapasMuro(QDialog):
@@ -284,6 +285,17 @@ class PaginaMuros(QWidget):
         )
         self.intro.setWordWrap(True)
 
+        # --- selector de muro activo ---
+        self.combo_muro_activo = QComboBox()
+        self.combo_muro_activo.setMinimumWidth(180)
+        self.combo_muro_activo.currentIndexChanged.connect(self._actualizar_visor_muro)
+        self.lbl_muro_activo = QLabel("Muro activo:")
+
+        # --- visor de muro (VistaPortico dibuja el paño y sus cargas) ---
+        self.visor_muro = VistaPortico()
+        self.visor_muro.setMinimumHeight(300)
+        self.visor_muro.setMinimumWidth(400)
+
         self.tabla = QTableWidget(0, 5)
         self.tabla.setHorizontalHeaderLabels((
             "Muro", "Longitud (m)", "Espesor (m)", "Altura (m)", "Peso propio (kN/m)",
@@ -292,6 +304,7 @@ class PaginaMuros(QWidget):
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabla.itemSelectionChanged.connect(self._actualizar_visor_muro)
 
         self.boton_componer = QPushButton("Componer muro / calcular peso propio…")
         self.boton_componer.clicked.connect(self._componer)
@@ -299,14 +312,17 @@ class PaginaMuros(QWidget):
         self.boton_actualizar.clicked.connect(self.refrescar)
 
         fila = QHBoxLayout()
+        fila.addWidget(self.lbl_muro_activo)
+        fila.addWidget(self.combo_muro_activo, 1)
+        fila.addStretch(1)
         fila.addWidget(self.boton_componer)
         fila.addWidget(self.boton_actualizar)
-        fila.addStretch(1)
 
         caja = QVBoxLayout(self)
         caja.addWidget(self.intro)
-        caja.addWidget(self.tabla, 1)
         caja.addLayout(fila)
+        caja.addWidget(self.visor_muro, 1)
+        caja.addWidget(self.tabla, 1)
         self.refrescar()
 
     # ------------------------------------------------------------------
@@ -349,6 +365,91 @@ class PaginaMuros(QWidget):
                 0, 0,
                 QTableWidgetItem("Todavía no hay muros estructurales en esta obra."),
             )
+        # Llenar combo de muro activo
+        self.combo_muro_activo.blockSignals(True)
+        self.combo_muro_activo.clear()
+        self.combo_muro_activo.addItems(list(muros_est.keys()))
+        self.combo_muro_activo.blockSignals(False)
+        self._actualizar_visor_muro()
+
+    def _actualizar_visor_muro(self) -> None:
+        """Configura el visor para mostrar el muro activo con sus cargas."""
+        nombre = self.combo_muro_activo.currentText().strip()
+        if not nombre:
+            return
+        muros_est = self._muros_estructurales()
+        datos = muros_est.get(nombre)
+        if not datos:
+            return
+
+        # Configurar el visor para el muro
+        self.visor_muro.tipo = "muro"
+        self.visor_muro.muro_nombre = nombre
+        self.visor_muro.muros = {nombre: datos}
+        self.visor_muro.columnas = {}
+        self.visor_muro.vigas = {}
+        self.visor_muro.tramos = []
+        self.visor_muro.niveles = []
+
+        # Cargar cargas aplicadas al muro desde cargas.json
+        self.visor_muro.cargas = self._cargar_cargas_muro(nombre)
+        self.visor_muro.capas_carga = max(
+            (len({c.get("aplicacion_id", "") for c in cargas_tramo})
+             for cargas_tramo in self.visor_muro.cargas.values()),
+            default=0,
+        )
+        self.visor_muro.setMinimumHeight(max(250, 190 + self.visor_muro.capas_carga * 24))
+        self.visor_muro.update()
+
+    def _cargar_cargas_muro(self, nombre_muro: str) -> dict:
+        """Lee las cargas activas destinadas a un muro desde datos/cargas.json."""
+        try:
+            datos_cargas = rutas.leer_json(rutas.CARGAS, {}) or {}
+            aplicaciones = datos_cargas.get("aplicaciones", [])
+            elementos = datos_cargas.get("elementos", {})
+            por_id = {
+                elemento.get("id"): (nombre, elemento)
+                for nombre, elemento in elementos.items()
+                if elemento.get("id")
+            }
+            resultado: dict[str, list[dict]] = {}
+            for aplicacion in aplicaciones:
+                if not aplicacion.get("activa", True):
+                    continue
+                if aplicacion.get("portico") != nombre_muro:
+                    continue
+                encontrado = por_id.get(aplicacion.get("carga_id"))
+                if not encontrado:
+                    continue
+                nom_carga, fuente = encontrado
+                if not fuente.get("activo", True):
+                    continue
+                tramo_id = aplicacion.get("tramo_id", "MURO")
+                # Calcular valor lineal del elemento fuente
+                valor = self._valor_lineal_elemento(fuente)
+                resultado.setdefault(tramo_id, []).append({
+                    "aplicacion_id": aplicacion.get("id", ""),
+                    "carga_id": aplicacion.get("carga_id", ""),
+                    "nombre": nom_carga,
+                    "x_inicio_m": float(aplicacion.get("x_inicio_m", 0.0)),
+                    "x_fin_m": float(aplicacion.get("x_fin_m", 0.0)),
+                    "valor_kN_m": valor,
+                    "tipo": "D",
+                })
+            return resultado
+        except Exception:
+            return {}
+
+    def _valor_lineal_elemento(self, elemento: dict) -> float:
+        """Calcula el valor lineal (kN/m) de un elemento de carga."""
+        biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
+        try:
+            items = cargas.items_de_elemento(
+                elemento.get("id", "?"), elemento, biblioteca
+            )
+            return sum(float(it["valor"]) for it in items if it.get("tipo") == "D")
+        except Exception:
+            return 0.0
 
     def _componer(self) -> None:
         muros_est = self._muros_estructurales()

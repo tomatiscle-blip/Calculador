@@ -7,8 +7,26 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **07/10/2026**
-- Trabajo actual: **ejes X/Y, niveles Z y referencias de pórticos por obra**. Desde Inicio se
+- Última actualización: **19/10/2026**
+- Trabajo actual: **selector del pórtico activo en su pestaña y visor de planta por nivel** (19/10).
+  - En **Inicio** ya no está el selector «Pórtico activo»: quedó en la pestaña **Pórticos**,
+    arriba del esquema de elevación, así para cambiar de pórtico no hay que volver a Inicio.
+    Inicio conserva los botones **Crear pórtico**, **Crear muro** y **Eliminar pórtico / muro**.
+  - El **visor de planta de Inicio** ahora dibuja los elementos creados y **los discrimina por
+    nivel** (combo «Nivel visible», que arranca en el primer nivel y también ofrece
+    «Todos los niveles»): columnas y bases de esa cota, vigas que coronan en ella, muros que
+    la atraviesan y losas apoyadas en ella. El eje de cada pórtico se dibuja siempre
+    (punteado) para ver dónde todavía no hay elementos, y una línea al pie resume cuántas
+    columnas, vigas, bases, losas y muros hay en el nivel.
+  - Las **losas delimitadas por ejes** (`panel_ejes`) se dibujan como rectángulo verde en
+    planta; una losa sin datos de ejes se avisa como etiqueta en lugar de perderse, y una
+    losa que apoya en otro nivel se omite sin avisar (no es un error de datos).
+  - La geometría de planta se calcula con la convención real del modelo: el eje de aplicación
+    está en la familia opuesta a la dirección del elemento y las columnas/vigas se trasladan
+    desde `origen_longitudinal_m` (los muros guardan extremos absolutos). Antes, por buscar
+    el eje en la familia equivocada, los pórticos y muros no aparecían en la planta.
+  - Test nuevo: `tests/test_vista_planta.py` (geometría, filtro por nivel y pintado sin excepciones).
+- Trabajo anterior: **ejes X/Y, niveles Z y referencias de pórticos por obra**. Desde Inicio se
   pueden definir líneas de ejes no uniformes en `datos/ejes.json`, cotas nombradas en
   `datos/niveles.json`. Al crear un pórtico nuevo se elige su dirección y el eje transversal
   exacto, y se seleccionan los cruces de ejes donde nace una columna para cada tramo entre niveles.
@@ -59,8 +77,8 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   - **Importante:** P02 todavía no se migró como cálculo a `calc/vigas.py`; se conserva
     su lógica de diseño. La flecha usa carga uniforme equivalente cuando hay cargas
     parciales y no incluye cargas puntuales en esa estimación.
-  - `calculador.bat` abre la app. Inicio muestra la obra y ubica el selector en el bloque
-    **Pórticos**; también da accesos a Cargas y Losas.
+  - `calculador.bat` abre la app. Inicio muestra la obra, los accesos a Cargas y Losas, y el
+    selector del pórtico activo vive en la pestaña **Pórticos**.
   - La ficha de cada obra queda en `Obras/<nombre>/obra.json`; cargas y pórticos, en su
     subcarpeta `datos/`. El análisis de cargas pertenece a la obra y sus aplicaciones
     indican a qué pórtico/tramo llegan. La app recuerda la obra activa. Editar cargas no

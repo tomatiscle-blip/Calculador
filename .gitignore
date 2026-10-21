@@ -26,3 +26,9 @@ _repro*.py
 _verif*.txt
 _gs*.txt
 _git_*.txt
+_tmp_*.txt
+_tmp_*.json
+tools/_tmp_*
+tests/_tmp_*.txt
+# --- Salidas generadas por obra (se recalculan, no se versionan) ---
+Obras/*/salidas/

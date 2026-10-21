@@ -1,0 +1,185 @@
+ESTRUCTURA DE VENTANAS Y PESTAÑAS — CALCULADOR (app principal PySide6)
+====================================================================
+Archivo de referencia para dar indicaciones. La app se abre con calculador.bat
+(pyw -m app). Ventana principal: "Calculador — Estructuras" (QMainWindow).
+Tamaño inicial 1340x820, mínimo 1050x680.
+
+BANDA SUPERIOR (siempre visible)
+--------------------------------
+- Título de la aplicación.
+- Combo "Obra" (selector de obra activa) + botón "Nueva obra" + "Actualizar".
+- Etiqueta resumen de etapas del pórtico activo.
+- (Los datos de carátula se editan en la pestaña Inicio.)
+
+VENTANA PRINCIPAL: PESTAÑAS (QTabWidget, documentMode)
+------------------------------------------------------
+
+1) INICIO
+   Pantalla carátula + navegación rápida. Visión global de toda la obra.
+   Bloques:
+   - "Carátula de la obra": nombre, ID, lugar, comitente, responsable, notas. Botón "Guardar".
+   - "Pórticos y muros de esta obra":
+        * Botones "Crear pórtico", "Eliminar pórtico / muro".
+        * Subgrupo "Muros de esta obra": botón "Crear muro".
+   - "Accesos rápidos": botones para ir a Definir cargas, Aplicaciones de cargas, Nueva losa.
+   - "Cargas del proyecto": etiqueta resumen + botón "Ver cargas".
+   - "Solicitaciones del pórtico": etiqueta + botones "Resolver motor", "Ver JSON", "Diagrama de momentos".
+    - "Planta de la obra": grupo_planta_inicio con el selector "Nivel visible" (Todos los niveles / PB / N1 / ...) en una fila compacta ARRIBA del visor, y debajo el visor de planta por nivel (VistaPlantaPorticos dentro de scroll_vista_portico_p), que ocupa todo el ancho restante. Incluye la tabla de resumen del portico activo (tabla_inicio). No hay solapas ni pestanas internas dentro de Inicio.
+   - Panel lateral derecho: datos de ejes/niveles y referencias.
+   - Referencias: ejes X/Y y niveles Z (resumen + botones "Definir ejes", "Definir niveles", "Asociar pórticos").
+   También muestra referencias de cargas y botón para ver el último análisis.
+
+2) CARGAS  (PaginaCargas)
+   Pestaña interna con 2 solapas (QTabWidget "pestanias_cargas"):
+   a) "Definir elementos" (scroll): catálogo de elementos de carga de la obra.
+      - Tabla de elementos: ID, Descripción, Aplicación, Transferencia a apoyos, Categoría, D, L, Incluir, Aplicaciones manuales.
+      - Botones: Nueva carga, Nueva losa desde ejes, Guardar cargas, Editar composición, Eliminar elemento, Aplicar a tramos, Editar composición del elemento, Quitar asignación, Diseñar losa, Editar paño de losa, Generar informe, Abrir informe.
+      - Grupo "Aplicar y revisar cargas en barras": selector de elemento, tabla de aplicaciones (Pórtico(s), Carga, Tipo, Barra/tramo, Desde/Hasta, Ancho).
+   b) "Elementos y asignaciones" (misma solapa scroll; en realidad una sola vista con dos tabs: "Definir elementos" y "Elementos y asignaciones" — la segunda es el scroll con catálogo+aplicaciones).
+   Diálogos asociados:
+   - EditorElemento: "Componer carga — {nombre}" (composición en capas de losas/cubiertas y dimensiones de muros/encadenados).
+   - EditorAplicaciones: "Aplicaciones de {carga_id}" (asigna cargas lineales, reacciones de muros y anchos tributarios a tramos).
+
+3) 1 · ESTADO Y ETAPAS
+   - Tabla de etapas (semáforo: ok / desactualizada / pendiente / sin_datos / a_desarrollar).
+   - Detalle de la etapa seleccionada + botones "Ejecutar" y "Abrir salida".
+   Etapas típicas: análisis de cargas, solicitaciones del motor, vigas, columnas, bases, losas, planos, etc.
+
+4) PÓRTICOS
+   - Combo "Pórtico activo" (pórtico seleccionado para toda la app).
+   - "Esquema del pórtico seleccionado": VistaPortico (esquema del pórtico).
+   - Tabla de resumen del pórtico (tabla_portico_resumen).
+   - Selector de nivel visible (combo_nivel_planta) para la planta del pórtico.
+
+5) 2 · VIGAS
+   - Etiqueta resumen.
+   - Botón "Dimensionar vigas".
+   - Tabla de vigas.
+   - Panel de planillas: lista de planillas TXT + visor de texto (splitter).
+
+6) 3 · COLUMNAS
+   - Etiqueta resumen.
+   - Botón "Dimensionar columnas".
+   - Tabla de columnas.
+   - Panel de planillas: lista de planillas TXT + visor de texto (splitter).
+
+7) 4 · BASES
+   - Etiqueta resumen.
+   - Botón "Dimensionar bases".
+   - Tabla de bases.
+
+8) 5 · LOSAS
+   - Etiqueta resumen.
+   - Botón "Dimensionar losas".
+   - Tabla de losas.
+
+9) MUROS
+   - Tabla de muros de la obra.
+   - Botones para crear/editar muros.
+
+10) ARCHIVOS
+    - Gestión de archivos del proyecto.
+    - Importar/exportar datos.
+
+-------------------------------------
+
+Si existe una implementación previa en:
+
+- tests/
+- tools/
+- archivos temporales
+- _tmp_diff_app.txt
+- _test_*.py
+
+analizar primero si contiene funcionalidad reutilizable.
+
+No reimplementar una funcionalidad que ya exista.
+
+Si se encuentra una implementación funcional de:
+- VistaPlantaPorticos
+- VistaPortico
+- pestaña Pórticos
+- reorganización de Inicio
+
+integrarla en la aplicación principal antes de crear una nueva versión.
+
+====================================================================
+CAMBIO DE INTERFAZ — COMPLETADO (IMPLEMENTACIÓN REAL)
+====================================================================
+
+OBJETIVO
+
+Reorganizar la interfaz principal para separar claramente:
+
+- Vista global de la obra.
+- Vista particular del pórtico seleccionado.
+
+IMPORTANTE
+
+Cambios aplicados sobre la aplicación real ejecutada mediante calculador.bat.
+
+Se integraron los componentes existentes (no se crearon tests, demos, ventanas temporales ni prototipos).
+
+Los cambios quedan visibles al ejecutar calculador.bat.
+
+--------------------------------------------------------------------
+ESTADO ACTUAL (YA IMPLEMENTADO)
+--------------------------------------------------------------------
+
+La pestaña Inicio contiene ahora:
+
+- VistaPlantaPorticos integrada en el grupo "Nivel o Planta activa" con scroll_vista_portico_p y combo_nivel_planta.
+- tabla_portico_resumen para el resumen del pórtico activo.
+- Referencias de ejes y niveles actualizadas.
+
+La pestaña "Pórticos" fue creada con:
+
+- Combo "Pórtico activo".
+- VistaPortico (esquema del pórtico seleccionado).
+- Controles asociados al pórtico seleccionado.
+
+--------------------------------------------------------------------
+ARCHIVOS MODIFICADOS
+--------------------------------------------------------------------
+
+- app/principal.py: integración de VistaPlantaPorticos, combo_nivel_planta, tabla_portico_resumen, pestaña "Pórticos", métodos _cargar_inicio, _cambiar_nivel_planta, _actualizar_tabla_portico_resumen, _pagina_porticos, _llenar.
+
+--------------------------------------------------------------------
+CLASES MODIFICADAS
+--------------------------------------------------------------------
+
+- VentanaPrincipal (en app/principal.py): reorganización de la pestaña Inicio y creación de la pestaña Pórticos.
+
+--------------------------------------------------------------------
+MÉTODOS MODIFICADOS / AGREGADOS
+--------------------------------------------------------------------
+
+- __init__: instancia de VistaPlantaPorticos, scroll_vista_portico_p, combo_nivel_planta, tabla_portico_resumen; addTab(..., "Pórticos").
+- _pagina_inicio: reemplazo de grupo_porticos por grupo_planta_inicio; agregado caja.addWidget(grupo_muros).
+- _cargar_inicio: referencia a grupo_planta_inicio (antes grupo_esquema_inicio); título dinámico "Planta — {portico}".
+- _cambiar_nivel_planta: actualización de nivel visible en VistaPlantaPorticos.
+- _actualizar_tabla_portico_resumen: llenado de tabla_portico_resumen con datos del pórtico activo.
+- _pagina_porticos: construcción de la pestaña "Pórticos" con combo, VistaPortico y tabla de resumen.
+- _llenar: método genérico para llenar QTableWidget con filas (celdas, esta_mal).
+
+--------------------------------------------------------------------
+VERIFICACIÓN OBLIGATORIA
+--------------------------------------------------------------------
+
+Antes de finalizar informar:
+
+- archivos modificados;
+- clases modificadas;
+- métodos modificados.
+
+calculador.bat ejecutado con código 0 (sin tracebacks). VentanaPrincipal() instanciada sin errores.
+
+
+- _pagina_inicio: el grupo_planta_inicio queda con el selector de nivel en una fila compacta arriba del visor de planta; el visor ocupa todo el ancho restante. Sin solapas internas.
+- _cargar_inicio: repuebla el combo de niveles conservando el nivel visible; la planta se dibuja con TODOS los ejes y niveles de la obra.
+- refrescar: relee la estructura desde disco (rutas.cargar_estructura) y repinta la planta, para que crear/editar/eliminar un portico o muro se vea al instante.
+- VistaPlantaPorticos._encuadre: encuadre de la planta separado del paintEvent (margenes 78/62 px para las burbujas de eje).
+- VistaPlantaPorticos._colocar_rotulos: calculo de posicion de rotulos con evasion de solapamiento en espiral y ajuste dentro del widget.
+- VistaPlantaPorticos._pintar_rotulos: dibuja solo los rotulos colocados.
+- VistaPlantaPorticos._escena: los nombres de columnas y bases pasan al sistema de rotulos (antes se dibujaban sueltos y se tapaban).
+- VistaPlantaPorticos.paintEvent: burbujas de eje con radio segun el texto y escalonado cuando dos ejes estan juntos; margen mayor para que no se corten.

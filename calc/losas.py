@@ -575,6 +575,9 @@ def guardar_computo(resultado: ResultadoLosa, archivo=None) -> Path:
         if nuevo:
             writer.writerow(COLUMNAS_COMPUTO)
         writer.writerow(fila_computo(resultado))
+    # El CSV se escribe directo (no pasa por guardar_json): las fechas cacheadas
+    # ya no valen y hay que avisar al semáforo que cambió la salida.
+    rutas.invalidar_cache_firmas()
     return camino
 
 

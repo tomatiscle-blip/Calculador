@@ -14,11 +14,14 @@ así que funcionan desde cualquier lado.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
 import re
 import shutil
+import stat
+import time
 from pathlib import Path
 from typing import Any
 
@@ -188,7 +191,13 @@ def seleccionar_obra(carpeta: Path | str) -> Path:
         raise ValueError("La obra debe estar dentro de la carpeta Obras.") from exc
     if not destino.is_dir():
         raise FileNotFoundError(f"No existe la carpeta de obra: {destino}")
+    anterior = CARPETA_OBRA
     _actualizar_rutas_obra(destino)
+    if anterior != destino:
+        # Cambió la obra: las cachés de estructura, listados y fechas ya no sirven.
+        _invalidar_cache_estructura(ESTRUCTURA)
+        _cache_listados.clear()
+        invalidar_cache_firmas()
     asegurar_directorios()
     guardar_json(CONFIG_OBRA_ACTIVA, {"obra": destino.name})
     return destino
@@ -349,12 +358,16 @@ def guardar_json(ruta: os.PathLike | str, datos: Any, indent: int = 2) -> Path:
     recién al final reemplaza el original. Si se corta la luz a mitad del
     guardado, el archivo bueno anterior queda intacto.
     """
+    global _generacion_datos
     camino = Path(ruta)
     camino.parent.mkdir(parents=True, exist_ok=True)
     temporal = camino.with_name(camino.name + ".tmp")
     with open(temporal, "w", encoding="utf-8") as f:
         json.dump(datos, f, indent=indent, ensure_ascii=False)
     os.replace(temporal, camino)
+    _generacion_datos += 1
+    _invalidar_cache_estructura(camino)
+    invalidar_cache_firmas()
     return camino
 
 
@@ -377,6 +390,7 @@ def guardar_texto(ruta: os.PathLike | str, texto: str) -> Path:
     temporal = camino.with_name(camino.name + ".tmp")
     temporal.write_text(texto, encoding="utf-8")
     os.replace(temporal, camino)
+    invalidar_cache_firmas()
     return camino
 
 
@@ -391,25 +405,104 @@ def listar(ruta: os.PathLike | str, patron: str = "*") -> list[Path]:
 # ---------------------------------------------------------------------------
 # Fechas y huellas (para saber si un resultado quedó viejo)
 # ---------------------------------------------------------------------------
+# Caché de los stat() con vida corta: durante un refresco la app consulta las
+# mismas rutas muchas veces. TTL chico para no perder cambios externos.
+_TTL_FIRMAS = 0.5  # segundos
+_cache_firmas: dict[str, tuple[float, int | None, float | None, bool]] = {}
+
+
+def _stat_cache(ruta: os.PathLike | str) -> tuple[int | None, float | None, bool]:
+    """(mtime_ns, mtime, es_carpeta) de una ruta, con caché de un instante.
+
+    El semáforo consulta el estado de las mismas decenas de rutas varias
+    veces por refresco. Consultar el disco en cada consulta es lo más caro
+    de la app, así que el resultado se guarda un instante y se invalida
+    explícitamente cuando el programa escribe algo.
+    """
+    camino = os.fspath(ruta)
+    ahora = time.monotonic()
+    guardada = _cache_firmas.get(camino)
+    if guardada is not None and ahora - guardada[0] <= _TTL_FIRMAS:
+        return guardada[1], guardada[2], guardada[3]
+    try:
+        info = os.stat(camino)
+    except OSError:
+        resultado: tuple[int | None, float | None, bool] = (None, None, False)
+    else:
+        resultado = (info.st_mtime_ns, info.st_mtime, stat.S_ISDIR(info.st_mode))
+    _cache_firmas[camino] = (ahora, *resultado)
+    return resultado
+
+
+def invalidar_cache_firmas() -> None:
+    """Olvida las fechas cacheadas (tras escribir archivos o correr un script)."""
+    _cache_firmas.clear()
+
+
 def fecha_modificacion(ruta: os.PathLike | str) -> float | None:
     """Momento de la última modificación (segundos). None si no existe."""
-    camino = Path(ruta)
-    try:
-        return camino.stat().st_mtime
-    except OSError:
-        return None
+    return _stat_cache(ruta)[1]
 
 
 def fecha_mas_reciente(rutas) -> float | None:
     """La fecha más nueva entre varios archivos o carpetas."""
     fechas: list[float] = []
     for ruta in rutas:
-        camino = Path(ruta)
-        if camino.is_dir():
-            fechas.extend(f.stat().st_mtime for f in camino.rglob("*") if f.is_file())
-        elif camino.exists():
-            fechas.append(camino.stat().st_mtime)
+        mtime_ns, mtime, es_carpeta = _stat_cache(ruta)
+        if es_carpeta:
+            for archivo in _listar_contenido(os.fspath(ruta)):
+                marca = fecha_modificacion(archivo)
+                if marca is not None:
+                    fechas.append(marca)
+        elif mtime is not None:
+            fechas.append(mtime)
     return max(fechas) if fechas else None
+
+
+def firma_modificacion(ruta: os.PathLike | str) -> int | None:
+    """mtime en nanosegundos (más preciso que los segundos). None si no existe."""
+    return _stat_cache(ruta)[0]
+
+
+# Listado de carpetas cacheado: se vuelve a listar solo si la carpeta cambió
+# (si se agregó o borró un archivo, cambia su mtime).
+_cache_listados: dict[str, tuple[int | None, tuple[str, ...]]] = {}
+
+
+def _listar_contenido(carpeta: str) -> tuple[str, ...]:
+    """Archivos (recursivos) de una carpeta, cacheados por su mtime."""
+    firma = firma_modificacion(carpeta)
+    guardada = _cache_listados.get(carpeta)
+    if guardada is not None and guardada[0] == firma:
+        return guardada[1]
+    archivos: list[str] = []
+    for raiz, _dirs, nombres in os.walk(carpeta):
+        for nombre in nombres:
+            archivos.append(os.path.join(raiz, nombre))
+    archivos.sort()
+    resultado = tuple(archivos)
+    _cache_listados[carpeta] = (firma, resultado)
+    return resultado
+
+
+def firma_ruta(ruta: os.PathLike | str) -> int | None:
+    """mtime_ns de un archivo; de una carpeta, el más nuevo de su contenido."""
+    camino = os.fspath(ruta)
+    mtime_ns, _mtime, es_carpeta = _stat_cache(camino)
+    if mtime_ns is None:
+        return None
+    if not es_carpeta:
+        return mtime_ns
+    firmas = [
+        f for f in (firma_modificacion(a) for a in _listar_contenido(camino)) if f is not None
+    ]
+    return max(firmas) if firmas else mtime_ns
+
+
+def firma_mas_reciente(rutas) -> int | None:
+    """La firma (mtime_ns) más nueva entre varios archivos o carpetas."""
+    firmas = [f for f in (firma_ruta(r) for r in rutas) if f is not None]
+    return max(firmas) if firmas else None
 
 
 def huella(ruta: os.PathLike | str) -> str:
@@ -431,27 +524,107 @@ def huella(ruta: os.PathLike | str) -> str:
 # ---------------------------------------------------------------------------
 # Estructura (datos/estructura.json): el archivo central del proyecto
 # ---------------------------------------------------------------------------
+# Caché de la estructura: se relee solo si el archivo cambió (mtime/tamaño).
+# Antes se leía 16 veces por refresco de la app.
+_cache_estructura: tuple[Path, tuple[int, int] | None, dict] | None = None
+
+# Contador que cambia cada vez que se guarda un JSON del proyecto.
+# Lo usan las cachés de otros módulos (el semáforo) para invalidarse.
+_generacion_datos: int = 0
+
+
+def _firma_archivo(camino: Path) -> tuple[int, int] | None:
+    """(mtime_ns, tamaño) del archivo; None si no existe."""
+    try:
+        info = camino.stat()
+    except OSError:
+        return None
+    return (info.st_mtime_ns, info.st_size)
+
+
+def generacion_datos() -> int:
+    """Número de guardados JSON realizados desde que arrancó el programa.
+
+    Sirve para invalidar cachés de otros módulos (por ejemplo, el semáforo
+    de etapas) sin tener que adivinar qué archivos cambiaron.
+    """
+    return _generacion_datos
+
+
+def _invalidar_cache_estructura(camino: Path) -> None:
+    """Si se acaba de guardar la estructura, la caché vieja ya no sirve."""
+    global _cache_estructura
+    if _cache_estructura is not None and _cache_estructura[0] == Path(camino):
+        _cache_estructura = None
+
+
 def cargar_estructura() -> dict:
-    """Lee datos/estructura.json (diccionario vacío si no existe)."""
-    return leer_json(ESTRUCTURA, por_defecto={}) or {}
+    """Lee datos/estructura.json (diccionario vacío si no existe).
+
+    El contenido se cachea y se vuelve a leer solo cuando el archivo cambia
+    (o cuando se cambia de obra). Se devuelve una copia para que quien la
+    modifique no altere la caché por accidente.
+    """
+    global _cache_estructura
+    camino = Path(ESTRUCTURA)
+    firma = _firma_archivo(camino)
+    if (
+        _cache_estructura is not None
+        and _cache_estructura[0] == camino
+        and _cache_estructura[1] == firma
+    ):
+        return copy.deepcopy(_cache_estructura[2])
+    datos = leer_json(camino, por_defecto={}) or {}
+    _cache_estructura = (camino, firma, datos)
+    return copy.deepcopy(datos)
 
 
 def guardar_estructura(estructura: dict) -> Path:
-    return guardar_json(ESTRUCTURA, estructura)
+    global _cache_estructura
+    camino = guardar_json(ESTRUCTURA, estructura)
+    _cache_estructura = (camino, _firma_archivo(camino), copy.deepcopy(estructura))
+    return camino
 
 
 def listar_porticos() -> list[str]:
-    """Nombres de los pórticos cargados ('Portico 1', 'Portico 2', ...)."""
-    return list(cargar_estructura().keys())
+    """Nombres de los pórticos cargados ('Pórtico 1', 'Pórtico 2', ...).
+
+    Solo devuelve elementos que son realmente pórticos (tienen vigas y/o
+    columnas). Los muros estructurales (tipo == "muro") se excluyen porque
+    no se resuelven con el motor Pynite (pórtico plano): se verifican con
+    CIRSOC 501 (calc.mamposteria).
+    """
+    estructura = cargar_estructura()
+    return [
+        nombre
+        for nombre, datos in estructura.items()
+        if isinstance(datos, dict)
+        and str(datos.get("tipo", "")).lower() != "muro"
+        and (datos.get("vigas") or datos.get("columnas"))
+    ]
+
+
+def listar_muros() -> list[str]:
+    """Nombres de los muros estructurales cargados (tipo == "muro")."""
+    estructura = cargar_estructura()
+    return [
+        nombre
+        for nombre, datos in estructura.items()
+        if isinstance(datos, dict)
+        and str(datos.get("tipo", "")).lower() == "muro"
+    ]
 
 
 def proximo_nombre_portico() -> str:
     """
     Próximo nombre libre de pórtico. Respeta el criterio viejo de P00
     (cantidad de pórticos + 1) sin pisar nombres ya usados.
+
+    Usa "Pórtico N" con tilde: es la convención del resto del proyecto
+    (la app crea "Pórtico N" y los datos existentes usan esa forma).
     """
     existentes = set(listar_porticos())
     numero = len(existentes) + 1
-    while f"Portico {numero}" in existentes:
+    while f"Pórtico {numero}" in existentes or f"Portico {numero}" in existentes:
         numero += 1
-    return f"Portico {numero}"
+    return f"Pórtico {numero}"

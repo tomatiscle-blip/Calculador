@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 2517, in main
+    aplicacion = QApplication.instance() or QApplication(sys.argv)
+                                                         ^^^
+UnboundLocalError: cannot access local variable 'sys' where it is not associated with a value
