@@ -602,7 +602,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_ver_motor = QPushButton("Abrir el JSON del motor")
         self.boton_diagrama_momentos = QPushButton("Ver diagrama de momentos")
         self.boton_diagrama_momentos.setEnabled(False)
-        self.tabla_inicio = self._tabla(ENC_ENVOLVENTE)
+        self.tabla_envolvente = self._tabla(ENC_ENVOLVENTE)
         self.tabla_portico_resumen = self._tabla(("Elemento", "Cantidad", "Detalle"))
         self.ultimo_analisis: Path | None = None
 
@@ -808,17 +808,11 @@ class VentanaPrincipal(QMainWindow):
         form_portico = QFormLayout(grupo_portico)
         form_portico.addWidget(QLabel("Elegí el pórtico que mirás en este visor:"))
         form_portico.addWidget(self.combo_portico)
-        caja.addWidget(grupo_portico)
 
         panel_visor = QWidget()
         panel_visor.setMinimumSize(500, 400)
         caja_vista = QVBoxLayout(panel_visor)
         caja_vista.addWidget(self.scroll_vista_portico, 1)
-        caja.addWidget(panel_visor, 1)
-
-        fila_resumen = QHBoxLayout()
-        fila_resumen.addWidget(self.tabla_portico_resumen)
-        caja.addLayout(fila_resumen)
 
         grupo_motor = QGroupBox("Solicitaciones del pórtico")
         caja_motor = QVBoxLayout(grupo_motor)
@@ -829,9 +823,55 @@ class VentanaPrincipal(QMainWindow):
         fila_motor.addStretch(1)
         caja_motor.addLayout(fila_motor)
         caja_motor.addWidget(self.boton_diagrama_momentos)
-        caja.addWidget(grupo_motor)
+        caja_motor.addWidget(self.boton_eliminar_portico)
+
+        # Panel lateral (a la derecha de la imagen): controles y botones
+        panel_lateral_portico = QWidget()
+        caja_lateral = QVBoxLayout(panel_lateral_portico)
+        caja_lateral.setContentsMargins(0, 0, 0, 0)
+        caja_lateral.addWidget(grupo_portico)
+        caja_lateral.addWidget(grupo_motor)
+        caja_lateral.addStretch(1)
+
+        panel_lateral_portico.setMaximumWidth(260)
+        # Parte superior: imagen a la izquierda (más espacio), controles a la derecha
+        division_superior = QSplitter(Qt.Orientation.Horizontal)
+        division_superior.addWidget(panel_visor)
+        division_superior.addWidget(panel_lateral_portico)
+        division_superior.setStretchFactor(0, 5)
+        division_superior.setStretchFactor(1, 1)
+        division_superior.setSizes([900, 260])
+        division_superior.setChildrenCollapsible(False)
+
+        # Parte inferior: datos del pórtico (resumen + envolvente) en pantalla dividida
+        panel_datos = QWidget()
+        caja_datos = QVBoxLayout(panel_datos)
+        caja_datos.setContentsMargins(0, 0, 0, 0)
+        fila_resumen = QHBoxLayout()
+        fila_resumen.addWidget(self.tabla_portico_resumen)
+        caja_datos.addLayout(fila_resumen)
+        caja_datos.addWidget(QLabel("Envolvente del pórtico elegido (máximos en módulo, según el motor):"))
+        caja_datos.addWidget(self.tabla_envolvente, 1)
+
+        # La tabla de envolvente puede quedar contraída (solo encabezado) cuando el
+        # motor aún no corrió; garantizamos una altura mínima y que la última
+        # columna estire el ancho disponible para que la tabla no quede oculta.
+        header = self.tabla_envolvente.horizontalHeader()
+        header.setStretchLastSection(True)
+        self.tabla_envolvente.setMinimumHeight(130)
+        panel_datos.setMinimumHeight(160)
+
+        division_vertical = QSplitter(Qt.Orientation.Vertical)
+        division_vertical.addWidget(division_superior)
+        division_vertical.addWidget(panel_datos)
+        division_vertical.setStretchFactor(0, 3)
+        division_vertical.setStretchFactor(1, 2)
+        division_vertical.setSizes([700, 320])
+        division_vertical.setChildrenCollapsible(False)
+        caja.addWidget(division_vertical, 1)
 
         return pagina
+
 
     def _pagina_archivos(self) -> QWidget:
         pagina = QWidget()
@@ -1085,14 +1125,6 @@ class VentanaPrincipal(QMainWindow):
 
         self.etiqueta_inicio.setStyleSheet("font-size: 11pt;")
 
-        grupo_porticos = QGroupBox("Pórticos y muros de esta obra")
-        caja_porticos = QVBoxLayout(grupo_porticos)
-        for boton in (self.boton_crear_portico, self.boton_eliminar_portico):
-            boton.setMinimumHeight(34)
-            boton.setStyleSheet("QPushButton { padding: 5px 9px; font-weight: 600; }")
-            caja_porticos.addWidget(boton)
-        caja.addWidget(grupo_porticos)
-
         grupo_muros = QGroupBox("Muros de esta obra")
         caja_muros = QVBoxLayout(grupo_muros)
         self.combo_muro = QComboBox()
@@ -1143,6 +1175,9 @@ class VentanaPrincipal(QMainWindow):
             boton.setStyleSheet("QPushButton { padding: 4px 8px; }")
             referencias.addWidget(boton)
         estados.addLayout(referencias)
+        self.boton_crear_portico.setMinimumHeight(34)
+        self.boton_crear_portico.setStyleSheet("QPushButton { padding: 5px 9px; font-weight: 600; }")
+        estados.addWidget(self.boton_crear_portico)
         estados.addWidget(grupo_muros)   # "Crear muro", justo debajo de los ejes
         estados.addWidget(self.referencia_portico_inicio)
         estados.addWidget(grupo_accesos)
@@ -1197,9 +1232,6 @@ class VentanaPrincipal(QMainWindow):
         self.division_inicio.setChildrenCollapsible(False)
         self.division_inicio.setMinimumHeight(340)
         caja.addWidget(self.division_inicio, 5)
-
-        caja.addWidget(QLabel("Envolvente del pórtico elegido (máximos en módulo, según el motor):"))
-        caja.addWidget(self.tabla_inicio, 1)
         return pagina
 
     def _cargar_inicio(self, portico: str) -> None:
@@ -1427,7 +1459,7 @@ class VentanaPrincipal(QMainWindow):
                 "El motor usa las cargas guardadas en esta obra; no hace falta generar el TXT antes."
             )
         mostrar_envolvente = estado_motor["estado"] in ("ok", "pendiente")
-        self._llenar(self.tabla_inicio, filas if mostrar_envolvente else [])
+        self._llenar(self.tabla_envolvente, filas if mostrar_envolvente else [])
 
     def _guardar_ficha_proyecto(self) -> None:
         datos = cargas.datos_cargas()

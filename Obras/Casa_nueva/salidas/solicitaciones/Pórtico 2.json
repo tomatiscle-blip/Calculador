@@ -1,6 +1,6 @@
 {
   "portico": "Pórtico 2",
-  "generado": "2026-10-21 19:57",
+  "generado": "2026-10-22 10:40",
   "rigidez": {
     "EA": 15000.0,
     "EI": 5000.0
@@ -1595,5 +1595,5 @@
       }
     ]
   },
-  "_firma_entradas_motor": "f96b2322e965b68f1ae6c37fe12df9637222ad6892f15ac31606a949c3d9e2e9"
+  "_firma_entradas_motor": "ff84c50c589cdf14203781225792860b07cef16bbde6e67d9a7aec99a5f315be"
 }

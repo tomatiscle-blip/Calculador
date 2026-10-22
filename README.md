@@ -7,8 +7,8 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **19/10/2026**
-- Trabajo actual: **selector del pórtico activo en su pestaña y visor de planta por nivel** (19/10).
+- Última actualización: **22/10/2026**
+- Trabajo actual: **reorganización de Inicio (planta por nivel) y pestaña Pórticos** (22/10).
   - En **Inicio** ya no está el selector «Pórtico activo»: quedó en la pestaña **Pórticos**,
     arriba del esquema de elevación, así para cambiar de pórtico no hay que volver a Inicio.
     Inicio conserva los botones **Crear pórtico**, **Crear muro** y **Eliminar pórtico / muro**.
@@ -110,14 +110,18 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
 | Comparar los dos motores (anaStruct vs Pynite) | `py tools\comparar_motores.py` |
 
-La ventana tiene 8 pestañas: **Inicio** (estado del proyecto y solicitaciones),
-**Cargas**, **1 · Estado y etapas** (el semáforo en colores), **2 · Vigas**,
-**3 · Columnas**, **4 · Bases**, **5 · Losas** (lee las memorias) y **6 · Archivos**
-(doble clic abre el archivo con Excel, el visor de DXF, etc.). Columnas requiere
+La ventana tiene 10 pestañas: **Inicio** (carátula, planta por nivel y referencias), **Cargas**,
+**Pórticos** (selector + esquema de elevación + resumen), **1 · Estado y etapas** (el semáforo en
+colores), **2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas**, **6 · Muros** y
+**7 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.). Columnas requiere
 solicitaciones vigentes; bases requiere además columnas calculadas. Los parámetros
 geotécnicos se ingresan en su formulario y quedan guardados en `datos/terreno.json`.
 
 Para crear un pórtico nuevo, definí primero ejes X/Y y al menos dos niveles Z desde **Inicio**.
+> La aplicación está mutando desde un visor de pórticos 2D a una **planta de obra por nivel**:
+> Inicio ya muestra la planta con ejes, pórticos, muros, losas y referencias, y el selector de
+> pórtico activo vive en la pestaña **Pórticos**. El análisis sigue siendo 2D por pórtico.
+
 El asistente permite elegir el eje transversal (sin desfase), los ejes de columna en cada
 entrepiso, ver la ubicación en planta y distinguir pórticos existentes en gris. En niveles
 superiores, cada columna seleccionada tiene su propia coordenada acumulada editable. También
@@ -298,7 +302,7 @@ campos hasta que un flujo los necesite.
   y se rompían si el programa arrancaba desde otra carpeta).
 - `calc/pipeline.py` — las 10 etapas en orden, con entradas, salidas y **semáforo**.
 - `tools/regresion.py` — la red de seguridad (congela resultados y avisa si cambian).
-- `app/` — la ventana (PySide6, 8 pestañas) + `calculador.bat`; `estado.bat`,
+- `app/` — la ventana (PySide6, 10 pestañas) + `calculador.bat`; `estado.bat`,
   `ver_cambios.bat`; `requirements.txt` y `.gitignore`.
 
 ### Sin guardar en git (quedó a medias el 28/09)

@@ -866,44 +866,6 @@ class VistaPortico(QWidget):
             painter.setPen(QColor("#b91c1c"))
             painter.drawText(8, 17, self.aviso)
 
-        # ------------------------------------------------------------------
-        # Barra de referencia de niveles (línea punteada fina por cota)
-        # ------------------------------------------------------------------
-        if self.niveles:
-            cotas = [float(n["cota_m"]) for n in self.niveles]
-            cmin, cmax = min(cotas), max(cotas)
-            if cmax - cmin < 1e-6:
-                cmax = cmin + 1.0
-            y0 = self.height() - 22
-            y1 = self.height() - 8
-            x0 = 8
-            largo_barra = 110
-            for n in self.niveles:
-                cota = float(n["cota_m"])
-                t = (cota - cmin) / (cmax - cmin)
-                yy = int(y0 + t * (y1 - y0))
-                painter.setPen(QPen(QColor("#7c3aed"), 1, Qt.PenStyle.DashLine))
-                painter.drawLine(int(x0), yy, int(x0 + largo_barra), yy)
-                painter.setPen(QColor("#5b21b6"))
-                nombre = n.get("nombre", "?")
-                texto = f"{nombre}  {cota:g} m"
-                # Detectar si es el primer nivel (planta baja)
-                if cota == cmin:
-                    texto = f"PLANTA BAJA · {nombre}  {cota:g} m"
-                painter.drawText(int(x0 + largo_barra + 6), yy + 4, texto)
-
-        # Título de nivel activo (el primero de la lista, normalmente PB)
-        if self.niveles:
-            primero = self.niveles[0]
-            cota0 = float(primero.get("cota_m", 0.0))
-            nombre0 = primero.get("nombre", "PB")
-            painter.setPen(QColor("#5b21b6"))
-            painter.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-            painter.drawText(
-                8, 18,
-                f"Nivel activo: {nombre0}  ({cota0:g} m)",
-            )
-
     # ---------------------------------------------------------------------------
     # Dibujo de cargas sobre muro (exclusivo del visor de muro)
     # ---------------------------------------------------------------------------

@@ -310,6 +310,8 @@ class PaginaMuros(QWidget):
         self.boton_componer.clicked.connect(self._componer)
         self.boton_actualizar = QPushButton("Actualizar lista")
         self.boton_actualizar.clicked.connect(self.refrescar)
+        self.boton_eliminar_muro = QPushButton("Eliminar muro…")
+        self.boton_eliminar_muro.clicked.connect(self._eliminar_muro)
 
         fila = QHBoxLayout()
         fila.addWidget(self.lbl_muro_activo)
@@ -317,6 +319,7 @@ class PaginaMuros(QWidget):
         fila.addStretch(1)
         fila.addWidget(self.boton_componer)
         fila.addWidget(self.boton_actualizar)
+        fila.addWidget(self.boton_eliminar_muro)
 
         caja = QVBoxLayout(self)
         caja.addWidget(self.intro)
@@ -326,6 +329,33 @@ class PaginaMuros(QWidget):
         self.refrescar()
 
     # ------------------------------------------------------------------
+    def _eliminar_muro(self) -> None:
+        nombre = self.combo_muro_activo.currentText().strip()
+        if not nombre:
+            QMessageBox.information(self, "Sin muro", "No hay muro seleccionado.")
+            return
+        respuesta = QMessageBox.question(
+            self, "Eliminar muro", f"¿Eliminar «{nombre}» de la obra?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        estructura = rutas.cargar_estructura() or {}
+        if nombre in estructura:
+            del estructura[nombre]
+            try:
+                rutas.guardar_estructura(estructura)
+            except OSError as exc:
+                QMessageBox.critical(self, "No se pudo guardar", str(exc))
+                return
+        self.refrescar()
+        parent = self.parent()
+        if hasattr(parent, "refrescar"):
+            try:
+                parent.refrescar()
+            except Exception:
+                pass
+
     def _muros_estructurales(self) -> dict[str, dict]:
         estructura = rutas.cargar_estructura() or {}
         return {
