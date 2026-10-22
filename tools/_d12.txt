@@ -1,0 +1,75 @@
+2120|         # --- leyenda visual: muestra de color + símbolo por tipo de elemento ---
+2121|         tipos_presentes = sorted({t for t in escena["tipos_losa"].values()})
+2122|         leyenda_tipos = " · ".join(t.title() for t in tipos_presentes) if tipos_presentes else "sin losas"
+2123| 
+2124|         y_leyenda = 42
+2125|         fila = 16
+2126| 
+2127|         def _muestra_leyenda(y, color, simbolo, texto):
+2128|             nonlocal y_leyenda
+2129|             painter.save()
+2130|             painter.setPen(QPen(color, 2))
+2131|             painter.setBrush(QColor(color.red(), color.green(), color.blue(), 40))
+2132|             if simbolo == "cuadrado":
+2133|                 painter.drawRect(QRectF(QPointF(margen, y - 8), QPointF(margen + 14, y + 6)))
+2134|             elif simbolo == "linea":
+2135|                 painter.drawLine(QPointF(margen + 2, y - 1), QPointF(margen + 12, y - 1))
+2136|             elif simbolo == "triangulo":
+2137|                 painter.drawPolygon(QPolygonF([
+2138|                     QPointF(margen + 7, y - 6),
+2139|                     QPointF(margen + 2, y + 5),
+2140|                     QPointF(margen + 12, y + 5),
+2141|                 ]))
+2142|             painter.setPen(QColor("#334155"))
+2143|             painter.setFont(QFont(painter.font().family(), 9))
+2144|             painter.drawText(QPointF(margen + 20, y + 3), texto)
+2145|             painter.restore()
+2146|             y_leyenda += fila
+2147| 
+2148|         # Título de la leyenda
+2149|         painter.setPen(QPen(QColor("#475569"), 1))
+2150|         painter.setFont(QFont(painter.font().family(), 9, QFont.Weight.Bold))
+2151|         painter.drawText(QPointF(margen, y_leyenda - 4), "Leyenda:")
+2152|         y_leyenda += fila - 4
+2153| 
+2154|         _muestra_leyenda(y_leyenda, QColor("#1d4ed8"), "cuadrado", "Columna (nodo de planta)")
+2155|         _muestra_leyenda(y_leyenda, QColor("#92400e"), "linea", "Viga del nivel visible")
+2156|         _muestra_leyenda(y_leyenda, QColor("#7c3aed"), "triangulo", "Base / cimiento")
+2157|         _muestra_leyenda(y_leyenda, QColor("#7c3aed"), "triangulo", "Base compartida: bid (+N) = N bases/columnas en el mismo nodo físico")
+2158|         color_losa = QColor("#059669")
+2159|         _muestra_leyenda(y_leyenda, color_losa, "cuadrado", f"Losa ({leyenda_tipos})")
+2160|         _muestra_leyenda(y_leyenda, QColor("#dc2626"), "linea", "Muro")
+2161|         _muestra_leyenda(y_leyenda, QColor("#94a3b8"), "linea", "Proyección de otro nivel (punteado)")
+2162|         _muestra_leyenda(y_leyenda, QColor("#1d4ed8"), "linea", "Eje de pórtico (punteado fino)")
+2163| 
+2164|         painter.setPen(QPen(QColor("#334155"), 1))
+2165|         painter.drawText(
+2166|             QPointF(margen, self.height() - 30),
+2167|             f"Columnas: {conteo['columnas']}  ·  Vigas: {conteo['vigas']}  ·  "
+2168|             f"Bases: {conteo['bases']}  ·  Losas: {conteo['losas']}  ·  "
+2169|             f"Muros: {conteo['muros']}",
+2170|         )
+2171|         nota = "Solo se dibujan los elementos del nivel elegido"
+2172|         if escena["etiquetas"]:
+2173|             nota += "  ·  Sin posición en planta: " + ", ".join(escena["etiquetas"][:4])
+2174|             if len(escena["etiquetas"]) > 4:
+2175|                 nota += f" (+{len(escena['etiquetas']) - 4})"
+2176|         painter.setPen(QPen(QColor("#94a3b8"), 1))
+2177|         painter.drawText(QPointF(margen, self.height() - 12), nota)
+2178| 
+2179|     def wheelEvent(self, event):
+2180|         """Zoom con la rueda del mouse: adelante acerca, atrás aleja."""
+2181|         delta = event.angleDelta().y()
+2182|         if delta > 0:
+2183|             self.zoom_factor = min(self.zoom_factor * 1.15, 4.0)
+2184|         else:
+2185|             self.zoom_factor = max(self.zoom_factor / 1.15, 0.25)
+2186|         self.update()
+2187| 
+2188| 
+2189| 
+2190| 
+2191| 
+2192| 
+2193| 
+2194| 

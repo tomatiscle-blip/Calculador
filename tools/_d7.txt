@@ -1,0 +1,34 @@
+1627|                         "nota": "techo del nivel",
+1628|                     })
+1629|                     rotulos.append(self._rotulo(
+1630|                         x=(p0[0] + p1[0]) / 2,
+1631|                         y=(p0[1] + p1[1]) / 2,
+1632|                         texto=f"{vid} (techo)",
+1633|                         direccion=direccion,
+1634|                         color="#b45309",
+1635|                         prioridad=4,
+1636|                         desplazamiento=10.0,
+1637|                     ))
+1638| 
+1639|             bases = []
+1640|             if self._en_nivel(cota_base):
+1641|                 for bid, base in bases_datos.items():
+1642|                     if not isinstance(base, dict):
+1643|                         continue
+1644|                     x = self._numero(base.get("x"))
+1645|                     if x is None:
+1646|                         continue
+1647|                     punto = self._punto(geom, x)
+1648|                     puntos.append(punto)
+1649|                     bases.append((str(bid), punto))
+1650|                     # Identidad global única de la base: punto global redondeado.
+1651|                     clave = (round(punto[0], 3), round(punto[1], 3))
+1652|                     bases_globales.setdefault(clave, []).append({
+1653|                         "bid": str(bid),
+1654|                         "punto": punto,
+1655|                         "portico": str(nombre),
+1656|                     })
+1657| 
+1658|             porticos.append({
+1659|                 "nombre": str(nombre),
+1660|                 "activo": str(nombre) == str(self.portico_activo),

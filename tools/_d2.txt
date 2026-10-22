@@ -1,0 +1,131 @@
+1200|         metricas = QFontMetricsF(fuente_base)
+1201|         colocados: list[QRectF] = []
+1202|         resultado: list[tuple[dict, QRectF]] = []
+1203|         for rot in sorted(rotulos, key=lambda item: item["prioridad"]):
+1204|             texto = rot["texto"]
+1205|             if not texto:
+1206|                 continue
+1207|             fuente = QFont(fuente_base)
+1208|             if rot.get("tamano"):
+1209|                 fuente.setPointSize(int(rot["tamano"]))
+1210|             fuente.setBold(int(rot["prioridad"]) <= 2)
+1211|             metricas = QFontMetricsF(fuente)
+1212|             ancho = metricas.horizontalAdvance(texto)
+1213|             alto = metricas.height()
+1214|             if rot["giro"]:
+1215|                 ancho, alto = alto, ancho
+1216|             cx = px(rot["x"])
+1217|             cy = py(rot["y"])
+1218|             rect = QRectF(cx - ancho / 2, cy - alto / 2, ancho, alto)
+1219|             paso = rot["desplazamiento"] or 14.0
+1220|             if rot["desplazamiento"]:
+1221|                 # El rótulo se aparta de la línea del elemento (perpendicular).
+1222|                 if rot["giro"]:
+1223|                     rect.translate(paso, 0)
+1224|                 else:
+1225|                     rect.translate(0, -paso)
+1226| 
+1227|             limite = 2.0
+1228|             ancho_widget = float(self.width())
+1229|             alto_widget = float(self.height())
+1230| 
+1231|             def _ajustar(caja):
+1232|                 """Mueve la caja para que no se salga del widget."""
+1233|                 dx = dy = 0.0
+1234|                 if caja.left() < limite:
+1235|                     dx = limite - caja.left()
+1236|                 elif caja.right() > ancho_widget - limite:
+1237|                     dx = ancho_widget - limite - caja.right()
+1238|                 if caja.top() < limite:
+1239|                     dy = limite - caja.top()
+1240|                 elif caja.bottom() > alto_widget - limite:
+1241|                     dy = alto_widget - limite - caja.bottom()
+1242|                 if not dx and not dy:
+1243|                     return caja
+1244|                 return QRectF(caja).translated(dx, dy)
+1245| 
+1246|             # Búsqueda de hueco: se recorre una espiral de posiciones alrededor
+1247|             # del rótulo (empezando por la perpendicular al texto) hasta
+1248|             # encontrar un lugar libre. Con muchos rótulos cerca (columnas en
+1249|             # grilla, pórticos que se cruzan) hace falta explorar en las dos
+1250|             # dimensiones, no solo a lo largo de un eje.
+1251|             candidato = rect
+1252|             intentos = 0
+1253|             max_intentos = 48
+1254|             offsets = (
+1255|                 (0, -1), (0, 1), (-1, 0), (1, 0),
+1256|                 (-1, -1), (1, 1), (-1, 1), (1, -1),
+1257|             )
+1258|             while True:
+1259|                 candidato = _ajustar(candidato)
+1260|                 if not any(candidato.intersects(otro) for otro in colocados):
+1261|                     break
+1262|                 intentos += 1
+1263|                 if intentos >= max_intentos:
+1264|                     candidato = None
+1265|                     break
+1266|                 fila, columna = offsets[(intentos - 1) % len(offsets)]
+1267|                 anillo = intentos // len(offsets) + 1
+1268|                 salto = paso * anillo
+1269|                 if rot["giro"]:
+1270|                     # Texto vertical: la perpendicular al texto es la horizontal.
+1271|                     dx = salto * fila
+1272|                     dy = salto * columna * 0.6
+1273|                 else:
+1274|                     # Texto horizontal: la perpendicular al texto es la vertical.
+1275|                     dy = salto * fila
+1276|                     dx = salto * columna * 0.6
+1277|                 candidato = QRectF(rect)
+1278|                 candidato.translate(QPointF(dx, dy))
+1279|             if candidato is None:
+1280|                 continue  # no hay lugar: mejor omitirlo que tapar otro rótulo
+1281|             colocados.append(candidato)
+1282|             resultado.append((rot, candidato))
+1283|         return resultado
+1284| 
+1285|     def _pintar_rotulos(self, painter, rotulos, px, py):
+1286|         """Dibuja los rótulos de planta centrados y sin superponerse.
+1287| 
+1288|         Cada rótulo se dibuja centrado en su elemento y con la orientación del
+1289|         eje al que pertenece. Si dos rótulos se superponen, el de menor
+1290|         prioridad (el más reciente) se corre lo necesario para separarse; si
+1291|         no hay lugar, se omite para no ensuciar el dibujo.
+1292|         """
+1293|         if not rotulos:
+1294|             return
+1295|         for rot, rect in self._colocar_rotulos(rotulos, px, py):
+1296|             texto = rot["texto"]
+1297|             fuente = QFont(self.font())
+1298|             fuente.setPointSize(max(9, fuente.pointSize() or 9))
+1299|             if rot.get("tamano"):
+1300|                 fuente.setPointSize(int(rot["tamano"]))
+1301|             fuente.setBold(int(rot["prioridad"]) <= 2)
+1302|             metricas = QFontMetricsF(fuente)
+1303|             ancho = metricas.horizontalAdvance(texto)
+1304|             alto = metricas.height()
+1305|             if rot["giro"]:
+1306|                 ancho, alto = alto, ancho
+1307|             painter.save()
+1308|             painter.setFont(fuente)
+1309|             painter.setPen(QPen(QColor(rot["color"]), 1))
+1310|             painter.translate(rect.center().x(), rect.center().y())
+1311|             if rot["giro"]:
+1312|                 painter.rotate(rot["giro"])
+1313|             painter.drawText(
+1314|                 QRectF(-ancho / 2, -alto / 2, ancho, alto),
+1315|                 Qt.AlignmentFlag.AlignCenter,
+1316|                 texto,
+1317|             )
+1318|             painter.restore()
+1319| 
+1320|     def _apoyo_losa(self, datos_losa, panel, rect, lado):
+1321|         """Punto de planta (x, y) y texto de un apoyo de losa (izq/der).
+1322| 
+1323|         La losa tiene dos bordes de apoyo, dados por la dirección de la luz:
+1324|         con luz en X los apoyos están sobre los bordes X del paño y con luz en
+1325|         Y sobre los bordes Y. El punto devuelto está en el medio del borde, que
+1326|         es donde se apoya la losa. Se devuelve ``None`` si el apoyo no está
+1327|         declarado o si no se puede verificar (pórtico inexistente, viga que no
+1328|         cubre el borde, muro sin posición).
+1329|         """
+1330|         apoyos = datos_losa.get("apoya_en") or {}

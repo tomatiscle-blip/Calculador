@@ -971,6 +971,23 @@ class VistaPlantaPorticos(QWidget):
 
     TOL = 0.01  # tolerancia (m) al comparar cotas de nivel
 
+    # --- Paleta visual de la planta ---------------------------------------
+    # Cada familia de elementos tiene color y símbolo propios para que se
+    # distingan de un vistazo (y coincidan con la leyenda).
+    COLOR_EJE = "#cbd5e1"            # grilla de ejes: referencia, punteada
+    COLOR_EJE_BURBUJA = "#ffffff"    # fondo de la burbuja de identificación
+    COLOR_EJE_BORDE = "#475569"      # borde de la burbuja de eje
+    COLOR_PORTICO = "#64748b"        # pórtico inactivo
+    COLOR_PORTICO_ACTIVO = "#1e3a8a"  # pórtico activo
+    COLOR_VIGA = "#b45309"           # viga del nivel visible
+    COLOR_VIGA_BORDE = "#7c2d12"     # contorno de la viga
+    COLOR_MURO = "#dc2626"           # muro: banda maciza
+    COLOR_MURO_BORDE = "#7f1d1d"     # contorno del muro
+    COLOR_COLUMNA = "#2563eb"        # columna activa: nodo de planta
+    COLOR_COLUMNA_INACTIVA = "#93c5fd"  # columna de pórtico inactivo
+    COLOR_BASE = "#7c3aed"           # base: triángulo
+    COLOR_APOYO = "#db2777"          # apoyo de losa: círculo hueco
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(500, 400)
@@ -983,6 +1000,52 @@ class VistaPlantaPorticos(QWidget):
         self.portico_activo = ""
         self.nivel_activo = None  # cota Z del nivel filtrado; None = todos
         self.zoom_factor = 1.0  # multiplicador de escala para zoom con rueda
+        # Paneo por arrastre: desplazamiento de la vista en píxeles.
+        self.desplazamiento_x = 0.0
+        self.desplazamiento_y = 0.0
+        self._arrastrando = False
+        self._posicion_arrastre = None
+
+    # ------------------------------------------------------------------
+    # Vista: zoom, paneo y reencuadre
+    # ------------------------------------------------------------------
+    def reiniciar_vista(self) -> None:
+        """Vuelve al encuadre original (sin zoom ni desplazamiento)."""
+        self.zoom_factor = 1.0
+        self.desplazamiento_x = 0.0
+        self.desplazamiento_y = 0.0
+        self.update()
+
+    def mousePressEvent(self, event):
+        """Arrastre con el botón izquierdo: mueve la planta (paneo)."""
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mousePressEvent(event)
+            return
+        self._arrastrando = True
+        self._posicion_arrastre = event.position()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def mouseMoveEvent(self, event):
+        """Sigue el arrastre: desplaza el encuadre en píxeles."""
+        if not self._arrastrando or self._posicion_arrastre is None:
+            super().mouseMoveEvent(event)
+            return
+        posicion = event.position()
+        delta = posicion - self._posicion_arrastre
+        self.desplazamiento_x += delta.x()
+        self.desplazamiento_y += delta.y()
+        self._posicion_arrastre = posicion
+        self.update()
+
+    def mouseReleaseEvent(self, event):
+        """Termina el arrastre."""
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mouseReleaseEvent(event)
+            return
+        self._arrastrando = False
+        self._posicion_arrastre = None
+        self.unsetCursor()
+        self.update()
 
     # ------------------------------------------------------------------
     # Datos de entrada
@@ -1167,13 +1230,18 @@ class VistaPlantaPorticos(QWidget):
         return None
 
     def _rotulo(self, x, y, texto, direccion="x", color="#334155", prioridad=5,
-                desplazamiento=0.0, tamano=None):
+                desplazamiento=0.0, tamano=None, flotante=True):
         """Rótulo de planta orientado según el eje del elemento.
 
         ``direccion`` es la familia de ejes por la que corre el elemento: con
         "x" el texto queda horizontal (lee en el sentido X) y con "y" queda
         vertical, para que el rótulo siga la dirección de la viga, el muro o el
         pórtico en lugar de cruzarse con él.
+
+        ``flotante`` marca los rótulos técnicos dispersos (nombres de vigas,
+        muros, columnas, bases, losas...). Se conservan en la escena para
+        poder consultarlos, pero no se dibujan sobre el plano: el dibujo se
+        mantiene limpio y la información queda en la leyenda.
         """
         return {
             "x": float(x),
@@ -1184,6 +1252,7 @@ class VistaPlantaPorticos(QWidget):
             "prioridad": int(prioridad),
             "desplazamiento": float(desplazamiento),
             "tamano": tamano,
+            "flotante": bool(flotante),
         }
 
     def _colocar_rotulos(self, rotulos, px, py):
@@ -1289,10 +1358,15 @@ class VistaPlantaPorticos(QWidget):
         eje al que pertenece. Si dos rótulos se superponen, el de menor
         prioridad (el más reciente) se corre lo necesario para separarse; si
         no hay lugar, se omite para no ensuciar el dibujo.
+
+        Los rótulos marcados como ``flotante`` (rótulos técnicos dispersos) se
+        conservan en la escena pero no se dibujan: el plano queda limpio y la
+        información sigue disponible en la leyenda y en las consultas.
         """
         if not rotulos:
             return
-        for rot, rect in self._colocar_rotulos(rotulos, px, py):
+        visibles = [rot for rot in rotulos if not rot.get("flotante", False)]
+        for rot, rect in self._colocar_rotulos(visibles, px, py):
             texto = rot["texto"]
             fuente = QFont(self.font())
             fuente.setPointSize(max(9, fuente.pointSize() or 9))
@@ -1498,6 +1572,8 @@ class VistaPlantaPorticos(QWidget):
                         color="#b91c1c",
                         prioridad=2,
                         desplazamiento=12.0,
+                        # Solo se rotula el muro activo.
+                        flotante=str(nombre) != str(self.portico_activo),
                     ))
                     conteo["muros"] += 1
                 elif en_nivel:
@@ -1607,6 +1683,8 @@ class VistaPlantaPorticos(QWidget):
                         color="#b45309",
                         prioridad=3,
                         desplazamiento=10.0,
+                        # Rótulo técnico: no se dibuja sobre el plano.
+                        flotante=True,
                     ))
                     conteo["vigas"] += 1
                 elif (
@@ -1634,6 +1712,8 @@ class VistaPlantaPorticos(QWidget):
                         color="#b45309",
                         prioridad=4,
                         desplazamiento=10.0,
+                        # Rótulo técnico: no se dibuja sobre el plano.
+                        flotante=True,
                     ))
 
             bases = []
@@ -1675,6 +1755,9 @@ class VistaPlantaPorticos(QWidget):
                 color="#1d4ed8" if str(nombre) == str(self.portico_activo) else "#475569",
                 prioridad=0,
                 desplazamiento=14.0,
+                # Solo se rotula el pórtico activo: los demás nombres son
+                # rótulos técnicos que ensucian el plano.
+                flotante=str(nombre) != str(self.portico_activo),
             ))
 
         # Columnas únicas por coordenada global: las columnas en cruces de ejes
@@ -1728,6 +1811,8 @@ class VistaPlantaPorticos(QWidget):
                 color="#1d4ed8" if es_activa else "#475569",
                 prioridad=2,
                 desplazamiento=13.0,
+                # Solo se rotulan las columnas del pórtico activo.
+                flotante=not es_activa,
             ))
         # Bases únicas por coordenada global: bases que comparten el mismo
         # punto físico (aunque tengan base_id distintos) se dibujan una vez.
@@ -1770,6 +1855,8 @@ class VistaPlantaPorticos(QWidget):
                 color="#5b21b6",
                 prioridad=3,
                 desplazamiento=20.0,
+                # Rótulo técnico: no se dibuja sobre el plano.
+                flotante=True,
             ))
 
         # ---------------- losas ----------------
@@ -1825,6 +1912,8 @@ class VistaPlantaPorticos(QWidget):
                 direccion=direccion_luz,
                 color="#047857",
                 prioridad=4,
+                # Rótulo técnico: no se dibuja sobre el plano.
+                flotante=True,
             ))
             # Marcas de apoyo en los bordes del paño.
             conteo["losas"] += 1
@@ -1882,8 +1971,10 @@ class VistaPlantaPorticos(QWidget):
             max(self.width() - 2 * margen_x, 1.0) / rango_x,
             max(self.height() - 2 * margen_y, 1.0) / rango_y,
         ) * 0.92 * self.zoom_factor
-        ox = (self.width() - rango_x * escala) / 2
-        oy = (self.height() - rango_y * escala) / 2
+        # El desplazamiento (paneo por arrastre) se aplica al origen: mover la
+        # vista no cambia la escala ni el encuadre de la obra.
+        ox = (self.width() - rango_x * escala) / 2 + self.desplazamiento_x
+        oy = (self.height() - rango_y * escala) / 2 + self.desplazamiento_y
 
         def px(x):
             return ox + (x - xmin) * escala
@@ -1912,23 +2003,27 @@ class VistaPlantaPorticos(QWidget):
 
         margen = 10.0
 
-        # --- grilla de ejes con burbujas (como en plano) ---
-        painter.setPen(QPen(QColor("#94a3b8"), 1))
+        # --- grilla de ejes: fina, punteada y muy clara (solo referencia) ---
+        painter.setPen(QPen(QColor(self.COLOR_EJE), 1, Qt.PenStyle.DashLine))
         fuente_eje = QFont(painter.font().family(), 10, QFont.Weight.Bold)
         painter.setFont(fuente_eje)
         metricas_eje = QFontMetricsF(fuente_eje)
 
-        def _burbuja(centro, texto, offset_extra=0.0):
+        def _burbuja(ancla, texto, offset=QPointF(0.0, 0.0)):
             """Dibuja la burbuja de un eje con radio según el texto.
 
-            ``offset_extra`` permite escalonar las burbujas de ejes muy juntos
-            para que no se pisen entre sí.
+            ``ancla`` es el punto del eje y ``offset`` separa la burbuja del
+            perímetro exterior de la obra (siempre hacia afuera, nunca sobre
+            el plano). Se traza una guía fina que une la burbuja con su eje.
             """
             ancho = metricas_eje.horizontalAdvance(texto) + 10.0
             radio = max(13.0, min(ancho / 2 + 2.0, 30.0))
-            centro = QPointF(centro.x(), centro.y() + offset_extra)
-            painter.setPen(QPen(QColor("#475569"), 1.5))
-            painter.setBrush(QColor("#ffffff"))
+            centro = QPointF(ancla.x() + offset.x(), ancla.y() + offset.y())
+            # Guía del eje hacia la burbuja.
+            painter.setPen(QPen(QColor(self.COLOR_EJE_BORDE), 1, Qt.PenStyle.DotLine))
+            painter.drawLine(ancla, centro)
+            painter.setPen(QPen(QColor(self.COLOR_EJE_BORDE), 1.5))
+            painter.setBrush(QColor(self.COLOR_EJE_BURBUJA))
             painter.drawEllipse(centro, radio, radio)
             painter.setPen(QColor("#1e293b"))
             painter.drawText(
@@ -1937,15 +2032,15 @@ class VistaPlantaPorticos(QWidget):
             )
             return radio
 
-        # Burbujas de ejes X (arriba). Si dos quedan demasiado juntas, la
-        # segunda baja a una fila aparte para no taparse.
+        # Burbujas de ejes X: por debajo del perímetro exterior. Si dos ejes
+        # quedan demasiado juntos, la segunda baja otra fila (más afuera).
         ultimo_x = None
         fila_x = 0
         for item in self.ejes.get("x", []):
             c = self._numero(item.get("coordenada_m"))
             if c is None:
                 continue
-            painter.setPen(QPen(QColor("#cbd5e1"), 1))
+            painter.setPen(QPen(QColor(self.COLOR_EJE), 1, Qt.PenStyle.DashLine))
             painter.drawLine(QPointF(px(c), py(ymin)), QPointF(px(c), py(ymax)))
             nombre = str(item.get("nombre", item.get("id", "?")))
             x_px = px(c)
@@ -1954,16 +2049,21 @@ class VistaPlantaPorticos(QWidget):
             else:
                 fila_x = 0
             ultimo_x = x_px
-            _burbuja(QPointF(x_px, py(ymin) - 24), nombre, 26.0 * fila_x)
+            _burbuja(
+                QPointF(x_px, py(ymin)),
+                nombre,
+                QPointF(0.0, 26.0 + 26.0 * fila_x),
+            )
 
-        # Burbujas de ejes Y (izquierda), con el mismo escalonado.
+        # Burbujas de ejes Y: a la izquierda del perímetro exterior, con el
+        # mismo escalonado hacia afuera.
         ultimo_y = None
         fila_y = 0
         for item in self.ejes.get("y", []):
             c = self._numero(item.get("coordenada_m"))
             if c is None:
                 continue
-            painter.setPen(QPen(QColor("#cbd5e1"), 1))
+            painter.setPen(QPen(QColor(self.COLOR_EJE), 1, Qt.PenStyle.DashLine))
             painter.drawLine(QPointF(px(xmin), py(c)), QPointF(px(xmax), py(c)))
             nombre = str(item.get("nombre", item.get("id", "?")))
             y_px = py(c)
@@ -1972,7 +2072,11 @@ class VistaPlantaPorticos(QWidget):
             else:
                 fila_y = 0
             ultimo_y = y_px
-            _burbuja(QPointF(px(xmin) - 28, y_px), nombre, 26.0 * fila_y)
+            _burbuja(
+                QPointF(px(xmin), y_px),
+                nombre,
+                QPointF(-30.0 - 26.0 * fila_y, 0.0),
+            )
 
         # --- losas primero (fondo): color según tipo de losa ---
         color_por_tipo = {
@@ -2000,8 +2104,10 @@ class VistaPlantaPorticos(QWidget):
                 p2 = QPointF(px(muro["posicion"] + espesor / 2), py(muro["x0"]))
                 p3 = QPointF(px(muro["posicion"] + espesor / 2), py(muro["x1"]))
                 p4 = QPointF(px(muro["posicion"] - espesor / 2), py(muro["x1"]))
-            painter.setPen(QPen(QColor("#7f1d1d"), 2))
-            painter.setBrush(QColor(220, 38, 38, 110))
+            painter.setPen(QPen(QColor(self.COLOR_MURO_BORDE), 2))
+            color_muro = QColor(self.COLOR_MURO)
+            color_muro.setAlpha(120)
+            painter.setBrush(color_muro)
             painter.drawPolygon(QPolygonF([p1, p2, p3, p4]))
 
         # --- pórticos: eje fino + elementos gruesos del nivel ---
@@ -2009,7 +2115,7 @@ class VistaPlantaPorticos(QWidget):
         painter.setFont(fuente_el)
         for portico in escena["porticos"]:
             activo = portico["activo"]
-            color = QColor("#1d4ed8") if activo else QColor("#475569")
+            color = QColor(self.COLOR_PORTICO_ACTIVO if activo else self.COLOR_PORTICO)
             p0 = portico["eje_p0"]
             p1 = portico["eje_p1"]
 
@@ -2017,9 +2123,11 @@ class VistaPlantaPorticos(QWidget):
             painter.setPen(QPen(color, 1, Qt.PenStyle.DotLine))
             painter.drawLine(QPointF(px(p0[0]), py(p0[1])), QPointF(px(p1[0]), py(p1[1])))
 
-            # Vigas del nivel (línea gruesa marrón).
+            # Vigas del nivel (banda gruesa, color propio).
             for vid, a, b in portico["vigas"]:
-                painter.setPen(QPen(QColor("#92400e"), 5 if activo else 4))
+                painter.setPen(QPen(QColor(self.COLOR_VIGA), 6 if activo else 5))
+                painter.drawLine(QPointF(px(a[0]), py(a[1])), QPointF(px(b[0]), py(b[1])))
+                painter.setPen(QPen(QColor(self.COLOR_VIGA_BORDE), 1, Qt.PenStyle.SolidLine))
                 painter.drawLine(QPointF(px(a[0]), py(a[1])), QPointF(px(b[0]), py(b[1])))
 
             # Bases: se dibujan una sola vez por coordenada global (bases_unicas),
@@ -2038,9 +2146,9 @@ class VistaPlantaPorticos(QWidget):
                 porticos_por_nombre.get(pn, {}).get("activo", False)
                 for pn in col.get("porticos", [])
             )
-            col_color = QColor("#1d4ed8") if es_activa else QColor("#475569")
-            painter.setPen(QPen(col_color, 2))
-            painter.setBrush(QColor(col_color.red(), col_color.green(), col_color.blue(), 90))
+            col_color = QColor(self.COLOR_COLUMNA if es_activa else self.COLOR_COLUMNA_INACTIVA)
+            painter.setPen(QPen(QColor("#0f172a"), 1))
+            painter.setBrush(col_color)
             painter.drawRect(cx - 6, cy - 6, 12, 12)
 
         # --- bases: una sola vez por coordenada global (el nombre lo dibuja
@@ -2048,8 +2156,8 @@ class VistaPlantaPorticos(QWidget):
         for base in escena.get("bases_unicas", []):
             punto = base["punto"]
             cx, cy = px(punto[0]), py(punto[1])
-            painter.setPen(QPen(QColor("#7c3aed"), 1.5))
-            painter.setBrush(QColor(124, 58, 237, 120))
+            painter.setPen(QPen(QColor("#4c1d95"), 1.5))
+            painter.setBrush(QColor(self.COLOR_BASE))
             painter.drawPolygon(QPolygonF([
                 QPointF(cx, cy + 6),
                 QPointF(cx - 7, cy + 18),
@@ -2079,23 +2187,14 @@ class VistaPlantaPorticos(QWidget):
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawPolygon(QPolygonF([p1, p2, p3, p4]))
 
-        # --- marcas de apoyo de losas ---
+        # --- marcas de apoyo de losas: círculo hueco con color propio ---
         for apoyo in escena["apoyos_losa"]:
             cx, cy = px(apoyo["x"]), py(apoyo["y"])
-            painter.setPen(QPen(QColor("#b45309"), 2))
-            painter.setBrush(QColor(180, 83, 9, 70))
+            painter.setPen(QPen(QColor(self.COLOR_APOYO), 2))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QPointF(cx, cy), 5, 5)
-            # El apoyo se marca sobre el borde del paño, con la viga/muro que
-            # lo recibe orientado según la luz de la losa.
-            painter.setPen(QPen(QColor("#92400e"), 1))
-            if apoyo["direccion_luz"] == "x":
-                painter.drawText(QPointF(cx + 7, cy - 4), apoyo["texto"])
-            else:
-                painter.save()
-                painter.translate(cx + 7, cy - 4)
-                painter.rotate(90)
-                painter.drawText(QPointF(0, 0), apoyo["texto"])
-                painter.restore()
+            # El texto del apoyo es un rótulo técnico: no se dibuja aquí
+            # (queda disponible en la escena), para no tapar el elemento.
 
         # --- rótulos orientados según el eje, sin superposición ---
         self._pintar_rotulos(painter, escena["rotulos"], px, py)
@@ -2121,45 +2220,96 @@ class VistaPlantaPorticos(QWidget):
         tipos_presentes = sorted({t for t in escena["tipos_losa"].values()})
         leyenda_tipos = " · ".join(t.title() for t in tipos_presentes) if tipos_presentes else "sin losas"
 
-        y_leyenda = 42
-        fila = 16
+        # La leyenda se dibuja como un panel en la esquina inferior derecha:
+        # las burbujas de ejes ocupan los márgenes superior e izquierdo, y el
+        # pie de texto ocupa la esquina inferior izquierda.
+        entradas_leyenda = [
+            (self.COLOR_COLUMNA, "cuadrado", "Columna activa (nodo de planta)"),
+            (self.COLOR_COLUMNA_INACTIVA, "cuadrado", "Columna de pórtico inactivo"),
+            (self.COLOR_VIGA, "linea", "Viga del nivel visible"),
+            (self.COLOR_BASE, "triangulo", "Base / cimiento"),
+            (self.COLOR_BASE, "triangulo", "Base compartida: bid (+N) = N bases/columnas"),
+            ("#059669", "cuadrado", f"Losa ({leyenda_tipos})"),
+            (self.COLOR_MURO, "linea", "Muro"),
+            (self.COLOR_APOYO, "circulo", "Apoyo de losa"),
+            ("#94a3b8", "linea", "Proyección de otro nivel (punteado)"),
+            (self.COLOR_PORTICO, "linea", "Eje de pórtico inactivo (punteado fino)"),
+            (self.COLOR_PORTICO_ACTIVO, "linea", "Eje de pórtico activo"),
+            (self.COLOR_EJE, "linea", "Ejes de la obra (punteado claro)"),
+        ]
 
-        def _muestra_leyenda(y, color, simbolo, texto):
-            nonlocal y_leyenda
+        _tam_leyenda = 9
+
+        def _muestra_leyenda(y, color, simbolo, texto, x_texto=margen + 20):
             painter.save()
-            painter.setPen(QPen(color, 2))
-            painter.setBrush(QColor(color.red(), color.green(), color.blue(), 40))
+            painter.setPen(QPen(QColor(color), 2))
+            painter.setBrush(QColor(QColor(color).red(), QColor(color).green(), QColor(color).blue(), 40))
             if simbolo == "cuadrado":
-                painter.drawRect(QRectF(QPointF(margen, y - 8), QPointF(margen + 14, y + 6)))
+                painter.drawRect(QRectF(QPointF(x_texto - 20, y - 8), QPointF(x_texto - 6, y + 6)))
             elif simbolo == "linea":
-                painter.drawLine(QPointF(margen + 2, y - 1), QPointF(margen + 12, y - 1))
+                painter.drawLine(QPointF(x_texto - 18, y - 1), QPointF(x_texto - 8, y - 1))
             elif simbolo == "triangulo":
                 painter.drawPolygon(QPolygonF([
-                    QPointF(margen + 7, y - 6),
-                    QPointF(margen + 2, y + 5),
-                    QPointF(margen + 12, y + 5),
+                    QPointF(x_texto - 13, y - 6),
+                    QPointF(x_texto - 18, y + 5),
+                    QPointF(x_texto - 8, y + 5),
                 ]))
+            elif simbolo == "circulo":
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawEllipse(QPointF(x_texto - 13, y - 1), 5, 5)
+                painter.setBrush(QColor(QColor(color).red(), QColor(color).green(), QColor(color).blue(), 40))
             painter.setPen(QColor("#334155"))
-            painter.setFont(QFont(painter.font().family(), 9))
-            painter.drawText(QPointF(margen + 20, y + 3), texto)
+            painter.setFont(QFont(painter.font().family(), _tam_leyenda))
+            painter.drawText(QPointF(x_texto, y + 3), texto)
             painter.restore()
-            y_leyenda += fila
 
-        # Título de la leyenda
+        # --- panel de leyenda (esquina inferior derecha) ---
+        # Se busca el tamaño de fuente más grande con el que la leyenda entre
+        # en el ancho disponible; si no entra de ninguna forma, se dibuja
+        # arriba a la derecha (zona libre de burbujas de ejes).
+        _ancho_disponible = self.width() - 2 * margen - 24.0
+        _fuente_leyenda = QFont(painter.font().family(), 9)
+        _metricas_leyenda = QFontMetricsF(_fuente_leyenda)
+        _ancho_leyenda = 0
+        for _color, _sim, _texto in entradas_leyenda:
+            _ancho_leyenda = max(_ancho_leyenda, _metricas_leyenda.horizontalAdvance(_texto))
+        for _tam in (9, 8, 7):
+            _fuente_leyenda = QFont(painter.font().family(), _tam)
+            _metricas_leyenda = QFontMetricsF(_fuente_leyenda)
+            _ancho_leyenda = 0
+            for _color, _sim, _texto in entradas_leyenda:
+                _ancho_leyenda = max(_ancho_leyenda, _metricas_leyenda.horizontalAdvance(_texto))
+            _tam_leyenda = _tam
+            if _ancho_leyenda + 46 <= _ancho_disponible:
+                break
+        fila = 15 if _tam_leyenda <= 7 else 16
+        _ancho_panel = _ancho_leyenda + 46
+        _alto_panel = fila * len(entradas_leyenda) + 26
+        if _ancho_panel <= _ancho_disponible:
+            # Abajo a la derecha, con margen respecto de los bordes.
+            _x_panel = self.width() - _ancho_panel - 12.0
+            _y_panel = max(self.height() - _alto_panel - 10.0, 40.0)
+        else:
+            # No entra en ancho: se dibuja arriba a la derecha, bajo el título.
+            _x_panel = max(self.width() - _ancho_panel - 12.0, margen)
+            _y_panel = 40.0
+
+        painter.save()
+        painter.setPen(QPen(QColor("#cbd5e1"), 1))
+        painter.setBrush(QColor(255, 255, 255, 235))
+        painter.drawRoundedRect(
+            QRectF(QPointF(_x_panel, _y_panel),
+                   QPointF(_x_panel + _ancho_panel, _y_panel + _alto_panel)),
+            6, 6,
+        )
         painter.setPen(QPen(QColor("#475569"), 1))
-        painter.setFont(QFont(painter.font().family(), 9, QFont.Weight.Bold))
-        painter.drawText(QPointF(margen, y_leyenda - 4), "Leyenda:")
-        y_leyenda += fila - 4
-
-        _muestra_leyenda(y_leyenda, QColor("#1d4ed8"), "cuadrado", "Columna (nodo de planta)")
-        _muestra_leyenda(y_leyenda, QColor("#92400e"), "linea", "Viga del nivel visible")
-        _muestra_leyenda(y_leyenda, QColor("#7c3aed"), "triangulo", "Base / cimiento")
-        _muestra_leyenda(y_leyenda, QColor("#7c3aed"), "triangulo", "Base compartida: bid (+N) = N bases/columnas en el mismo nodo físico")
-        color_losa = QColor("#059669")
-        _muestra_leyenda(y_leyenda, color_losa, "cuadrado", f"Losa ({leyenda_tipos})")
-        _muestra_leyenda(y_leyenda, QColor("#dc2626"), "linea", "Muro")
-        _muestra_leyenda(y_leyenda, QColor("#94a3b8"), "linea", "Proyección de otro nivel (punteado)")
-        _muestra_leyenda(y_leyenda, QColor("#1d4ed8"), "linea", "Eje de pórtico (punteado fino)")
+        painter.setFont(QFont(painter.font().family(), _tam, QFont.Weight.Bold))
+        painter.drawText(QPointF(_x_panel + 12, _y_panel + 14), "Leyenda:")
+        _y = _y_panel + 14 + fila
+        for _color, _sim, _texto in entradas_leyenda:
+            _muestra_leyenda(_y, _color, _sim, _texto, x_texto=_x_panel + 32)
+            _y += fila
+        painter.restore()
 
         painter.setPen(QPen(QColor("#334155"), 1))
         painter.drawText(

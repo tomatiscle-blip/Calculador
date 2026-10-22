@@ -1,0 +1,28 @@
+1109| 
+1110|     def _cota_base(self):
+1111|         """Cota de las bases: el nivel más bajo de la obra."""
+1112|         cotas = [
+1113|             cota for cota in (self._numero(n.get("cota_m")) for n in self.niveles)
+1114|             if cota is not None
+1115|         ]
+1116|         return min(cotas) if cotas else 0.0
+1117| 
+1118|     def _rect_panel(self, panel):
+1119|         """Rectángulo (x0, y0, x1, y1) de una losa delimitada por ejes."""
+1120|         lados = panel.get("ejes", {}) or {}
+1121|         rect = {}
+1122|         for familia in ("x", "y"):
+1123|             lado = lados.get(familia) or {}
+1124|             inicio = (lado.get("inicio") or {}).get("coordenada_m")
+1125|             fin = (lado.get("fin") or {}).get("coordenada_m")
+1126|             a, b = self._numero(inicio), self._numero(fin)
+1127|             if a is None or b is None:
+1128|                 return None
+1129|             rect[familia] = (min(a, b), max(a, b))
+1130|         (x0, x1), (y0, y1) = rect["x"], rect["y"]
+1131|         if x1 - x0 <= 0 or y1 - y0 <= 0:
+1132|             return None
+1133|         return x0, y0, x1, y1
+1134| 
+1135|     def _rect_legado(self, datos):
+1136|         """Banda de una losa sin panel de ejes, ubicada por sus pórticos de apoyo."""

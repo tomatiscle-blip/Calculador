@@ -1,0 +1,50 @@
+1226|             ficha.get("ubicacion_obra", "")
+1227|             or ficha.get("lugar", "")
+1228|             or ubicacion_heredada
+1229|         ))
+1230|         self.comitente_proyecto.setText(str(ficha.get("comitente", "")))
+1231|         self.responsable_proyecto.setText(str(ficha.get("responsable", "")))
+1232|         self.notas_proyecto.setPlainText(str(proyecto.get("notas", "")))
+1233|         # Visor de planta general de la obra: muestra TODOS los ejes y niveles,
+1234|         # no el foco de un pórtico particular.
+1235|         self.vista_planta.set_portico_activo("")
+1236|         self.vista_planta.set_datos(self.ejes, self.niveles, self.estructura)
+1237|         self.combo_nivel_planta.blockSignals(True)
+1238|         nivel_previo = self.combo_nivel_planta.currentText()
+1239|         self.combo_nivel_planta.clear()
+1240|         opciones_nivel = ["Todos los niveles"]
+1241|         opciones_nivel += [
+1242|             str(n.get("nombre", "")) for n in self.niveles if str(n.get("nombre", ""))
+1243|         ]
+1244|         self.combo_nivel_planta.addItems(opciones_nivel)
+1245|         # Conservar el nivel que ya estaba visible: refrescar la planta no
+1246|         # debe cambiar el filtro elegido por el usuario.
+1247|         if nivel_previo in opciones_nivel:
+1248|             self.combo_nivel_planta.setCurrentText(nivel_previo)
+1249|         else:
+1250|             self.combo_nivel_planta.setCurrentIndex(0)
+1251|         self.combo_nivel_planta.blockSignals(False)
+1252|         self._cambiar_nivel_planta(self.combo_nivel_planta.currentText())
+1253|         cargas_datos = rutas.leer_json(rutas.CARGAS, {}) or {}
+1254|         elementos_carga = cargas_datos.get("elementos", {}) or {}
+1255|         self.vista_planta.set_losas(elementos_carga)
+1256|         estructura_completa = rutas.cargar_estructura()
+1257|         estructura = estructura_completa.get(portico, {}) if portico else {}
+1258|         referencia = estructura.get("referencia_planta", {}) or {}
+1259|         direccion = str(referencia.get("direccion", "x")).upper()
+1260|         eje_id = referencia.get("eje_id")
+1261|         eje_longitudinal_id = referencia.get("eje_longitudinal_id")
+1262|         ejes_por_id = {
+1263|             str(item.get("id", f"{familia}:{str(item['nombre']).casefold()}")): item
+1264|             for familia, items in self.ejes.items()
+1265|             for item in items
+1266|         }
+1267|         eje = ejes_por_id.get(str(eje_id)) if eje_id else None
+1268|         eje_longitudinal = (
+1269|             ejes_por_id.get(str(eje_longitudinal_id)) if eje_longitudinal_id else None
+1270|         )
+1271|         if eje_longitudinal_id and eje_longitudinal is None:
+1272|             detalle_primera_columna = " · eje de primera columna no disponible"
+1273|         elif eje_longitudinal is not None:
+1274|             inicio_longitudinal = float(eje_longitudinal["coordenada_m"])
+1275|             detalle_primera_columna = (

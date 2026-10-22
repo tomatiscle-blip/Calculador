@@ -1,0 +1,74 @@
+1330|         apoyos = datos_losa.get("apoya_en") or {}
+1331|         destino = apoyos.get(lado) or {}
+1332|         if not isinstance(destino, dict) or not destino:
+1333|             return None
+1334|         x0, y0, x1, y1 = rect
+1335|         direccion = str((panel.get("direccion_luz", "x"))).lower()
+1336|         if direccion not in ("x", "y"):
+1337|             direccion = "x"
+1338|         centro_x, centro_y = (x0 + x1) / 2, (y0 + y1) / 2
+1339|         if direccion == "x":
+1340|             borde = x0 if lado == "izq" else x1
+1341|             punto = (borde, centro_y)
+1342|         else:
+1343|             borde = y0 if lado == "izq" else y1
+1344|             punto = (centro_x, borde)
+1345| 
+1346|         tipo = str(destino.get("tipo", "")).lower()
+1347|         if tipo == "muro":
+1348|             nombre_m = str(destino.get("nombre", ""))
+1349|             datos_m = self.estructura.get(nombre_m)
+1350|             if not isinstance(datos_m, dict):
+1351|                 return None
+1352|             geom = self._geometria(datos_m)
+1353|             if geom is None:
+1354|                 return None
+1355|             # El muro debe contener el borde del paño (dentro de tolerancia).
+1356|             x_ini = self._numero(datos_m.get("x_inicio"))
+1357|             x_fin = self._numero(datos_m.get("x_fin"))
+1358|             if x_ini is None or x_fin is None:
+1359|                 return None
+1360|             muro_direccion, muro_posicion, _ = geom
+1361|             if muro_direccion == "x":
+1362|                 if not (min(x_ini, x_fin) - 0.5 <= borde <= max(x_ini, x_fin) + 0.5):
+1363|                     return None
+1364|                 return muro_posicion, punto[1], nombre_m
+1365|             if not (min(x_ini, x_fin) - 0.5 <= borde <= max(x_ini, x_fin) + 0.5):
+1366|                 return None
+1367|             return punto[0], muro_posicion, nombre_m
+1368|         if tipo == "portico":
+1369|             nombre_p = str(destino.get("portico", ""))
+1370|             viga_id = str(destino.get("viga", ""))
+1371|             datos_p = self.estructura.get(nombre_p)
+1372|             if not isinstance(datos_p, dict):
+1373|                 return None
+1374|             viga = (datos_p.get("vigas", {}) or {}).get(viga_id) or {}
+1375|             if not isinstance(viga, dict):
+1376|                 return None
+1377|             geom = self._geometria(datos_p)
+1378|             if geom is None:
+1379|                 return None
+1380|             # La viga de apoyo corre perpendicular a la luz de la losa.
+1381|             esperado = "y" if direccion == "x" else "x"
+1382|             if geom[0] != esperado:
+1383|                 return None
+1384|             # La viga debe tener un tramo que cubra el borde del paño.
+1385|             cubre = False
+1386|             for tramo in (viga.get("tramos") or []):
+1387|                 if not isinstance(tramo, dict):
+1388|                     continue
+1389|                 a = self._numero(tramo.get("x_inicio"))
+1390|                 b = self._numero(tramo.get("x_fin"))
+1391|                 if a is None or b is None:
+1392|                     continue
+1393|                 if min(a, b) - 0.5 <= borde <= max(a, b) + 0.5:
+1394|                     cubre = True
+1395|                     break
+1396|             if not cubre:
+1397|                 return None
+1398|             texto = f"{nombre_p} · {viga_id}" if viga_id else nombre_p
+1399|             return punto[0], punto[1], texto
+1400|         return None
+1401| 
+1402| 
+1403|     def _escena(self):

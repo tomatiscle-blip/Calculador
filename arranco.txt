@@ -116,4 +116,4 @@ VentanaPrincipal ERROR:\nTraceback (most recent call last):
     self._llenar(self.tabla_inicio, filas if mostrar_envolvente else [])
     ^^^^^^^^^^^^
 AttributeError: 'VentanaPrincipal' object has no attribute '_llenar'
-VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n

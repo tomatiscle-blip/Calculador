@@ -1,0 +1,163 @@
+1038|     def _geometria(self, datos):
+1039|         """(dirección, posición transversal, origen longitudinal) del elemento.
+1040| 
+1041|         La dirección es la familia de ejes por la que avanza el elemento; el eje
+1042|         de aplicación (posicion_planta_m) queda siempre en la familia opuesta.
+1043|         """
+1044|         ref = datos.get("referencia_planta", {}) or {}
+1045|         direccion = str(ref.get("direccion", "x")).lower()
+1046|         if direccion not in ("x", "y"):
+1047|             direccion = "x"
+1048|         eje_transversal = self._buscar_eje(
+1049|             self.ejes, "y" if direccion == "x" else "x", ref.get("eje_id")
+1050|         )
+1051|         posicion = (
+1052|             self._numero(eje_transversal.get("coordenada_m"))
+1053|             if eje_transversal is not None
+1054|             else None
+1055|         )
+1056|         if posicion is None:
+1057|             posicion = self._numero(datos.get("posicion_planta_m")) or 0.0
+1058|         if str(datos.get("tipo", "")).lower() == "muro":
+1059|             # Un muro guarda sus extremos en coordenadas absolutas de su eje.
+1060|             origen = 0.0
+1061|         else:
+1062|             origen = self._numero(ref.get("origen_longitudinal_m"))
+1063|             if origen is None:
+1064|                 eje_longitudinal = self._buscar_eje(
+1065|                     self.ejes, direccion, ref.get("eje_longitudinal_id")
+1066|                 )
+1067|                 origen = (
+1068|                     self._numero(eje_longitudinal.get("coordenada_m"))
+1069|                     if eje_longitudinal is not None
+1070|                     else 0.0
+1071|                 )
+1072|             origen += self._numero(ref.get("desfase_longitudinal_m")) or 0.0
+1073|         return direccion, posicion, origen
+1074| 
+1075|     @staticmethod
+1076|     def _punto(geom, longitud):
+1077|         """Coordenada de planta (x, y) para una medida sobre el elemento."""
+1078|         direccion, posicion, origen = geom
+1079|         valor = origen + longitud
+1080|         if direccion == "y":
+1081|             return posicion, valor
+1082|         return valor, posicion
+1083| 
+1084|     def _en_nivel(self, cota, nombre_nivel=None):
+1085|         """True si el elemento pertenece al nivel visible (o si no hay filtro)."""
+1086|         if self.nivel_activo is None:
+1087|             return True
+1088|         valor = self._numero(cota)
+1089|         if valor is None and nombre_nivel is not None:
+1090|             for nivel in self.niveles:
+1091|                 if str(nivel.get("nombre", "")).strip() == str(nombre_nivel).strip():
+1092|                     valor = self._numero(nivel.get("cota_m"))
+1093|                     break
+1094|         if valor is None:
+1095|             # Sin cota conocida preferimos mostrarlo antes que esconderlo.
+1096|             return True
+1097|         return abs(valor - self.nivel_activo) <= self.TOL
+1098| 
+1099|     def _en_rango_nivel(self, cota_ini, cota_fin):
+1100|         """True si el rango de cotas de un muro toca el nivel visible."""
+1101|         if self.nivel_activo is None:
+1102|             return True
+1103|         ini = self._numero(cota_ini)
+1104|         fin = self._numero(cota_fin)
+1105|         if ini is None or fin is None:
+1106|             return True
+1107|         bajo, alto = sorted((ini, fin))
+1108|         return (bajo - self.TOL) <= self.nivel_activo <= (alto + self.TOL)
+1109| 
+1110|     def _cota_base(self):
+1111|         """Cota de las bases: el nivel más bajo de la obra."""
+1112|         cotas = [
+1113|             cota for cota in (self._numero(n.get("cota_m")) for n in self.niveles)
+1114|             if cota is not None
+1115|         ]
+1116|         return min(cotas) if cotas else 0.0
+1117| 
+1118|     def _rect_panel(self, panel):
+1119|         """Rectángulo (x0, y0, x1, y1) de una losa delimitada por ejes."""
+1120|         lados = panel.get("ejes", {}) or {}
+1121|         rect = {}
+1122|         for familia in ("x", "y"):
+1123|             lado = lados.get(familia) or {}
+1124|             inicio = (lado.get("inicio") or {}).get("coordenada_m")
+1125|             fin = (lado.get("fin") or {}).get("coordenada_m")
+1126|             a, b = self._numero(inicio), self._numero(fin)
+1127|             if a is None or b is None:
+1128|                 return None
+1129|             rect[familia] = (min(a, b), max(a, b))
+1130|         (x0, x1), (y0, y1) = rect["x"], rect["y"]
+1131|         if x1 - x0 <= 0 or y1 - y0 <= 0:
+1132|             return None
+1133|         return x0, y0, x1, y1
+1134| 
+1135|     def _rect_legado(self, datos):
+1136|         """Banda de una losa sin panel de ejes, ubicada por sus pórticos de apoyo."""
+1137|         refs = datos.get("porticos", datos.get("aplicar_a", []))
+1138|         if isinstance(refs, str):
+1139|             refs = [refs]
+1140|         geoms, puntos = [], []
+1141|         for ref in refs:
+1142|             datos_p = self.estructura.get(str(ref))
+1143|             if not isinstance(datos_p, dict) or str(datos_p.get("tipo", "")).lower() == "muro":
+1144|                 continue
+1145|             geom = self._geometria(datos_p)
+1146|             geoms.append(geom)
+1147|             for columna in (datos_p.get("columnas", {}) or {}).values():
+1148|                 if not isinstance(columna, dict):
+1149|                     continue
+1150|                 x = self._numero(columna.get("x"))
+1151|                 if x is not None:
+1152|                     puntos.append(self._punto(geom, x))
+1153|         if not geoms or not puntos:
+1154|             return None
+1155|         try:
+1156|             ancho = self._numero(datos.get("ancho_losa_m")) or 1.0
+1157|         except (TypeError, ValueError):
+1158|             ancho = 1.0
+1159|         xs = [p[0] for p in puntos]
+1160|         ys = [p[1] for p in puntos]
+1161|         if all(geom[0] == "x" for geom in geoms):
+1162|             y = sum(geom[1] for geom in geoms) / len(geoms)
+1163|             return min(xs), y - ancho / 2, max(xs), y + ancho / 2
+1164|         if all(geom[0] == "y" for geom in geoms):
+1165|             x = sum(geom[1] for geom in geoms) / len(geoms)
+1166|             return x - ancho / 2, min(ys), x + ancho / 2, max(ys)
+1167|         return None
+1168| 
+1169|     def _rotulo(self, x, y, texto, direccion="x", color="#334155", prioridad=5,
+1170|                 desplazamiento=0.0, tamano=None):
+1171|         """Rótulo de planta orientado según el eje del elemento.
+1172| 
+1173|         ``direccion`` es la familia de ejes por la que corre el elemento: con
+1174|         "x" el texto queda horizontal (lee en el sentido X) y con "y" queda
+1175|         vertical, para que el rótulo siga la dirección de la viga, el muro o el
+1176|         pórtico en lugar de cruzarse con él.
+1177|         """
+1178|         return {
+1179|             "x": float(x),
+1180|             "y": float(y),
+1181|             "texto": str(texto),
+1182|             "giro": 0.0 if str(direccion).lower() == "x" else 90.0,
+1183|             "color": color,
+1184|             "prioridad": int(prioridad),
+1185|             "desplazamiento": float(desplazamiento),
+1186|             "tamano": tamano,
+1187|         }
+1188| 
+1189|     def _colocar_rotulos(self, rotulos, px, py):
+1190|         """Calcula la posición final de cada rótulo evitando superposiciones.
+1191| 
+1192|         Devuelve una lista de tuplas ``(rotulo, rectangulo)`` con los rótulos
+1193|         que se pudieron colocar. Los que no tienen lugar libre se descartan:
+1194|         es preferible omitir un texto antes que tapar otro.
+1195|         """
+1196|         if not rotulos:
+1197|             return []
+1198|         fuente_base = QFont(self.font())
+1199|         fuente_base.setPointSize(max(9, fuente_base.pointSize() or 9))
+1200|         metricas = QFontMetricsF(fuente_base)

@@ -1,0 +1,131 @@
+1990|         # --- muros: banda roja con borde oscuro (se ve sobre la losa) ---
+1991|         for muro in escena["muros"]:
+1992|             espesor = muro["espesor"]
+1993|             if muro["direccion"] == "x":
+1994|                 p1 = QPointF(px(muro["x0"]), py(muro["posicion"] - espesor / 2))
+1995|                 p2 = QPointF(px(muro["x1"]), py(muro["posicion"] - espesor / 2))
+1996|                 p3 = QPointF(px(muro["x1"]), py(muro["posicion"] + espesor / 2))
+1997|                 p4 = QPointF(px(muro["x0"]), py(muro["posicion"] + espesor / 2))
+1998|             else:
+1999|                 p1 = QPointF(px(muro["posicion"] - espesor / 2), py(muro["x0"]))
+2000|                 p2 = QPointF(px(muro["posicion"] + espesor / 2), py(muro["x0"]))
+2001|                 p3 = QPointF(px(muro["posicion"] + espesor / 2), py(muro["x1"]))
+2002|                 p4 = QPointF(px(muro["posicion"] - espesor / 2), py(muro["x1"]))
+2003|             painter.setPen(QPen(QColor("#7f1d1d"), 2))
+2004|             painter.setBrush(QColor(220, 38, 38, 110))
+2005|             painter.drawPolygon(QPolygonF([p1, p2, p3, p4]))
+2006| 
+2007|         # --- pórticos: eje fino + elementos gruesos del nivel ---
+2008|         fuente_el = QFont(painter.font().family(), 9)
+2009|         painter.setFont(fuente_el)
+2010|         for portico in escena["porticos"]:
+2011|             activo = portico["activo"]
+2012|             color = QColor("#1d4ed8") if activo else QColor("#475569")
+2013|             p0 = portico["eje_p0"]
+2014|             p1 = portico["eje_p1"]
+2015| 
+2016|             # Eje del pórtico: línea fina punteada (referencia, no elemento).
+2017|             painter.setPen(QPen(color, 1, Qt.PenStyle.DotLine))
+2018|             painter.drawLine(QPointF(px(p0[0]), py(p0[1])), QPointF(px(p1[0]), py(p1[1])))
+2019| 
+2020|             # Vigas del nivel (línea gruesa marrón).
+2021|             for vid, a, b in portico["vigas"]:
+2022|                 painter.setPen(QPen(QColor("#92400e"), 5 if activo else 4))
+2023|                 painter.drawLine(QPointF(px(a[0]), py(a[1])), QPointF(px(b[0]), py(b[1])))
+2024| 
+2025|             # Bases: se dibujan una sola vez por coordenada global (bases_unicas),
+2026|             # más abajo, para no duplicar las que comparten el mismo punto físico.
+2027| 
+2028| 
+2029|         # --- columnas: una sola vez por coordenada global (nodos compartidos en cruces) ---
+2030|         # Color: si alguno de los pórticos que contienen la columna está activo, se usa el color activo.
+2031|         # El nombre de la columna NO se dibuja aquí: lo aporta el sistema de
+2032|         # rótulos, que evita superposiciones entre textos.
+2033|         porticos_por_nombre = {p["nombre"]: p for p in escena["porticos"]}
+2034|         for col in escena.get("columnas_unicas", []):
+2035|             punto = col["punto"]
+2036|             cx, cy = px(punto[0]), py(punto[1])
+2037|             es_activa = any(
+2038|                 porticos_por_nombre.get(pn, {}).get("activo", False)
+2039|                 for pn in col.get("porticos", [])
+2040|             )
+2041|             col_color = QColor("#1d4ed8") if es_activa else QColor("#475569")
+2042|             painter.setPen(QPen(col_color, 2))
+2043|             painter.setBrush(QColor(col_color.red(), col_color.green(), col_color.blue(), 90))
+2044|             painter.drawRect(cx - 6, cy - 6, 12, 12)
+2045| 
+2046|         # --- bases: una sola vez por coordenada global (el nombre lo dibuja
+2047|         # el sistema de rótulos) ---
+2048|         for base in escena.get("bases_unicas", []):
+2049|             punto = base["punto"]
+2050|             cx, cy = px(punto[0]), py(punto[1])
+2051|             painter.setPen(QPen(QColor("#7c3aed"), 1.5))
+2052|             painter.setBrush(QColor(124, 58, 237, 120))
+2053|             painter.drawPolygon(QPolygonF([
+2054|                 QPointF(cx, cy + 6),
+2055|                 QPointF(cx - 7, cy + 18),
+2056|                 QPointF(cx + 7, cy + 18),
+2057|             ]))
+2058| 
+2059|         # --- proyecciones: lo que es de otro nivel va punteado y apagado ---
+2060|         trazo_proy = QPen(QColor("#94a3b8"), 1, Qt.PenStyle.DashLine)
+2061|         for proy in escena.get("proyecciones", []):
+2062|             if proy.get("tipo") == "viga":
+2063|                 a, b = proy["p0"], proy["p1"]
+2064|                 painter.setPen(QPen(QColor("#d6a05c"), 2, Qt.PenStyle.DashLine))
+2065|                 painter.drawLine(QPointF(px(a[0]), py(a[1])), QPointF(px(b[0]), py(b[1])))
+2066|             else:
+2067|                 espesor = 0.15
+2068|                 if proy["direccion"] == "x":
+2069|                     p1 = QPointF(px(proy["x0"]), py(proy["posicion"] - espesor / 2))
+2070|                     p2 = QPointF(px(proy["x1"]), py(proy["posicion"] - espesor / 2))
+2071|                     p3 = QPointF(px(proy["x1"]), py(proy["posicion"] + espesor / 2))
+2072|                     p4 = QPointF(px(proy["x0"]), py(proy["posicion"] + espesor / 2))
+2073|                 else:
+2074|                     p1 = QPointF(px(proy["posicion"] - espesor / 2), py(proy["x0"]))
+2075|                     p2 = QPointF(px(proy["posicion"] + espesor / 2), py(proy["x0"]))
+2076|                     p3 = QPointF(px(proy["posicion"] + espesor / 2), py(proy["x1"]))
+2077|                     p4 = QPointF(px(proy["posicion"] - espesor / 2), py(proy["x1"]))
+2078|                 painter.setPen(trazo_proy)
+2079|                 painter.setBrush(Qt.BrushStyle.NoBrush)
+2080|                 painter.drawPolygon(QPolygonF([p1, p2, p3, p4]))
+2081| 
+2082|         # --- marcas de apoyo de losas ---
+2083|         for apoyo in escena["apoyos_losa"]:
+2084|             cx, cy = px(apoyo["x"]), py(apoyo["y"])
+2085|             painter.setPen(QPen(QColor("#b45309"), 2))
+2086|             painter.setBrush(QColor(180, 83, 9, 70))
+2087|             painter.drawEllipse(QPointF(cx, cy), 5, 5)
+2088|             # El apoyo se marca sobre el borde del paño, con la viga/muro que
+2089|             # lo recibe orientado según la luz de la losa.
+2090|             painter.setPen(QPen(QColor("#92400e"), 1))
+2091|             if apoyo["direccion_luz"] == "x":
+2092|                 painter.drawText(QPointF(cx + 7, cy - 4), apoyo["texto"])
+2093|             else:
+2094|                 painter.save()
+2095|                 painter.translate(cx + 7, cy - 4)
+2096|                 painter.rotate(90)
+2097|                 painter.drawText(QPointF(0, 0), apoyo["texto"])
+2098|                 painter.restore()
+2099| 
+2100|         # --- rótulos orientados según el eje, sin superposición ---
+2101|         self._pintar_rotulos(painter, escena["rotulos"], px, py)
+2102| 
+2103|         # --- textos: nivel, leyenda y conteo de elementos del nivel ---
+2104|         conteo = escena["conteo"]
+2105|         if self.nivel_activo is not None:
+2106|             nombre_nivel = "?"
+2107|             for nivel in self.niveles:
+2108|                 cota = self._numero(nivel.get("cota_m"))
+2109|                 if cota is not None and abs(cota - self.nivel_activo) <= self.TOL:
+2110|                     nombre_nivel = str(nivel.get("nombre", "?"))
+2111|                     break
+2112|             titulo = f"Nivel visible: {nombre_nivel} (cota {self.nivel_activo:.2f} m)"
+2113|         else:
+2114|             titulo = "Todos los niveles"
+2115|         if self.portico_activo:
+2116|             titulo += f"   ·   Pórtico activo: {self.portico_activo}"
+2117|         painter.setPen(QPen(QColor("#7c3aed"), 1))
+2118|         painter.drawText(QPointF(margen, 22), titulo)
+2119| 
+2120|         # --- leyenda visual: muestra de color + símbolo por tipo de elemento ---

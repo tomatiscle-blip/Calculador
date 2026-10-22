@@ -1,0 +1,16 @@
+2047|         # el sistema de rótulos) ---
+2048|         for base in escena.get("bases_unicas", []):
+2049|             punto = base["punto"]
+2050|             cx, cy = px(punto[0]), py(punto[1])
+2051|             painter.setPen(QPen(QColor("#7c3aed"), 1.5))
+2052|             painter.setBrush(QColor(124, 58, 237, 120))
+2053|             painter.drawPolygon(QPolygonF([
+2054|                 QPointF(cx, cy + 6),
+2055|                 QPointF(cx - 7, cy + 18),
+2056|                 QPointF(cx + 7, cy + 18),
+2057|             ]))
+2058| 
+2059|         # --- proyecciones: lo que es de otro nivel va punteado y apagado ---
+2060|         trazo_proy = QPen(QColor("#94a3b8"), 1, Qt.PenStyle.DashLine)
+2061|         for proy in escena.get("proyecciones", []):
+2062|             if proy.get("tipo") == "viga":

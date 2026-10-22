@@ -1,0 +1,161 @@
+1560|                 punto = self._punto(geom, x)
+1561|                 puntos.append(punto)
+1562|                 # Eje de la columna (X2, Y1...): dice en qué cruce está parada.
+1563|                 eje_col = ""
+1564|                 col_eje = col.get("eje_nombre") or ""
+1565|                 if col_eje:
+1566|                     eje_col = str(col_eje)
+1567|                 else:
+1568|                     buscado = self._buscar_eje(self.ejes, direccion, col.get("eje_id"))
+1569|                     if buscado is not None:
+1570|                         eje_col = str(buscado.get("nombre", ""))
+1571|                 columnas.append((str(cid), punto, eje_col))
+1572|                 conteo["columnas"] += 1
+1573|                 # Registro global por coordenada de planta: deduplica columnas
+1574|                 # que están en el mismo punto pero definidas en dos pórticos
+1575|                 # diferentes (cruce de ejes X y Y).
+1576|                 clave = (round(punto[0], 3), round(punto[1], 3))
+1577|                 columnas_globales.setdefault(clave, []).append({
+1578|                     "nombre": str(cid),
+1579|                     "punto": punto,
+1580|                     "eje": eje_col,
+1581|                     "portico": str(nombre),
+1582|                 })
+1583| 
+1584|             vigas = []
+1585|             for vid, viga in vigas_datos.items():
+1586|                 if not isinstance(viga, dict):
+1587|                     continue
+1588|                 extremos = [
+1589|                     (self._numero(t.get("x_inicio")), self._numero(t.get("x_fin")))
+1590|                     for t in (viga.get("tramos") or [])
+1591|                     if isinstance(t, dict)
+1592|                 ]
+1593|                 extremos = [(a, b) for a, b in extremos if a is not None and b is not None]
+1594|                 if not extremos:
+1595|                     continue
+1596|                 inicio = min(min(a, b) for a, b in extremos)
+1597|                 fin = max(max(a, b) for a, b in extremos)
+1598|                 p0, p1 = self._punto(geom, inicio), self._punto(geom, fin)
+1599|                 puntos.extend([p0, p1])
+1600|                 if self._en_nivel(viga.get("cota_m"), viga.get("nivel_nombre")):
+1601|                     vigas.append((str(vid), p0, p1))
+1602|                     rotulos.append(self._rotulo(
+1603|                         x=(p0[0] + p1[0]) / 2,
+1604|                         y=(p0[1] + p1[1]) / 2,
+1605|                         texto=f"{vid} · eje {eje_nombre}",
+1606|                         direccion=direccion,
+1607|                         color="#b45309",
+1608|                         prioridad=3,
+1609|                         desplazamiento=10.0,
+1610|                     ))
+1611|                     conteo["vigas"] += 1
+1612|                 elif (
+1613|                     cota_superior is not None
+1614|                     and self._numero(viga.get("cota_m")) is not None
+1615|                     and abs(
+1616|                         (self._numero(viga.get("cota_m")) or 0.0) - cota_superior
+1617|                     ) <= self.TOL
+1618|                 ):
+1619|                     # Viga del nivel SUPERIOR = techo de este nivel: se dibuja
+1620|                     # punteada para ubicar, sin contar como viga del nivel.
+1621|                     proyecciones.append({
+1622|                         "tipo": "viga",
+1623|                         "nombre": str(vid),
+1624|                         "direccion": direccion,
+1625|                         "p0": p0,
+1626|                         "p1": p1,
+1627|                         "nota": "techo del nivel",
+1628|                     })
+1629|                     rotulos.append(self._rotulo(
+1630|                         x=(p0[0] + p1[0]) / 2,
+1631|                         y=(p0[1] + p1[1]) / 2,
+1632|                         texto=f"{vid} (techo)",
+1633|                         direccion=direccion,
+1634|                         color="#b45309",
+1635|                         prioridad=4,
+1636|                         desplazamiento=10.0,
+1637|                     ))
+1638| 
+1639|             bases = []
+1640|             if self._en_nivel(cota_base):
+1641|                 for bid, base in bases_datos.items():
+1642|                     if not isinstance(base, dict):
+1643|                         continue
+1644|                     x = self._numero(base.get("x"))
+1645|                     if x is None:
+1646|                         continue
+1647|                     punto = self._punto(geom, x)
+1648|                     puntos.append(punto)
+1649|                     bases.append((str(bid), punto))
+1650|                     # Identidad global única de la base: punto global redondeado.
+1651|                     clave = (round(punto[0], 3), round(punto[1], 3))
+1652|                     bases_globales.setdefault(clave, []).append({
+1653|                         "bid": str(bid),
+1654|                         "punto": punto,
+1655|                         "portico": str(nombre),
+1656|                     })
+1657| 
+1658|             porticos.append({
+1659|                 "nombre": str(nombre),
+1660|                 "activo": str(nombre) == str(self.portico_activo),
+1661|                 "direccion": direccion,
+1662|                 "eje_p0": eje_p0,
+1663|                 "eje_p1": eje_p1,
+1664|                 "columnas": columnas,
+1665|                 "vigas": vigas,
+1666|                 "bases": bases,
+1667|             })
+1668|             # Rótulo con el eje de inserción: dice sobre qué eje corre.
+1669|             detalle_eje = f" · {eje_nombre}" if eje_nombre else ""
+1670|             rotulos.append(self._rotulo(
+1671|                 x=(eje_p0[0] + eje_p1[0]) / 2,
+1672|                 y=(eje_p0[1] + eje_p1[1]) / 2,
+1673|                 texto=f"{nombre}{detalle_eje}",
+1674|                 direccion=direccion,
+1675|                 color="#1d4ed8" if str(nombre) == str(self.portico_activo) else "#475569",
+1676|                 prioridad=0,
+1677|                 desplazamiento=14.0,
+1678|             ))
+1679| 
+1680|         # Columnas únicas por coordenada global: las columnas en cruces de ejes
+1681|         # pertenecen a dos pórticos pero son un solo nodo. Se dibuja una sola vez.
+1682|         columnas_unicas = []
+1683|         conteo_columnas_unicas = 0
+1684|         for clave, entradas in columnas_globales.items():
+1685|             conteo_columnas_unicas += 1
+1686|             punto = entradas[0]["punto"]
+1687|             ejes = sorted({e["eje"] for e in entradas if e["eje"]})
+1688|             nombre_principal = entradas[0]["nombre"]
+1689|             if len(entradas) > 1:
+1690|                 nombre_principal = f"{nombre_principal} (+{len(entradas)-1})"
+1691|             columnas_unicas.append({
+1692|                 "nombre": nombre_principal,
+1693|                 "punto": punto,
+1694|                 "ejes": ejes,
+1695|                 "porticos": [e["portico"] for e in entradas],
+1696|             })
+1697|         conteo["columnas"] = conteo_columnas_unicas
+1698| 
+1699|         # Rótulos de columnas: van al sistema de rótulos (con evasión de
+1700|         # solapamiento) para que dos columnas vecinas no se tapen.
+1701|         # Para no saturar la planta se rotula solo lo relevante: si hay un
+1702|         # pórtico activo se rotulan sus columnas; si no hay ninguno (vista
+1703|         # general de la obra) se rotulan únicamente cuando son pocas.
+1704|         if self.portico_activo:
+1705|             columnas_rotuladas = [
+1706|                 c for c in columnas_unicas
+1707|                 if any(str(pn) == str(self.portico_activo) for pn in c["porticos"])
+1708|             ]
+1709|         elif len(columnas_unicas) <= 10:
+1710|             columnas_rotuladas = list(columnas_unicas)
+1711|         else:
+1712|             columnas_rotuladas = []
+1713| 
+1714|         # Rótulos de columnas: van al sistema de rótulos (con evasión de
+1715|         # solapamiento) para que dos columnas vecinas no se tapen.
+1716|         for col in columnas_rotuladas:
+1717|             punto = col["punto"]
+1718|             ejes_txt = ", ".join(col["ejes"]) if col["ejes"] else ""
+1719|             texto = f"{col['nombre']} ({ejes_txt})" if ejes_txt else col["nombre"]
+1720|             es_activa = any(

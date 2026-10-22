@@ -1,0 +1,144 @@
+1847|     def _encuadre(self, escena):
+1848|         """Devuelve el encuadre de la planta: (px, py, xmin, xmax, ...).
+1849| 
+1850|         ``px`` y ``py`` son las funciones que convierten coordenadas de planta
+1851|         (en metros) a píxeles del widget. Se separan del ``paintEvent`` para
+1852|         poder reutilizar la misma transformación al colocar los rótulos.
+1853|         """
+1854|         xs = [p[0] for p in escena["puntos"]]
+1855|         ys = [p[1] for p in escena["puntos"]]
+1856|         if not xs or not ys:
+1857|             for familia, items in self.ejes.items():
+1858|                 for item in items:
+1859|                     c = self._numero(item.get("coordenada_m"))
+1860|                     if c is None:
+1861|                         continue
+1862|                     (xs if familia == "x" else ys).append(c)
+1863|         if not xs or not ys:
+1864|             xs = [0.0, 10.0]
+1865|             ys = [0.0, 10.0]
+1866| 
+1867|         xmin, xmax = min(xs), max(xs)
+1868|         ymin, ymax = min(ys), max(ys)
+1869|         aire = max(xmax - xmin, ymax - ymin, 5.0) * 0.05 + 0.5
+1870|         xmin -= aire
+1871|         xmax += aire
+1872|         ymin -= aire
+1873|         ymax += aire
+1874|         # Margenes para las burbujas de los ejes (van fuera del área de obra)
+1875|         # y para la leyenda y el pie de texto.
+1876|         margen_x, margen_y = 78.0, 62.0
+1877|         rango_x = max(xmax - xmin, 3.0)
+1878|         rango_y = max(ymax - ymin, 3.0)
+1879|         # Zoom acotado para que la planta ocupe mejor el área disponible.
+1880|         # Factor reducido para que la estructura respire y no quede amontanada.
+1881|         escala = min(
+1882|             max(self.width() - 2 * margen_x, 1.0) / rango_x,
+1883|             max(self.height() - 2 * margen_y, 1.0) / rango_y,
+1884|         ) * 0.92 * self.zoom_factor
+1885|         ox = (self.width() - rango_x * escala) / 2
+1886|         oy = (self.height() - rango_y * escala) / 2
+1887| 
+1888|         def px(x):
+1889|             return ox + (x - xmin) * escala
+1890| 
+1891|         def py(y):
+1892|             return oy + (ymax - y) * escala
+1893| 
+1894|         return px, py, xmin, xmax, ymin, ymax, escala
+1895| 
+1896|     def paintEvent(self, event):
+1897|         painter = QPainter(self)
+1898|         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+1899|         painter.fillRect(self.rect(), QColor("#ffffff"))
+1900| 
+1901|         escena = self._escena()
+1902| 
+1903|         # --- encuadre: todos los elementos del nivel visible ---
+1904|         px, py, xmin, xmax, ymin, ymax, _escala = self._encuadre(escena)
+1905| 
+1906|         # --- base / terreno: recuadro semitransparente que abarca la planta ---
+1907|         # Se pinta primero, detrás de losas, muros y columnas, para dar
+1908|         # contexto de superficie enterrada sin ocultar los elementos.
+1909|         painter.setPen(Qt.PenStyle.NoPen)
+1910|         painter.setBrush(QColor(200, 200, 210, 16))
+1911|         painter.drawRect(QRectF(QPointF(px(xmin), py(ymax)), QPointF(px(xmax), py(ymin))))
+1912| 
+1913|         margen = 10.0
+1914| 
+1915|         # --- grilla de ejes con burbujas (como en plano) ---
+1916|         painter.setPen(QPen(QColor("#94a3b8"), 1))
+1917|         fuente_eje = QFont(painter.font().family(), 10, QFont.Weight.Bold)
+1918|         painter.setFont(fuente_eje)
+1919|         metricas_eje = QFontMetricsF(fuente_eje)
+1920| 
+1921|         def _burbuja(centro, texto, offset_extra=0.0):
+1922|             """Dibuja la burbuja de un eje con radio según el texto.
+1923| 
+1924|             ``offset_extra`` permite escalonar las burbujas de ejes muy juntos
+1925|             para que no se pisen entre sí.
+1926|             """
+1927|             ancho = metricas_eje.horizontalAdvance(texto) + 10.0
+1928|             radio = max(13.0, min(ancho / 2 + 2.0, 30.0))
+1929|             centro = QPointF(centro.x(), centro.y() + offset_extra)
+1930|             painter.setPen(QPen(QColor("#475569"), 1.5))
+1931|             painter.setBrush(QColor("#ffffff"))
+1932|             painter.drawEllipse(centro, radio, radio)
+1933|             painter.setPen(QColor("#1e293b"))
+1934|             painter.drawText(
+1935|                 QRectF(centro.x() - radio, centro.y() - radio, radio * 2, radio * 2),
+1936|                 Qt.AlignmentFlag.AlignCenter, texto,
+1937|             )
+1938|             return radio
+1939| 
+1940|         # Burbujas de ejes X (arriba). Si dos quedan demasiado juntas, la
+1941|         # segunda baja a una fila aparte para no taparse.
+1942|         ultimo_x = None
+1943|         fila_x = 0
+1944|         for item in self.ejes.get("x", []):
+1945|             c = self._numero(item.get("coordenada_m"))
+1946|             if c is None:
+1947|                 continue
+1948|             painter.setPen(QPen(QColor("#cbd5e1"), 1))
+1949|             painter.drawLine(QPointF(px(c), py(ymin)), QPointF(px(c), py(ymax)))
+1950|             nombre = str(item.get("nombre", item.get("id", "?")))
+1951|             x_px = px(c)
+1952|             if ultimo_x is not None and x_px - ultimo_x < 34.0:
+1953|                 fila_x = 1 - fila_x
+1954|             else:
+1955|                 fila_x = 0
+1956|             ultimo_x = x_px
+1957|             _burbuja(QPointF(x_px, py(ymin) - 24), nombre, 26.0 * fila_x)
+1958| 
+1959|         # Burbujas de ejes Y (izquierda), con el mismo escalonado.
+1960|         ultimo_y = None
+1961|         fila_y = 0
+1962|         for item in self.ejes.get("y", []):
+1963|             c = self._numero(item.get("coordenada_m"))
+1964|             if c is None:
+1965|                 continue
+1966|             painter.setPen(QPen(QColor("#cbd5e1"), 1))
+1967|             painter.drawLine(QPointF(px(xmin), py(c)), QPointF(px(xmax), py(c)))
+1968|             nombre = str(item.get("nombre", item.get("id", "?")))
+1969|             y_px = py(c)
+1970|             if ultimo_y is not None and abs(y_px - ultimo_y) < 34.0:
+1971|                 fila_y = 1 - fila_y
+1972|             else:
+1973|                 fila_y = 0
+1974|             ultimo_y = y_px
+1975|             _burbuja(QPointF(px(xmin) - 28, y_px), nombre, 26.0 * fila_y)
+1976| 
+1977|         # --- losas primero (fondo): color según tipo de losa ---
+1978|         color_por_tipo = {
+1979|             "alivianada": QColor("#059669"),
+1980|             "maciza": QColor("#0f766e"),
+1981|             "casetonada": QColor("#0891b2"),
+1982|             "cruzada": QColor("#0d9488"),
+1983|         }
+1984|         for nombre, (x0, y0, x1, y1), tipo_losa in escena["losas"]:
+1985|             color = color_por_tipo.get(tipo_losa, QColor("#059669"))
+1986|             painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine))
+1987|             painter.setBrush(QColor(color.red(), color.green(), color.blue(), 28))
+1988|             painter.drawRect(QRectF(QPointF(px(x0), py(y1)), QPointF(px(x1), py(y0))))
+1989| 
+1990|         # --- muros: banda roja con borde oscuro (se ve sobre la losa) ---

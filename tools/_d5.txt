@@ -1,0 +1,63 @@
+1463|                 # ---------------- muros ----------------
+1464|                 eje_nombre = _nombre_eje_aplicacion(datos, direccion)
+1465|                 x0 = self._numero(datos.get("x_inicio"))
+1466|                 x1 = self._numero(datos.get("x_fin"))
+1467|                 if x0 is None or x1 is None:
+1468|                     continue
+1469|                 puntos.extend([self._punto(geom, x0), self._punto(geom, x1)])
+1470|                 ni = self._numero(datos.get("nivel_inicio"))
+1471|                 en_nivel = self._en_rango_nivel(
+1472|                     datos.get("nivel_inicio"), datos.get("nivel_fin")
+1473|                 )
+1474|                 # SÓLIDO = nace en este nivel. Si solo lo atraviesa (nació
+1475|                 # abajo), va punteado con aviso para no confundir.
+1476|                 nace_aca = (
+1477|                     self.nivel_activo is not None
+1478|                     and ni is not None
+1479|                     and abs(ni - self.nivel_activo) <= self.TOL
+1480|                 )
+1481|                 longitud = abs(max(x0, x1) - min(x0, x1))
+1482|                 espesor = self._numero(datos.get("espesor_m")) or 0.15
+1483|                 if en_nivel and (self.nivel_activo is None or nace_aca):
+1484|                     muros.append({
+1485|                         "nombre": str(nombre),
+1486|                         "direccion": direccion,
+1487|                         "posicion": posicion,
+1488|                         "x0": min(x0, x1),
+1489|                         "x1": max(x0, x1),
+1490|                         "espesor": espesor,
+1491|                         "activo": str(nombre) == str(self.portico_activo),
+1492|                     })
+1493|                     rotulos.append(self._rotulo(
+1494|                         x=(min(x0, x1) + max(x0, x1)) / 2,
+1495|                         y=posicion,
+1496|                         texto=f"{nombre} · eje {eje_nombre}",
+1497|                         direccion=direccion,
+1498|                         color="#b91c1c",
+1499|                         prioridad=2,
+1500|                         desplazamiento=12.0,
+1501|                     ))
+1502|                     conteo["muros"] += 1
+1503|                 elif en_nivel:
+1504|                     # Atraviesa el nivel pero nació abajo: proyección.
+1505|                     proyecciones.append({
+1506|                         "tipo": "muro",
+1507|                         "nombre": str(nombre),
+1508|                         "direccion": direccion,
+1509|                         "posicion": posicion,
+1510|                         "x0": min(x0, x1),
+1511|                         "x1": max(x0, x1),
+1512|                         "nota": "nace abajo",
+1513|                     })
+1514|                     rotulos.append(self._rotulo(
+1515|                         x=(min(x0, x1) + max(x0, x1)) / 2,
+1516|                         y=posicion,
+1517|                         texto=f"{nombre} (viene de abajo)",
+1518|                         direccion=direccion,
+1519|                         color="#b91c1c",
+1520|                         prioridad=4,
+1521|                         desplazamiento=12.0,
+1522|                     ))
+1523|                 continue  # los muros no son pórticos: no seguir en este bloque
+1524| 
+1525|             # ---------------- pórticos ----------------

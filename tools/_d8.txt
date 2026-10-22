@@ -1,0 +1,134 @@
+1717|             punto = col["punto"]
+1718|             ejes_txt = ", ".join(col["ejes"]) if col["ejes"] else ""
+1719|             texto = f"{col['nombre']} ({ejes_txt})" if ejes_txt else col["nombre"]
+1720|             es_activa = any(
+1721|                 str(pn) == str(self.portico_activo) for pn in col["porticos"]
+1722|             )
+1723|             rotulos.append(self._rotulo(
+1724|                 x=punto[0],
+1725|                 y=punto[1],
+1726|                 texto=texto,
+1727|                 direccion="x",
+1728|                 color="#1d4ed8" if es_activa else "#475569",
+1729|                 prioridad=2,
+1730|                 desplazamiento=13.0,
+1731|             ))
+1732|         # Bases únicas por coordenada global: bases que comparten el mismo
+1733|         # punto físico (aunque tengan base_id distintos) se dibujan una vez.
+1734|         bases_unicas = []
+1735|         for clave, entradas in bases_globales.items():
+1736|             punto = entradas[0]["punto"]
+1737|             bids = [e["bid"] for e in entradas]
+1738|             nombre_principal = entradas[0]["bid"]
+1739|             if len(entradas) > 1:
+1740|                 nombre_principal = f"{nombre_principal} (+{len(entradas)-1})"
+1741|             bases_unicas.append({
+1742|                 "nombre": nombre_principal,
+1743|                 "punto": punto,
+1744|                 "porticos": [e["portico"] for e in entradas],
+1745|                 "bases": bids,
+1746|             })
+1747|         conteo["bases"] = len(bases_unicas)
+1748| 
+1749|         # Rótulos de bases: también con evasión de solapamiento. Cuando la base
+1750|         # está bajo una columna se omite su rótulo: la columna ya identifica
+1751|         # ese punto y los dos textos se amontonarían.
+1752|         puntos_columna = {
+1753|             (round(c["punto"][0], 3), round(c["punto"][1], 3))
+1754|             for c in columnas_unicas
+1755|         }
+1756|         for base in bases_unicas:
+1757|             punto = base["punto"]
+1758|             clave = (round(punto[0], 3), round(punto[1], 3))
+1759|             if clave in puntos_columna:
+1760|                 continue
+1761|             if not self.portico_activo and len(bases_unicas) > 10:
+1762|                 # Vista general con muchas bases: no se rotula ninguna para
+1763|                 # no tapar los nombres de pórticos y muros.
+1764|                 break
+1765|             rotulos.append(self._rotulo(
+1766|                 x=punto[0],
+1767|                 y=punto[1],
+1768|                 texto=base["nombre"],
+1769|                 direccion="x",
+1770|                 color="#5b21b6",
+1771|                 prioridad=3,
+1772|                 desplazamiento=20.0,
+1773|             ))
+1774| 
+1775|         # ---------------- losas ----------------
+1776|         for nombre, datos in self.losas.items():
+1777|             if not isinstance(datos, dict):
+1778|                 continue
+1779|             # Tipo de losa: alivianada, macisa, casetonada, cruzada...
+1780|             tipo_losa = str(datos.get("tipologia", "alivianada")).lower()
+1781|             tipos_losa[str(nombre)] = tipo_losa
+1782|             panel = datos.get("panel_ejes") or {}
+1783|             rect = None
+1784|             if panel:
+1785|                 # Losa delimitada por ejes: pertenece a un solo nivel de apoyo.
+1786|                 if not self._en_nivel(panel.get("cota_apoyo_m"), panel.get("nivel_apoyo_nombre")):
+1787|                     continue
+1788|                 rect = self._rect_panel(panel)
+1789|             else:
+1790|                 rect = self._rect_legado(datos)
+1791|             if rect is None:
+1792|                 # Sin datos de ejes no se dibuja, pero se avisa para que no
+1793|                 # desaparezca en silencio.
+1794|                 etiquetas.append(str(nombre))
+1795|                 continue
+1796|             x0, y0, x1, y1 = rect
+1797|             puntos.extend([(x0, y0), (x1, y1)])
+1798|             panel_datos = datos.get("panel_ejes") or {}
+1799|             direccion_luz = str(panel_datos.get("direccion_luz", "x")).lower()
+1800|             if direccion_luz not in ("x", "y"):
+1801|                 direccion_luz = "x"
+1802|             losas.append((str(nombre), rect, tipo_losa))
+1803|             # Nombre de la losa al centro del paño, con tipo y apoyos.
+1804|             apoyos_txt = []
+1805|             for lado in ("izq", "der"):
+1806|                 apoyo = self._apoyo_losa(datos, panel_datos, rect, lado)
+1807|                 if apoyo is None:
+1808|                     continue
+1809|                 ax, ay, texto = apoyo
+1810|                 apoyos_txt.append(texto)
+1811|                 apoyos_losa.append({
+1812|                     "x": ax,
+1813|                     "y": ay,
+1814|                     "texto": texto,
+1815|                     "lado": lado,
+1816|                     "direccion_luz": direccion_luz,
+1817|                 })
+1818|             detalle_apoyos = (
+1819|                 f" → {' + '.join(apoyos_txt)}" if apoyos_txt else ""
+1820|             )
+1821|             rotulos.append(self._rotulo(
+1822|                 x=(x0 + x1) / 2,
+1823|                 y=(y0 + y1) / 2,
+1824|                 texto=f"{nombre} ({tipo_losa}) carga:{direccion_luz.upper()}{detalle_apoyos}",
+1825|                 direccion=direccion_luz,
+1826|                 color="#047857",
+1827|                 prioridad=4,
+1828|             ))
+1829|             # Marcas de apoyo en los bordes del paño.
+1830|             conteo["losas"] += 1
+1831| 
+1832|         return {
+1833|             "porticos": porticos,
+1834|             "muros": muros,
+1835|             "losas": losas,
+1836|             "etiquetas": etiquetas,
+1837|             "rotulos": rotulos,
+1838|             "apoyos_losa": apoyos_losa,
+1839|             "proyecciones": proyecciones,
+1840|             "puntos": puntos,
+1841|             "conteo": conteo,
+1842|             "tipos_losa": tipos_losa,
+1843|             "columnas_unicas": columnas_unicas,
+1844|             "bases_unicas": bases_unicas,
+1845|         }
+1846| 
+1847|     def _encuadre(self, escena):
+1848|         """Devuelve el encuadre de la planta: (px, py, xmin, xmax, ...).
+1849| 
+1850|         ``px`` y ``py`` son las funciones que convierten coordenadas de planta

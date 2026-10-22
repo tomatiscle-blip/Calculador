@@ -1,0 +1,58 @@
+108: 
+109: def vista_con(cota):
+110:     vista = VistaPlantaPorticos()
+111:     vista.resize(600, 400)
+112:     vista.set_datos(EJES, NIVELES, ESTRUCTURA)
+113:     vista.set_losas(LOSAS)
+114:     vista.set_portico_activo("Pórtico 1")
+115:     vista.set_nivel_activo(cota)
+116:     return vista
+117: 
+118: 
+119: class GeometriaDePlanta(unittest.TestCase):
+120:     def test_portico_que_corre_en_x(self):
+121:         geom = vista_con(None)._geometria(ESTRUCTURA["Pórtico 1"])
+122:         self.assertEqual(geom[0], "x")
+123:         # La columna local 5 cae sobre X5 = 0 + 5 y la posición es el eje Y2
+124:         self.assertEqual(vista_con(None)._punto(geom, 5.0), (5.0, 4.0))
+125: 
+126:     def test_portico_que_corre_en_y(self):
+127:         geom = vista_con(None)._geometria(ESTRUCTURA["Pórtico 2"])
+128:         self.assertEqual(geom[0], "y")
+129:         # Corre en Y: la coordenada longitudinal es la Y, la posición es la X
+130:         self.assertEqual(vista_con(None)._punto(geom, 4.0), (0.0, 4.0))
+131: 
+132:     def test_muro_usa_coordenadas_absolutas(self):
+133:         geom = vista_con(None)._geometria(ESTRUCTURA["Muro 1"])
+134:         self.assertEqual(vista_con(None)._punto(geom, 5.0), (5.0, 0.0))
+135: 
+136: 
+137: class FiltroPorNivel(unittest.TestCase):
+138:     def test_en_pb_se_ven_columnas_y_bases(self):
+139:         conteo = vista_con(0.0)._escena()["conteo"]
+140:         # C0-1 (Pórtico 1) y C0-3 (Pórtico 2) comparten el punto (0.0, 4.0):
+141:         # son la misma columna física en un cruce de ejes. Se cuenta una sola vez.
+142:         self.assertEqual(conteo["columnas"], 2)  # (0.0, 4.0) y (5.0, 4.0)
+143:         self.assertEqual(conteo["bases"], 2)
+144:         self.assertEqual(conteo["vigas"], 0)
+145:         # La viga de N1 es el techo de PB: va como proyección punteada.
+146:         escena = vista_con(0.0)._escena()
+147:         proy_vigas = [p for p in escena["proyecciones"] if p["tipo"] == "viga"]
+148:         self.assertEqual(len(proy_vigas), 1)
+149:         self.assertEqual(proy_vigas[0]["nombre"], "V0-1")
+150: 
+151:     def test_en_n1_se_van_las_columnas_y_aparecen_vigas_y_losa(self):
+152:         escena = vista_con(3.0)
+153:         conteo = escena._escena()["conteo"]
+154:         self.assertEqual(conteo["columnas"], 2)  # C1-1 y C1-2
+155:         self.assertEqual(conteo["vigas"], 1)
+156:         self.assertEqual(conteo["losas"], 1)
+157:         # El muro nace en PB: en N1 solo lo atraviesa, va punteado.
+158:         datos = escena._escena()
+159:         self.assertEqual(datos["conteo"]["muros"], 0)
+160:         proy_muros = [p for p in datos["proyecciones"] if p["tipo"] == "muro"]
+161:         self.assertEqual(len(proy_muros), 1)
+162: 
+163:     def test_rotulos_indican_eje_y_apoyos(self):
+164:         escena = vista_con(3.0)._escena()
+165:         textos = [r["texto"] for r in escena["rotulos"]]

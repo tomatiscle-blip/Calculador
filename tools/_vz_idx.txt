@@ -1,0 +1,39 @@
+14: class VistaDiagramaMomentos(QWidget):
+19:     def __init__(self, parent=None):
+29:     def establecer_diagrama(self, diagrama: dict | None) -> None:
+33:     def establecer_tipo_diagrama(self, tipo: str) -> None:
+40:     def paintEvent(self, event) -> None:
+272:     def mousePressEvent(self, event) -> None:
+299: class VistaPortico(QWidget):
+304:     def __init__(self, parent=None):
+325:     def establecer_niveles(self, niveles: list[dict]) -> None:
+333:     def _datos_portico_activo(self) -> dict:
+339:     def _muros_referencia_para_portico(self) -> list[dict]:
+355:     def _portico_referencia_para_muro(self) -> dict | None:
+382:     def actualizar(self, nombre: str) -> None:
+489:     def _geometria_tramos(self) -> list[dict]:
+530:     def paintEvent(self, _event) -> None:
+910:     def _dibujar_cargas_muro(self, painter, punto_fn) -> None:
+965: class VistaPlantaPorticos(QWidget):
+974:     def __init__(self, parent=None):
+990:     def set_datos(self, ejes, niveles, estructura):
+996:     def set_losas(self, elementos_carga):
+1004:     def set_nivel_activo(self, cota):
+1009:     def set_portico_activo(self, nombre):
+1017:     def _buscar_eje(ejes, familia, eje_id):
+1031:     def _numero(valor):
+1038:     def _geometria(self, datos):
+1076:     def _punto(geom, longitud):
+1084:     def _en_nivel(self, cota, nombre_nivel=None):
+1099:     def _en_rango_nivel(self, cota_ini, cota_fin):
+1110:     def _cota_base(self):
+1118:     def _rect_panel(self, panel):
+1135:     def _rect_legado(self, datos):
+1169:     def _rotulo(self, x, y, texto, direccion="x", color="#334155", prioridad=5,
+1189:     def _colocar_rotulos(self, rotulos, px, py):
+1285:     def _pintar_rotulos(self, painter, rotulos, px, py):
+1320:     def _apoyo_losa(self, datos_losa, panel, rect, lado):
+1403:     def _escena(self):
+1847:     def _encuadre(self, escena):
+1896:     def paintEvent(self, event):
+2179:     def wheelEvent(self, event):

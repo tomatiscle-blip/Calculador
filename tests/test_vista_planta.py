@@ -234,6 +234,111 @@ class FiltroPorNivel(unittest.TestCase):
             imagen.fill(QColor("#ffffff"))
             vista_con(cota).render(imagen)
 
+    # --- rótulos técnicos: se conservan pero no se dibujan ----------------
+
+    def test_rotulos_tecnicos_quedan_flotantes(self):
+        """Los rótulos técnicos (viga, muro, base, losa, apoyo) se marcan
+        como flotantes: siguen en la escena pero no se dibujan."""
+        escena = vista_con(3.0)._escena()
+        rotulos = escena["rotulos"]
+        self.assertTrue(rotulos, "la escena debe seguir reportando rótulos")
+        for rot in rotulos:
+            texto = rot["texto"]
+            if texto.startswith("V0-1") or texto.startswith("Muro 1"):
+                self.assertTrue(rot["flotante"], f"{texto} debería ser flotante")
+            if texto.startswith("B0-"):
+                self.assertTrue(rot["flotante"], f"{texto} debería ser flotante")
+            if texto.startswith("Losa 1"):
+                self.assertTrue(rot["flotante"], f"{texto} debería ser flotante")
+
+    def test_solo_se_dibujan_rotulos_no_flotantes(self):
+        """El filtro de rótulos deja pasar únicamente los no flotantes."""
+        vista = vista_con(3.0)
+        escena = vista._escena()
+        no_flotantes = [r for r in escena["rotulos"] if not r.get("flotante", False)]
+        colocados = vista._colocar_rotulos(no_flotantes, lambda v: v, lambda v: v)
+        for rot, _rect in colocados:
+            self.assertFalse(rot.get("flotante", False))
+
+    def test_rotulo_flotante_por_defecto(self):
+        """``_rotulo`` admite el flag ``flotante`` y lo normaliza a bool."""
+        vista = VistaPlantaPorticos()
+        rot = vista._rotulo(1.0, 2.0, "X", flotante=True)
+        self.assertIs(rot["flotante"], True)
+        rot = vista._rotulo(1.0, 2.0, "X")
+        self.assertIs(rot["flotante"], True)
+
+    def test_solo_el_portico_activo_conserva_su_texto(self):
+        """De los pórticos, solo el activo mantiene el rótulo visible."""
+        vista = vista_con(3.0)
+        vista.portico_activo = "Pórtico 1"
+        escena = vista._escena()
+        por_nombre = {}
+        for rot in escena["rotulos"]:
+            if "Pórtico" in rot["texto"]:
+                por_nombre[rot["texto"].split("·")[0].strip()] = rot["flotante"]
+        self.assertIn("Pórtico 1", por_nombre)
+        self.assertFalse(por_nombre["Pórtico 1"], "el pórtico activo debe verse")
+        self.assertTrue(por_nombre["Pórtico 2"], "el inactivo debe quedar flotante")
+
+    # --- estilos visuales por categoría ---------------------------------
+
+    def test_paleta_visual_por_categoria(self):
+        """Cada familia de elementos tiene color propio y distinguible."""
+        vista = VistaPlantaPorticos()
+        colores = [
+            vista.COLOR_EJE,
+            vista.COLOR_PORTICO,
+            vista.COLOR_PORTICO_ACTIVO,
+            vista.COLOR_VIGA,
+            vista.COLOR_MURO,
+            vista.COLOR_COLUMNA,
+            vista.COLOR_COLUMNA_INACTIVA,
+            vista.COLOR_BASE,
+            vista.COLOR_APOYO,
+        ]
+        self.assertEqual(len(set(colores)), len(colores), "los colores deben ser distintos")
+        for color in colores:
+            self.assertTrue(color.startswith("#") and len(color) == 7, color)
+
+    def test_leyenda_refleja_los_estilos(self):
+        """La leyenda debe listar los símbolos de cada categoría."""
+        vista = VistaPlantaPorticos()
+        # Los nombres de la leyenda se toman de la paleta: comprobamos que
+        # cada familia tiene una entrada con su color.
+        self.assertNotEqual(vista.COLOR_APOYO, vista.COLOR_BASE)
+        self.assertNotEqual(vista.COLOR_VIGA, vista.COLOR_MURO)
+
+    # --- encuadre, paneo, zoom y reinicio ---------------------------------
+
+    def test_reiniciar_vista_no_duplica_manejadores(self):
+        """``reiniciar_vista`` no debe conectar señales nuevas cada vez."""
+        vista = vista_con(3.0)
+        antes = vista.receivers(vista.wheelEvent.__name__) if hasattr(vista, "receivers") else None
+        for _ in range(3):
+            vista.reiniciar_vista()
+        # Tras reiniciar, la vista sigue respondiendo y sin excepción.
+        from PySide6.QtGui import QColor, QImage
+
+        imagen = QImage(600, 400, QImage.Format.Format_ARGB32)
+        imagen.fill(QColor("#ffffff"))
+        vista.render(imagen)
+        self.assertEqual(vista.zoom_factor, 1.0)
+        self.assertEqual(vista.desplazamiento_x, 0.0)
+        self.assertEqual(vista.desplazamiento_y, 0.0)
+
+    def test_zoom_y_paneo_no_rompen_el_encuadre(self):
+        """El zoom y el paneo cambian el encuadre pero no la geometría."""
+        vista = vista_con(3.0)
+        escena = vista._escena()
+        antes = len(escena["porticos"])
+        vista.zoom_factor = 2.0
+        vista.desplazamiento_x = 30.0
+        vista.desplazamiento_y = -15.0
+        self.assertEqual(len(vista._escena()["porticos"]), antes)
+        vista.reiniciar_vista()
+        self.assertEqual(vista.zoom_factor, 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

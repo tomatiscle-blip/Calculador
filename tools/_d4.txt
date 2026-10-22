@@ -1,0 +1,158 @@
+1403|     def _escena(self):
+1404|         """Arma la planta del nivel visible: todos los elementos existentes
+1405|         en sólido, las proyecciones de otros niveles en punteado y los rótulos
+1406|         con evasión de solapamiento. No hay enfoque único: se dibuja todo lo
+1407|         que pertenece al nivel elegido (o todo, si no hay filtro).
+1408|         """
+1409|         porticos, muros, losas, etiquetas = [], [], [], []
+1410|         rotulos: list[dict] = []
+1411|         apoyos_losa: list[dict] = []
+1412|         proyecciones: list[dict] = []
+1413|         puntos: list[tuple[float, float]] = []
+1414|         conteo = {"columnas": 0, "vigas": 0, "bases": 0, "muros": 0, "losas": 0}
+1415|         # Registro global de columnas por coordenada de planta (x, y).
+1416|         # Las columnas en cruces de ejes pertenecen a dos pórticos (uno en X,
+1417|         # otro en Y) pero son la misma columna física: se reutiliza el nodo.
+1418|         columnas_globales: dict[tuple[float, float], list[dict]] = {}
+1419|         # Registro global de bases por coordenada de planta: dos bases que
+1420|         # comparten el mismo punto global son la misma base física (aunque
+1421|         # tengan base_id distintos). Se unifican por identidad geométrica.
+1422|         bases_globales: dict[tuple[float, float], list[dict]] = {}
+1423|         cota_base = self._cota_base()
+1424|         # Niveles ordenados por cota: el nivel superior al visible tiene su
+1425|         # viga como techo punteado de este nivel.
+1426|         niveles_ordenados = sorted(
+1427|             (n for n in (self.niveles or []) if isinstance(n, dict)),
+1428|             key=lambda n: self._numero(n.get("cota_m")) or 0.0,
+1429|         )
+1430|         cotas = [self._numero(n.get("cota_m")) for n in niveles_ordenados]
+1431|         cotas = [c for c in cotas if c is not None]
+1432|         cota_superior = None
+1433|         if self.nivel_activo is not None and cotas:
+1434|             mayores = [c for c in cotas if c > self.nivel_activo + self.TOL]
+1435|             cota_superior = min(mayores) if mayores else None
+1436| 
+1437|         def _nombre_eje_aplicacion(datos: dict, direccion: str) -> str:
+1438|             """Nombre del eje transversal donde corre el elemento (Y3, X2...)."""
+1439|             ref = datos.get("referencia_planta", {}) or {}
+1440|             eje = self._buscar_eje(
+1441|                 self.ejes, "y" if direccion == "x" else "x", ref.get("eje_id")
+1442|             )
+1443|             if eje is not None:
+1444|                 return str(eje.get("nombre", ""))
+1445|             posicion = self._numero(datos.get("posicion_planta_m"))
+1446|             if posicion is None:
+1447|                 return ""
+1448|             return f"{posicion:.2f} m"
+1449| 
+1450|         # Tipo de losa por nombre, para pintar y para la leyenda.
+1451|         tipos_losa: dict[str, str] = {}
+1452| 
+1453|         for nombre, datos in self.estructura.items():
+1454|             if not isinstance(datos, dict):
+1455|                 continue
+1456|             geom = self._geometria(datos)
+1457|             if geom is None:
+1458|                 continue
+1459|             direccion, posicion, _ = geom
+1460|             es_muro = str(datos.get("tipo", "")).lower() == "muro"
+1461| 
+1462|             if es_muro:
+1463|                 # ---------------- muros ----------------
+1464|                 eje_nombre = _nombre_eje_aplicacion(datos, direccion)
+1465|                 x0 = self._numero(datos.get("x_inicio"))
+1466|                 x1 = self._numero(datos.get("x_fin"))
+1467|                 if x0 is None or x1 is None:
+1468|                     continue
+1469|                 puntos.extend([self._punto(geom, x0), self._punto(geom, x1)])
+1470|                 ni = self._numero(datos.get("nivel_inicio"))
+1471|                 en_nivel = self._en_rango_nivel(
+1472|                     datos.get("nivel_inicio"), datos.get("nivel_fin")
+1473|                 )
+1474|                 # SÓLIDO = nace en este nivel. Si solo lo atraviesa (nació
+1475|                 # abajo), va punteado con aviso para no confundir.
+1476|                 nace_aca = (
+1477|                     self.nivel_activo is not None
+1478|                     and ni is not None
+1479|                     and abs(ni - self.nivel_activo) <= self.TOL
+1480|                 )
+1481|                 longitud = abs(max(x0, x1) - min(x0, x1))
+1482|                 espesor = self._numero(datos.get("espesor_m")) or 0.15
+1483|                 if en_nivel and (self.nivel_activo is None or nace_aca):
+1484|                     muros.append({
+1485|                         "nombre": str(nombre),
+1486|                         "direccion": direccion,
+1487|                         "posicion": posicion,
+1488|                         "x0": min(x0, x1),
+1489|                         "x1": max(x0, x1),
+1490|                         "espesor": espesor,
+1491|                         "activo": str(nombre) == str(self.portico_activo),
+1492|                     })
+1493|                     rotulos.append(self._rotulo(
+1494|                         x=(min(x0, x1) + max(x0, x1)) / 2,
+1495|                         y=posicion,
+1496|                         texto=f"{nombre} · eje {eje_nombre}",
+1497|                         direccion=direccion,
+1498|                         color="#b91c1c",
+1499|                         prioridad=2,
+1500|                         desplazamiento=12.0,
+1501|                     ))
+1502|                     conteo["muros"] += 1
+1503|                 elif en_nivel:
+1504|                     # Atraviesa el nivel pero nació abajo: proyección.
+1505|                     proyecciones.append({
+1506|                         "tipo": "muro",
+1507|                         "nombre": str(nombre),
+1508|                         "direccion": direccion,
+1509|                         "posicion": posicion,
+1510|                         "x0": min(x0, x1),
+1511|                         "x1": max(x0, x1),
+1512|                         "nota": "nace abajo",
+1513|                     })
+1514|                     rotulos.append(self._rotulo(
+1515|                         x=(min(x0, x1) + max(x0, x1)) / 2,
+1516|                         y=posicion,
+1517|                         texto=f"{nombre} (viene de abajo)",
+1518|                         direccion=direccion,
+1519|                         color="#b91c1c",
+1520|                         prioridad=4,
+1521|                         desplazamiento=12.0,
+1522|                     ))
+1523|                 continue  # los muros no son pórticos: no seguir en este bloque
+1524| 
+1525|             # ---------------- pórticos ----------------
+1526|             columnas_datos = datos.get("columnas", {}) or {}
+1527|             vigas_datos = datos.get("vigas", {}) or {}
+1528|             bases_datos = datos.get("bases", {}) or {}
+1529|             eje_nombre = _nombre_eje_aplicacion(datos, direccion)
+1530|             # Nombre del eje longitudinal inicial (X1, Y2...): dice desde
+1531|             # dónde se miden las x locales de columnas/vigas.
+1532|             ref = datos.get("referencia_planta", {}) or {}
+1533|             eje_long = self._buscar_eje(
+1534|                 self.ejes, direccion, ref.get("eje_longitudinal_id")
+1535|             )
+1536|             eje_long_nombre = (
+1537|                 str(eje_long.get("nombre", "")) if eje_long is not None else ""
+1538|             )
+1539| 
+1540|             # Eje del pórtico: siempre se dibuja, con todas sus columnas de
+1541|             # referencia (incluso si en este nivel no hay ninguna).
+1542|             largos = [
+1543|                 self._numero(col.get("x"))
+1544|                 for col in columnas_datos.values()
+1545|                 if isinstance(col, dict)
+1546|             ]
+1547|             largos = [x for x in largos if x is not None]
+1548|             eje_ini = min(largos) if largos else 0.0
+1549|             eje_fin = max(largos) if largos else 0.0
+1550|             eje_p0, eje_p1 = self._punto(geom, eje_ini), self._punto(geom, eje_fin)
+1551|             puntos.extend([eje_p0, eje_p1])
+1552| 
+1553|             columnas = []
+1554|             for cid, col in columnas_datos.items():
+1555|                 if not isinstance(col, dict):
+1556|                     continue
+1557|                 x = self._numero(col.get("x"))
+1558|                 if x is None or not self._en_nivel(col.get("nivel"), col.get("nivel_inicio")):
+1559|                     continue
+1560|                 punto = self._punto(geom, x)

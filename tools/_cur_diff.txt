@@ -1,0 +1,70 @@
+diff --git a/app/visualizacion.py b/app/visualizacion.py
+index ee6acfe..0be0264 100644
+--- a/app/visualizacion.py
++++ b/app/visualizacion.py
+@@ -983,6 +983,52 @@ class VistaPlantaPorticos(QWidget):
+         self.portico_activo = ""
+         self.nivel_activo = None  # cota Z del nivel filtrado; None = todos
+         self.zoom_factor = 1.0  # multiplicador de escala para zoom con rueda
++        # Paneo por arrastre: desplazamiento de la vista en píxeles.
++        self.desplazamiento_x = 0.0
++        self.desplazamiento_y = 0.0
++        self._arrastrando = False
++        self._posicion_arrastre = None
++
++    # ------------------------------------------------------------------
++    # Vista: zoom, paneo y reencuadre
++    # ------------------------------------------------------------------
++    def reiniciar_vista(self) -> None:
++        """Vuelve al encuadre original (sin zoom ni desplazamiento)."""
++        self.zoom_factor = 1.0
++        self.desplazamiento_x = 0.0
++        self.desplazamiento_y = 0.0
++        self.update()
++
++    def mousePressEvent(self, event):
++        """Arrastre con el botón izquierdo: mueve la planta (paneo)."""
++        if event.button() != Qt.MouseButton.LeftButton:
++            super().mousePressEvent(event)
++            return
++        self._arrastrando = True
++        self._posicion_arrastre = event.position()
++        self.setCursor(Qt.CursorShape.ClosedHandCursor)
++
++    def mouseMoveEvent(self, event):
++        """Sigue el arrastre: desplaza el encuadre en píxeles."""
++        if not self._arrastrando or self._posicion_arrastre is None:
++            super().mouseMoveEvent(event)
++            return
++        posicion = event.position()
++        delta = posicion - self._posicion_arrastre
++        self.desplazamiento_x += delta.x()
++        self.desplazamiento_y += delta.y()
++        self._posicion_arrastre = posicion
++        self.update()
++
++    def mouseReleaseEvent(self, event):
++        """Termina el arrastre."""
++        if event.button() != Qt.MouseButton.LeftButton:
++            super().mouseReleaseEvent(event)
++            return
++        self._arrastrando = False
++        self._posicion_arrastre = None
++        self.unsetCursor()
++        self.update()
+ 
+     # ------------------------------------------------------------------
+     # Datos de entrada
+@@ -1882,8 +1928,10 @@ class VistaPlantaPorticos(QWidget):
+             max(self.width() - 2 * margen_x, 1.0) / rango_x,
+             max(self.height() - 2 * margen_y, 1.0) / rango_y,
+         ) * 0.92 * self.zoom_factor
+-        ox = (self.width() - rango_x * escala) / 2
+-        oy = (self.height() - rango_y * escala) / 2
++        # El desplazamiento (paneo por arrastre) se aplica al origen: mover la
++        # vista no cambia la escala ni el encuadre de la obra.
++        ox = (self.width() - rango_x * escala) / 2 + self.desplazamiento_x
++        oy = (self.height() - rango_y * escala) / 2 + self.desplazamiento_y
+ 
+         def px(x):
+             return ox + (x - xmin) * escala
