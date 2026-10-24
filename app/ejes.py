@@ -188,9 +188,20 @@ class VistaPlantaPorticos(QWidget):
                 posicion = 0.0
                 origen_longitudinal = 0.0
             columnas = datos.get("columnas", {})
+            if isinstance(columnas, list):
+                catalogo = (
+                    estructura.get("columnas", {})
+                    if isinstance(estructura, dict)
+                    else {}
+                ) or {}
+                columnas_iter = (catalogo.get(cid) for cid in columnas)
+            elif isinstance(columnas, dict):
+                columnas_iter = columnas.values()
+            else:
+                columnas_iter = ()
             coordenadas_locales = [
                 round(float(columna["x"]), 6)
-                for columna in columnas.values()
+                for columna in columnas_iter
                 if isinstance(columna, dict)
                 and self._es_numero_finito(columna.get("x"))
             ]
@@ -544,7 +555,7 @@ class EditorUbicacionPortico(QDialog):
             float(ejes_columna[0]["coordenada_m"]) if ejes_columna else 0.0
         )
         columnas = {
-            f"C0-{chr(97 + indice)}": {
+            f"COL-previa-{indice + 1}": {
                 "x": float(eje["coordenada_m"]) - coordenada_inicial
             }
             for indice, eje in enumerate(ejes_columna)
@@ -826,7 +837,18 @@ class EditorPorticoPorNiveles(QDialog):
                     except (TypeError, ValueError):
                         continue
         if not extremos:
-            for columna in (datos.get("columnas", {}) or {}).values():
+            columnas = datos.get("columnas", {})
+            if isinstance(columnas, list):
+                catalogo = (
+                    self.estructura.get("columnas", {})
+                    if isinstance(self.estructura, dict) else {}
+                ) or {}
+                columnas_iter = (catalogo.get(cid) for cid in columnas)
+            elif isinstance(columnas, dict):
+                columnas_iter = columnas.values()
+            else:
+                columnas_iter = ()
+            for columna in columnas_iter:
                 if isinstance(columna, dict):
                     try:
                         extremos.append(origen + float(columna.get("x", 0.0)))
@@ -1059,7 +1081,7 @@ class EditorPorticoPorNiveles(QDialog):
         ejes_base = self._ejes_seleccionados(0)
         origen = ejes_base[0]["coordenada_m"] if ejes_base else 0.0
         columnas = {
-            f"C0-{indice_col}": {"x": x - origen}
+            f"COL-previa-{indice_col + 1}": {"x": x - origen}
             for indice_col, x in enumerate(coordenadas)
         }
         estructura = dict(self.estructura_existente)
@@ -2060,9 +2082,20 @@ class VistaPlantaMuros(QWidget):
                 except (TypeError, ValueError):
                     posicion = 0.0
                 columnas = datos.get("columnas", {})
+                if isinstance(columnas, list):
+                    catalogo = (
+                        estructura.get("columnas", {})
+                        if isinstance(estructura, dict)
+                        else {}
+                    ) or {}
+                    columnas_iter = (catalogo.get(cid) for cid in columnas)
+                elif isinstance(columnas, dict):
+                    columnas_iter = columnas.values()
+                else:
+                    columnas_iter = ()
                 coords = sorted({
                     round(float(c["x"]), 6)
-                    for c in columnas.values()
+                    for c in columnas_iter
                     if isinstance(c, dict) and self._es_numero_finito(c.get("x"))
                 })
                 self.porticos[nombre] = {
@@ -2458,7 +2491,18 @@ class EditorMuroPorNiveles(QDialog):
                     except (TypeError, ValueError):
                         continue
         if not extremos:
-            for columna in (portico.get("columnas", {}) or {}).values():
+            columnas = portico.get("columnas", {})
+            if isinstance(columnas, list):
+                catalogo = (
+                    self.estructura.get("columnas", {})
+                    if isinstance(self.estructura, dict) else {}
+                ) or {}
+                columnas_iter = (catalogo.get(cid) for cid in columnas)
+            elif isinstance(columnas, dict):
+                columnas_iter = columnas.values()
+            else:
+                columnas_iter = ()
+            for columna in columnas_iter:
                 if isinstance(columna, dict):
                     try:
                         extremos.append(origen + float(columna.get("x", 0.0)))

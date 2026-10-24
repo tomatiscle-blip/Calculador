@@ -8,8 +8,8 @@ Contiene los scripts originales que inspiraron el proyecto. Varios fueron migrad
 - **P01** `P01_Calcular_muros.py`, `P01_dimensionado_portico_hormigon.py` — migrado parcialmente.
 - **P02** `P02_Viga_portico.py` — migrado (conexión motor + app; dimensionador conservado).
 - **P03** `P03_Viga_portico_guardar_excel.py` — migrado parcialmente.
-- **P04** `P04_Columnas_portico.py` — migrado (columnas accesibles desde app).
-- **P05** `P05_Bases_portico.py` — migrado (bases accesibles desde app).
+- **P04** `P04_Columnas_portico.py` — migrado (columnas accesibles desde app); import/ruta corregida para ejecución desde `Legacy/` y adaptado a IDs globales de columnas (`COL-XXX`).
+- **P05** `P05_Bases_portico.py` — migrado (bases accesibles desde app); import/ruta corregida para ejecución desde `Legacy/` y adaptado a IDs globales de bases (`BASE-XXX`).
 - **P06** `P06_Portico_dxf.py` — **NO implementado aún** (DXF).
 - Otros: `00_Analisis_cargas.py`, `C00_Columnas.py`, `L00_Losas_alivianadas.py`, `V00..V03`, `10_metalicos_correas.py` — referencia/parcial.
 

@@ -95,6 +95,8 @@ def preparar_datos(portico: str, secciones: dict | None = None) -> tuple[dict, l
 
 def dimensionar(portico: str, secciones: dict | None = None, tipo_flecha: str = "piso") -> tuple[Path, list[str]]:
     """Ejecuta los cálculos conservados en P02 y genera sus salidas habituales."""
+    import sys
+    sys.path.insert(0, str(rutas.RAIZ / "Legacy"))
     import P02_Viga_portico as legacy
 
     if tipo_flecha not in ("piso", "cubierta"):

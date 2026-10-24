@@ -26,7 +26,7 @@ def dimensionar_desde_app(parent, portico: str):
 
     dialogo = QDialog(parent)
     dialogo.setWindowTitle(f"Datos de diseño de vigas · {portico}")
-    dialogo.resize(540, 560)
+    dialogo.resize(420, 420)
     dialogo.setStyleSheet(
         "QLineEdit, QComboBox {"
         " color: #202124; background-color: #ffffff;"

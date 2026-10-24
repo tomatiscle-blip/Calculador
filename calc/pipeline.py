@@ -75,7 +75,12 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
     datos = estructura.get(nombre)
     if not datos:
         return False, f"el pórtico '{nombre}' no está en estructura.json"
-    columnas = datos.get("columnas", {})
+    _cols_raw = datos.get("columnas", {})
+    if isinstance(_cols_raw, list):
+        _cat = rutas.cargar_estructura().get("columnas", {}) or {}
+        columnas = {cid: _cat.get(cid, {}) for cid in _cols_raw}
+    else:
+        columnas = _cols_raw or {}
     n_columnas = len(columnas)
     n_tramos = sum(len(v.get("tramos", [])) for v in datos.get("vigas", {}).values())
     problemas = []
@@ -84,10 +89,18 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
         piso = cabeza[1:] if cabeza[:1].upper() == "V" else ""
         if not piso.isdigit():
             continue
-        columnas_piso = sorted(
-            (c for cid, c in columnas.items() if str(cid).startswith(f"C{piso}-")),
-            key=lambda c: float(c.get("x", 0.0)),
-        )
+        cota_viga = viga.get("cota_m")
+        if cota_viga is not None:
+            columnas_piso = sorted(
+                (c for c in columnas.values()
+                 if abs(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) - float(cota_viga)) < 1e-6),
+                key=lambda c: float(c.get("x", 0.0)),
+            )
+        else:
+            columnas_piso = sorted(
+                (c for c in columnas.values()),
+                key=lambda c: float(c.get("x", 0.0)),
+            )
         tramos = viga.get("tramos", [])
         for indice, tramo in enumerate(tramos):
             if tramo.get("es_voladizo"):
@@ -330,7 +343,7 @@ ETAPAS: tuple[Etapa, ...] = (
         clave="columnas",
         nombre="7. Columnas",
         descripcion="Esbeltez, cuantías y diagramas de interacción.",
-        script="P04_Columnas_portico.py",
+        script="Legacy/P04_Columnas_portico.py",
         entradas=(
             rutas.ESTRUCTURA,
             rutas.DIAGRAMAS_INTERACCION,
@@ -348,7 +361,7 @@ ETAPAS: tuple[Etapa, ...] = (
         clave="bases",
         nombre="8. Bases (zapatas)",
         descripcion="Dimensionado, tensiones del suelo, punzonado y armadura.",
-        script="P05_Bases_portico.py",
+        script="Legacy/P05_Bases_portico.py",
         entradas=(
             rutas.ESTRUCTURA,
             rutas.PLANILLA_COLUMNAS,

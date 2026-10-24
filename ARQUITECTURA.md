@@ -72,22 +72,37 @@ consola; el selector de pórticos quedó dentro del bloque correspondiente en In
 ---
 
 ## 4. Dónde vive cada dato
+### 4.1. Carpetas principales del proyecto
 
-| Archivo | Qué contiene | Quién lo lee |
-|---|---|---|
-| `datos/materiales.json` | La biblioteca: pesos específicos, cargas superficiales, sobrecargas, viento | `calc/materiales.py` → todo el programa |
-| `datos/cargas.json` | **Los elementos** (muro, losa, techo, encadenado) y el viento general | `calc/cargas.py` |
-| `datos/estructura.json` | Los pórticos: columnas, vigas, tramos, bases y, tras dimensionar, datos de sección `b`/`fc` | `datos/crear_estructura.py`, `calc/portico.py`, `calc/diseno_vigas.py`, P02 |
-| `datos/cargas.json` → `aplicaciones` | Qué carga va a qué pórtico y tramo, intervalo `x`, ancho tributario y modo de reemplazo | `app/cargas_proyecto.py`, `calc/cargas.py`, `calc/portico.py` |
-| `datos/terreno.json` | Capas, nivel freático, q_adm, módulo de balasto | bases (falta crear) |
-| `datos/tipos_losa.json` | Vigueta / maciza / casetonada con sus datos | losas (falta crear) |
-| `salidas/…` | Todo lo que produce el cálculo | la ventana y los planos |
-
-**Nada de esto se escribe dos veces.** Si un material aparece en la losa y en el pórtico,
-es el mismo renglón del mismo archivo: lo que hace que el mismo contrapiso no pueda valer
-0,80 en un lado y 0,85 en el otro.
-
+| Carpeta | Función |
+|---|---|
+| `app/` | Aplicación PySide6. Contiene ventanas, pestañas, diálogos y navegación. |
+| `calc/` | Motores de cálculo y lógica estructural (cargas, pórticos, vigas, columnas, bases, losas, etc.). |
+| `datos/` | Datos compartidos del sistema: materiales, coeficientes, tipologías y configuraciones generales. |
+| `Obras/` | Una carpeta por obra. Cada obra contiene sus propios datos y resultados. |
+| `salidas/` | Resultados generados por los cálculos. Son regenerables y no constituyen la fuente de datos. |
+| `tests/` | Pruebas automáticas y verificaciones de funcionamiento. |
+| `tools/` | Utilidades auxiliares (regresión, comparación de motores, diagnósticos y mantenimiento). |
+| `legacy/` | Scripts históricos conservados como referencia durante la migración a `calc/`. |
+| `Bibliografia/` | Reglamentos, documentación técnica y criterios de cálculo de consulta. |
+| `imagenes/` | Recursos gráficos utilizados por la aplicación. |
+| `.venv/` | Entorno virtual de Python. No forma parte del código del proyecto. |
+| `.vs/` | Configuración local de Visual Studio. |
+| `__pycache__/` | Caché generada automáticamente por Python. |
 ---
+### 4.2. Archivos principales de la raíz
+
+| Archivo | Función |
+|---|---|
+| `calculador.bat` | Abre la aplicación principal. |
+| `estado.bat` | Muestra el estado de las etapas y el semáforo del proyecto. |
+| `ver_cambios.bat` | Muestra los cambios pendientes de guardar en git. |
+| `README.md` | Estado actual, hoja de ruta y trabajo en curso. |
+| `ARQUITECTURA.md` | Diseño general del sistema y organización de datos. |
+| `INTERFAZ.md` | Implementación real de la interfaz gráfica, pestañas y navegación. |
+| `PUESTA_EN_MARCHA.md` | Instalación, recuperación del entorno y guía de git. |
+| `requirements.txt` | Dependencias necesarias para ejecutar el proyecto. |
+| `.gitignore` | Archivos y carpetas que no deben versionarse en git. |
 
 ## 5. Carátula y navegación del programa
 
@@ -142,8 +157,7 @@ cargas parciales y que no se dupliquen D/L.
    que piden por teclado se van reemplazando de a uno).
 4. **Cada paso se valida con números**: antes de cambiar un cálculo, se corre
    `py tools\regresion.py comparar`. Si un número cambia, se explica por qué.
-5. **El script viejo queda como envoltorio** hasta que su reemplazo dé los mismos
-   números; recién ahí se archiva en `legacy\` (ver la sección 10 del README).
+5. **El script viejo queda como envoltorio** ver `legacy\` en caso de ser necesario se vuelce a el para implemetar soluciones pentientes. (ver la sección 10 del README).
 
 ---
 
@@ -216,46 +230,31 @@ Calculador\
 a la obra seleccionada. Materiales, viguetas, perfiles, coeficientes y viento quedan en
 `datos/` como bibliotecas compartidas.
 
-## 8. Estado de la app y cómo retomar — 05/10/2026
+## 8. Evolución espacial: Columnas compartidas y pórticos cruzados (Octubre 2026)
 
-### Lo que ya se puede hacer desde `calculador.bat`
+Para superar la limitación de los pórticos planos independientes cuando se intersectan en planta (por ejemplo, una casa con un pórtico transversal en sentido Y y tres pórticos en sentido X que comparten columnas), el programa adopta los siguientes principios de modelado:
 
-- **Inicio:** elegir el pórtico existente en la lista superior; ver su estado y la
-  visualización de la geometría y las cargas. Desde ahí se pueden resolver las
-  solicitaciones del motor Pynite.
-- **Cargas:** crear/editar composiciones y asignarlas a un pórtico y tramo, con intervalo
-  `x_inicio`–`x_fin`, ancho tributario y opción de reemplazar cargas previas. La definición
-  y la asignación manual están en una sola página; las losas asociadas a ejes transfieren
-  sus cargas automáticamente. La carga permanente `D` y la sobrecarga `L` se conservan
-  separadas para combinarlas una sola vez.
-- **Pórticos:** al crear uno se ingresa solamente su número acumulativo. La app genera
-  `Pórtico N`, columnas `C<nivel>-<columna global>`, bases `B0-<columna global>` y vigas
-  `V<nivel>-N T<tramo>`. La secuencia de columnas es única en la obra y se repite en cada
-  nivel para la misma posición ordinal del pórtico; en las claves de nivel, `0` es planta
-  baja y `1` el primer nivel.
-- **Solicitaciones:** Inicio conserva la tabla de envolventes y permite abrir el diagrama
-  de momentos de la combinación que gobierna el mayor `|M|` del pórtico.
-- **Vigas:** tras resolver el motor, el botón **Dimensionar vigas** pide `b` y `fc` por
-  viga. `app/diseno_vigas.py` guarda esos datos en `estructura.json`; `calc/diseno_vigas.py`
-  construye la entrada para P02 a partir de `estructura.json`, las aplicaciones de carga
-  y `salidas/solicitaciones/<pórtico>.json`. P02 genera el JSON de resultados y la planilla
-  TXT. `P02_Viga_portico.py` también conserva el uso por consola y ahora evita iniciar el
-  diálogo al importarse.
-- El diálogo de secciones fija el contraste de sus campos para evitar texto blanco sobre
-  fondo blanco con el tema de Windows.
+1. **Identidad Global de Columnas y Nudos:** 
+   Las columnas y apoyos no son propiedad exclusiva de un único pórtico. Se definen a nivel de obra por su posición en la grilla y coordenadas $(X, Y)$, garantizando un ID único global.
+2. **Pórticos como Planos de Análisis (Trazas):** 
+   Un pórtico actúa como un plano virtual de corte para alimentar el motor PyNite. Cuando dos pórticos se cruzan en una esquina, **reutilizan el nudo y la columna existente** en lugar de duplicarlos o sobrescribirlos.
+3. **Integridad al Eliminar:** 
+   Eliminar un pórtico borra únicamente sus vigas y su definición geométrica como plano de análisis, preservando los elementos globales de apoyo (columnas y bases) si otros elementos de la obra los siguen referenciando.
+4. **Acumulación de Solicitaciones (Biaxialidad):** 
+   Las solicitaciones obtenidas al resolver de manera independiente los pórticos longitudinales y transversales se vinculan al ID global de la columna para que los dimensionadores posteriores evalúen el efecto bidireccional (flexión esviada).
 
-### Límites actuales que hay que tener presentes
+### Estado actual de implementación
 
-- P02 sigue siendo el cálculo legacy; el adaptador lo conecta a los datos actuales, pero
-  no reemplaza ni valida por sí mismo sus criterios de diseño.
-- P02 aproxima la flecha con carga uniforme equivalente. Avisa cuando hay cargas parciales;
-  las cargas puntuales no se incluyen en esa comprobación de flecha.
-- Los valores de ubicación de viento CIRSOC 102-25 se guardan como referencia en el
-  proyecto; la configuración todavía indica que el motor usa el cálculo de viento previo.
-- La geometría inicial se crea desde Inicio por niveles y ejes; todavía no hay un editor
-  gráfico para modificar pórticos existentes.
+Los principios anteriores ya comenzaron a implementarse en la estructura de datos de la aplicación.
 
-### Próximo paso
+Actualmente:
 
-Incorporar edición gráfica de pórticos existentes y continuar la migración de los
-dimensionadores, manteniendo los scripts legacy disponibles durante esa transición.
+- Las columnas utilizan identificadores globales (`COL-XXX`) a nivel de obra.
+- Las bases utilizan identificadores globales (`BASE-XXX`) a nivel de obra.
+- Los pórticos almacenan referencias a esos elementos globales en lugar de mantener copias independientes.
+- La acumulación de solicitaciones por columna ya está prevista para que una misma columna física pueda recibir esfuerzos provenientes de varios pórticos.
+- Se mantiene compatibilidad temporal con obras y pórticos creados bajo el esquema anterior mientras se completa la migración.
+- Los dimensionadores legacy de columnas y bases (`P04`/`P05`) ya se ejecutan desde la app usando IDs globales y datos de la obra activa.
+
+Este esquema permite avanzar hacia el dimensionamiento de columnas y bases considerando la interacción entre pórticos longitudinales y transversales, manteniendo el análisis estructural organizado por pórticos planos.
+  

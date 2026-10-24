@@ -1,0 +1,163 @@
+=== tests\test_cache_estructura.py (222 lines) ===
+2: Tests de la caché de datos/estructura.json (calc/rutas.py).
+4: La estructura se relee del disco SOLO cuando el archivo cambia (firma
+10:   * guardar_estructura() refresca la caché con lo recién escrito,
+33:         self.estructura_original = rutas.ESTRUCTURA
+34:         self.cache_original = rutas._cache_estructura
+36:         rutas.ESTRUCTURA = self.carpeta / "estructura.json"
+37:         rutas._cache_estructura = None
+40:         rutas.ESTRUCTURA = self.estructura_original
+41:         rutas._cache_estructura = self.cache_original
+44:         (self.carpeta / "estructura.json").write_text(
+49:         self.assertEqual(rutas.cargar_estructura(), {})
+52:         self._escribir({"Pórtico 1": {"columnas": {}}})
+53:         primero = rutas.cargar_estructura()
+66:             segundo = rutas.cargar_estructura()
+74:         self._escribir({"Pórtico 1": {"columnas": {}}})
+75:         self.assertIn("Pórtico 1", rutas.cargar_estructura())
+78:         self._escribir({"Pórtico 2": {"columnas": {}, "vigas": {}}})
+79:         datos = rutas.cargar_estructura()
+84:         self._escribir({"Pórtico 1": {"columnas": {"C1": {"x": 0.0}}}})
+85:         copia = rutas.cargar_estructura()
+86:         copia["Pórtico 1"]["columnas"]["C1"]["x"] = 99.0
+89:         otra = rutas.cargar_estructura()
+90:         self.assertEqual(otra["Pórtico 1"]["columnas"]["C1"]["x"], 0.0)
+93:     def test_guardar_estructura_refresca_la_cache(self):
+94:         datos = {"Pórtico 3": {"columnas": {}}}
+95:         rutas.guardar_estructura(datos)
+97:         self.assertEqual(rutas.cargar_estructura(), datos)
+99:         leido = json.loads((self.carpeta / "estructura.json").read_text(encoding="utf-8"))
+104:         self.assertIn("Pórtico 1", rutas.cargar_estructura())
+109:         datos = rutas.cargar_estructura()
+146:         self.estructura_original = rutas.ESTRUCTURA
+151:         rutas.ESTRUCTURA = self.carpeta / "estructura.json"
+158:         rutas.ESTRUCTURA = self.estructura_original
+190:         rutas.guardar_json(rutas.ESTRUCTURA, {"Pórtico 1": {"columnas": {}}})
+195:             "el estado debió recalcularse tras guardar",
+
+=== tests\test_cache_firmas.py (74 lines) ===
+
+=== tests\test_cache_rutas_pipeline.py (104 lines) ===
+4: La caché evita volver a expandir los comodines (*, {portico}) en cada consulta
+32:         self.estructura_original = rutas.ESTRUCTURA
+39:         rutas.ESTRUCTURA = self.carpeta / "estructura.json"
+50:         rutas.ESTRUCTURA = self.estructura_original
+81:         rutas.guardar_json(rutas.ESTRUCTURA, {"Pórtico 1": {"columnas": {}}})
+96:             {"Pórtico 1": {"columnas": {}, "vigas": {}}},
+
+=== tests\test_diagrama_momentos.py (67 lines) ===
+3: from calc.portico import _diagrama_momento
+35:                 "columnas": {"C1": "V1"},
+57:                     "columnas": {"C1": "V1"},
+
+=== tests\test_editor_muro_mixto.py (121 lines) ===
+32: def _portico_coplanar():
+36:             "tipo": "portico",
+43:             "columnas": {
+68:     def test_detecta_portico_coplanar_sin_borrarlo(self):
+69:         estructura = _portico_coplanar()
+70:         editor = EditorMuroPorNiveles(_ejes(), _niveles(), estructura)
+78:         coplanar = editor._portico_coplanar()
+82:         # El pórtico NO se modifica ni se elimina del diccionario de estructura.
+83:         self.assertIn("Pórtico 1", editor.estructura)
+84:         self.assertEqual(editor.estructura["Pórtico 1"], datos)
+88:         self.assertFalse(editor.boton_usar_portico.isHidden())
+91:     def test_usar_longitud_del_portico_ajusta_extremos(self):
+92:         estructura = _portico_coplanar()
+93:         editor = EditorMuroPorNiveles(_ejes(), _niveles(), estructura)
+99:         editor._usar_longitud_portico()
+107:         self.assertIn("Pórtico 1", editor.estructura)
+110:     def test_sin_portico_coplanar_oculta_aviso(self):
+114:         self.assertIsNone(editor._portico_coplanar())
+116:         self.assertTrue(editor.boton_usar_portico.isHidden())
+
+=== tests\test_editor_portico_niveles.py (224 lines) ===
+39:         # «Paralelo a Y» ubica el plano sobre un eje Y y corre las columnas en X.
+46:         columnas_en_planta = editor.vista.porticos["Pórtico nuevo"]["columnas"]
+47:         self.assertEqual(columnas_en_planta, [5.0, 10.0])
+63:     def test_direccion_x_ubica_plano_en_x_y_columnas_en_y(self):
+79:         # «Paralelo a X»: el plano corre sobre un eje X y las columnas sobre ejes Y.
+122:         # Ejes X longitudinales (donde nacen columnas cuando el plano es Y).
+137:     def _portico_plano_y(nombre_rango, eje_fin_id, origen, hasta):
+140:                 "tipo": "portico",
+144:                 "columnas": {"C0-1": {"x": 0.0}, "C0-2": {"x": hasta}},
+153:     def test_permite_portico_en_lugar_libre_del_mismo_plano(self):
+162:         existente = self._portico_plano_y("Pórtico 1", "x:2", 0.0, 4.0)
+164:         self._elegir_direccion(editor, "y")  # plano en Y1, columnas en X
+166:         # Marcar columnas solo en X2, X3, X4 (4–12 m) en TODOS los tramos.
+176:     def test_rechaza_portico_que_solapa_longitudinal_y_nivel(self):
+184:         existente = self._portico_plano_y("Pórtico 1", "x:2", 0.0, 4.0)
+188:         # Dejar columnas en X1..X3 (0–8 m): solapa con 0–4.
+193:     def test_rechaza_portico_sobre_muro_de_planta_baja(self):
+
+=== tests\test_humo_editores.py (61 lines) ===
+37: print("portico: muros en visor =", list(ed.vista.muros.keys()))
+38: assert "Muro 1" in ed.vista.muros, "el muro debe verse en el visor de portico"
+39: assert "Muro 1" in ed.estructura_existente, "el muro no debe borrarse"
+42: # Editor de MURO con un portico presente: debe mostrarlo como contexto.
+43: portico = {
+44:     "tipo": "portico",
+47:     "columnas": {"C0-1": {"x": 0.0}, "C0-2": {"x": 5.0}},
+50: edm = EditorMuroPorNiveles(ejes, niveles, {"Portico 5": portico})
+51: print("muro: porticos en visor =", list(edm.vista.porticos.keys()))
+52: assert "Portico 5" in edm.vista.porticos, "el portico debe verse en el visor de muro"
+55: cp = edm._portico_coplanar()
+59: assert "Portico 5" in edm.estructura, "el portico NO debe borrarse"
+
+=== tests\test_humo_muros.py (44 lines) ===
+
+=== tests\test_mamposteria.py (64 lines) ===
+
+=== tests\test_muros_compuestos.py (176 lines) ===
+28:     def test_calcular_muro_compuesto_geometria(self):
+29:         resultado = muros.calcular_muro_compuesto(
+55:             muros.calcular_muro_compuesto("M", self._capas_ejemplo(), 0.0, 5.0)
+58:         resultado = muros.calcular_muro_compuesto(
+63:         # El diseño estructural y el cimiento siguen pendientes.
+64:         self.assertIsNone(resultado["diseno_estructural"])
+85:         resultado = muros.calcular_muro_compuesto(
+108:         # se puede calcular, pero el peso propio sí debe seguir funcionando.
+110:         resultado = muros.calcular_muro_compuesto("M", capas, 3.0, 5.0)
+164:     def test_recalcular_no_recursa(self):
+165:         # Regresión del crash: _recalcular escribía setItem -> itemChanged ->
+166:         # _recalcular en bucle hasta desbordar la pila y cerrar la app.
+
+=== tests\test_nombre_portico.py (33 lines) ===
+22:             rutas.proximo_nombre_portico().startswith("Pórtico "),
+28:             rutas.proximo_nombre_portico(), rutas.listar_porticos()
+
+=== tests\test_portico_peso_propio.py (41 lines) ===
+3: from calc.portico import _huella_entradas, _peso_propio_viga_kN_m
+
+=== tests\test_validar_motor.py (31 lines) ===
+8: datos/estructura.json y lo resolvía por dos caminos independientes:
+11:   2. calc.portico (Pynite), con el mismo pórtico.
+29:   anaStruct guardados en estructura.json y los que calcula Pynite.
+
+=== tests\test_vista_planta.py (344 lines) ===
+40:     # Corre en X sobre el eje Y2 (4.0): columnas locales 0 y 5
+49:         "columnas": {
+73:         "columnas": {"C0-3": {"x": 4.0, "nivel": 0.0, "eje_nombre": "Y2"}},
+94:             "der": {"tipo": "portico", "portico": "Pórtico 1", "viga": "V0-1"},
+114:     vista.set_portico_activo("Pórtico 1")
+120:     def test_portico_que_corre_en_x(self):
+126:     def test_portico_que_corre_en_y(self):
+138:     def test_en_pb_se_ven_columnas_y_bases(self):
+142:         self.assertEqual(conteo["columnas"], 2)  # (0.0, 4.0) y (5.0, 4.0)
+151:     def test_en_n1_se_van_las_columnas_y_aparecen_vigas_y_losa(self):
+154:         self.assertEqual(conteo["columnas"], 2)  # C1-1 y C1-2
+173:     def test_columnas_llevan_su_eje(self):
+175:         columnas = escena["porticos"][0]["columnas"]
+176:         por_id = {c[0]: c for c in columnas}
+179:     def test_columnas_en_cruce_se_deduplican(self):
+180:         """Las columnas que comparten coordenada global (cruce de ejes X y Y)
+183:         unicas = escena["columnas_unicas"]
+202:         self.assertEqual(conteo["columnas"], 2)
+206:     def test_el_eje_del_portico_siempre_queda_dibujado(self):
+207:         # Aunque el nivel no tenga columnas, el pórtico deja su eje de referencia
+209:         nombres = {p["nombre"] for p in escena["porticos"]}
+271:     def test_solo_el_portico_activo_conserva_su_texto(self):
+274:         vista.portico_activo = "Pórtico 1"
+334:         antes = len(escena["porticos"])
+338:         self.assertEqual(len(vista._escena()["porticos"]), antes)
+

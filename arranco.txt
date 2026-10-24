@@ -1,1 +1,17 @@
-VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 2665, in main
+    ventana = VentanaPrincipal()
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 624, in __init__
+    self._armar_interfaz()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 695, in _armar_interfaz
+    pestanias.addTab(self._pagina_porticos(), "PÃ³rticos")
+                     ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 880, in _pagina_porticos
+    subpestanias.addTab(self._pagina_vigas(), "Vigas")
+                        ~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 710, in _pagina_vigas
+    self.etiqueta_vigas.setWordWrap(True)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'VentanaPrincipal' object has no attribute 'etiqueta_vigas'. Did you mean: 'etiqueta_inicio'?
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n

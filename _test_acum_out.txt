@@ -1,0 +1,21 @@
+ESTRUCTURA: D:\03 Ingenieria\Calculador\Obras\Obra_000012\datos\estructura.json
+Pórticos: ['Pórtico 1', 'Pórtico 2', 'Pórtico 3', 'Pórtico 4', 'Pórtico 5']
+Columnas raíz: []
+
+Catálogo global de columnas:
+  COL-001: x=0.0, nivel=0.0
+  COL-002: x=5.0, nivel=0.0
+  COL-003: x=10.0, nivel=0.0
+  COL-004: x=15.0, nivel=0.0
+  COL-005: x=0.0, nivel=3.0
+  COL-006: x=5.0, nivel=3.0
+  COL-007: x=10.0, nivel=3.0
+  COL-008: x=15.0, nivel=3.0
+
+Archivos de solicitud: ['Pórtico 2.json', 'Pórtico 5.json']
+
+Acumulados generados: 4
+  COL-001 -> D:\03 Ingenieria\Calculador\Obras\Obra_000012\salidas\columnas\COL-001.json
+  COL-002 -> D:\03 Ingenieria\Calculador\Obras\Obra_000012\salidas\columnas\COL-002.json
+  COL-003 -> D:\03 Ingenieria\Calculador\Obras\Obra_000012\salidas\columnas\COL-003.json
+  COL-004 -> D:\03 Ingenieria\Calculador\Obras\Obra_000012\salidas\columnas\COL-004.json

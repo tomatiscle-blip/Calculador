@@ -47,7 +47,8 @@ SAL_DXF: Path = SALIDAS / "dxf"
 SAL_LOSAS: Path = SALIDAS / "losas"
 SAL_REACCIONES: Path = SALIDAS / "reacciones"
 SAL_SOLICITACIONES: Path = SALIDAS / "solicitaciones"
-
+SOLICITACIONES_COLUMNAS: Path = SALIDAS / "solicitaciones_columnas.json"
+SOLICITACIONES_BASES: Path = SALIDAS / "solicitaciones_bases.json"
 _NOMBRES_CARPETAS_SALIDA = (
     "analisis_cargas",
     "vigas",
@@ -82,6 +83,7 @@ TERRENO: Path = DATOS / "terreno.json"
 CARGAS: Path = DATOS / "cargas.json"
 TIPOS_LOSA: Path = DATOS / "tipos_losa.json"
 LOSAS: Path = DATOS / "losas.json"
+PARAMETROS_MOTOR: Path = DATOS / "parametros_motor.json"
 
 # ---------------------------------------------------------------------------
 # Archivos de salida con nombre fijo
@@ -111,7 +113,7 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     """Actualiza las rutas de los datos y resultados propios de la obra activa."""
     global CARPETA_OBRA, DATOS, SALIDAS, DIAGRAMAS_INTERACCION
     global SAL_ANALISIS_CARGAS, SAL_VIGAS, SAL_COLUMNAS, SAL_BASES, SAL_DXF
-    global SAL_LOSAS, SAL_REACCIONES, SAL_SOLICITACIONES, CARPETAS_SALIDA
+    global SAL_LOSAS, SAL_REACCIONES, SAL_SOLICITACIONES, SOLICITACIONES_COLUMNAS, SOLICITACIONES_BASES, CARPETAS_SALIDA
     global ESTRUCTURA, CARGAS, TERRENO, TIPOS_LOSA, LOSAS, MOMENTS_INPUT
     global PLANILLA_COLUMNAS, COMPUTO_LOSAS
     CARPETA_OBRA = carpeta
@@ -126,6 +128,8 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     SAL_LOSAS = SALIDAS / "losas"
     SAL_REACCIONES = SALIDAS / "reacciones"
     SAL_SOLICITACIONES = SALIDAS / "solicitaciones"
+    SOLICITACIONES_COLUMNAS = SALIDAS / "solicitaciones_columnas.json"
+    SOLICITACIONES_BASES = SALIDAS / "solicitaciones_bases.json"
     CARPETAS_SALIDA = _carpetas_salida(SALIDAS)
     ESTRUCTURA = DATOS / "estructura.json"
     CARGAS = DATOS / "cargas.json"
@@ -225,7 +229,7 @@ def inicializar_obras() -> Path:
 def numero_portico(nombre: str, estructura: dict | None = None) -> int:
     """Obtiene el número del nombre o propone el siguiente número acumulativo."""
     usados = set()
-    for portico_id, datos in (estructura or {}).items():
+    for portico_id, datos in (estructura or {}).get("pórticos", {}).items():
         m = re.search(r"(\d+)\s*$", str(portico_id))
         if m:
             usados.add(int(m.group(1)))
@@ -238,7 +242,7 @@ def numero_portico(nombre: str, estructura: dict | None = None) -> int:
         numero = int(coincidencia.group(1))
         if numero in usados:
             otro = str(numero)
-            for portico_id, datos in (estructura or {}).items():
+            for portico_id, datos in (estructura or {}).get("pórticos", {}).items():
                 m_nombre = re.search(r"(\d+)\s*$", str(portico_id))
                 coincide_nombre = bool(m_nombre and int(m_nombre.group(1)) == numero)
                 coincide_viga = any(
@@ -612,6 +616,14 @@ def listar_muros() -> list[str]:
         for nombre, datos in estructura.items()
         if isinstance(datos, dict)
         and str(datos.get("tipo", "")).lower() == "muro"
+        and nombre
+        not in (
+            "columnas",
+            "nudos",
+            "bases",
+            "pórticos",
+            "nodos",
+        )
     ]
 
 
@@ -628,3 +640,428 @@ def proximo_nombre_portico() -> str:
     while f"Pórtico {numero}" in existentes or f"Portico {numero}" in existentes:
         numero += 1
     return f"Pórtico {numero}"
+
+def partes(estructura: dict) -> tuple[dict, dict, dict, dict]:
+    """Separa la estructura en sus cuatro partes:
+    (columnas globales, nudos globales, bases globales, pórticos).
+
+    En este proyecto los pórticos se guardan como claves de nivel raíz de
+    estructura.json (no bajo una clave "pórticos"), así que la cuarta parte
+    son las claves de nivel raíz que parecen pórticos.
+    """
+    return (
+        estructura.get("columnas", {}) or {},
+        estructura.get("nudos", {}) or {},
+        estructura.get("bases", {}) or {},
+        {
+            nombre: datos
+            for nombre, datos in estructura.items()
+            if isinstance(datos, dict)
+            and str(datos.get("tipo", "")).lower() != "muro"
+            and (datos.get("vigas") or datos.get("columnas"))
+        },
+    )
+
+
+def columnas_globales(estructura: dict) -> dict:
+    """Catálogo global de columnas definido a nivel de obra."""
+    return partes(estructura)[0]
+
+
+def nudos_globales(estructura: dict) -> dict:
+    return partes(estructura)[1]
+
+
+def bases_globales(estructura: dict) -> dict:
+    return partes(estructura)[2]
+
+
+def porticos(estructura: dict) -> dict:
+    return partes(estructura)[3]
+
+
+def pórtico(estructura: dict, nombre: str):
+    """Devuelve el diccionario del pórtico o None si no existe."""
+    return porticos(estructura).get(nombre)
+
+
+def vigas_por_portico(nombre: str, estructura: dict | None = None) -> dict:
+    """Vigas de un pórtico, sin importar cómo esté guardado el resto."""
+    p = pórtico(estructura, nombre) if estructura is not None else {}
+    return p.get("vigas", {}) if isinstance(p, dict) else {}
+
+
+def columnas_referencia(nombre: str, estructura: dict | None = None) -> list[str]:
+    """IDs globales de las columnas que utiliza un pórtico."""
+    p = pórtico(estructura, nombre) if estructura is not None else {}
+    return p.get("columnas", []) if isinstance(p, dict) else []
+
+
+def bases_referencia(nombre: str, estructura: dict | None = None) -> list[str]:
+    """IDs globales de las columnas que tienen base en un pórtico."""
+    p = pórtico(estructura, nombre) if estructura is not None else {}
+    return p.get("bases", []) if isinstance(p, dict) else []
+
+
+def columna_global(id_columna: str, estructura: dict | None = None) -> dict | None:
+    """Encuentra una columna por su ID global."""
+    return columnas_globales(estructura).get(id_columna)
+
+
+def base_global(id_columna: str, estructura: dict | None = None) -> dict | None:
+    """Encuentra la base de una columna por su ID global."""
+    return bases_globales(estructura).get(id_columna)
+
+
+def eliminar_portico(nombre: str, estructura: dict | None = None) -> bool:
+    """Elimina un pórtico del proyecto, su traza analítica y dimensionados,
+    pero conserva las columnas/bases globales que todavía usan otros
+    elementos de la obra.
+
+    Devuelve True si se eliminó, False si el pórtico no existía.
+    """
+    if estructura is None:
+        estructura = cargar_estructura()
+    if not isinstance(estructura, dict):
+        return False
+
+    datos = estructura.get(nombre)
+    if not isinstance(datos, dict):
+        return False
+    if str(datos.get("tipo", "")).lower() == "muro":
+        return False
+    if not (datos.get("vigas") or datos.get("columnas")):
+        return False
+
+    del estructura[nombre]
+
+    # Columnas y bases que siguen siendo útiles para el resto de la obra.
+    siguen_usadas = set()
+    for nombre_p, datos in estructura.items():
+        if not isinstance(datos, dict):
+            continue
+        if str(datos.get("tipo", "")).lower() == "muro":
+            continue
+        if not (datos.get("vigas") or datos.get("columnas")):
+            continue
+        siguen_usadas.update(datos.get("columnas") or [])
+        siguen_usadas.update(datos.get("bases") or [])
+
+    columnas = estructura.get("columnas", {}) or {}
+    bases = estructura.get("bases", {}) or {}
+    for gid in list(columnas.keys()):
+        if gid not in siguen_usadas:
+            del columnas[gid]
+    for gid in list(bases.keys()):
+        if gid not in siguen_usadas:
+            del bases[gid]
+
+    estructura["columnas"] = columnas
+    estructura["nudos"] = estructura.get("nudos", {}) or {}
+    estructura["bases"] = bases
+
+    guardar_estructura(estructura)
+    _borrar_salidas_portico(nombre)
+    return True
+
+
+def _borrar_salidas_portico(nombre: str) -> None:
+    """Borra los archivos de cálculo de un pórtico."""
+    clave = nombre_seguro(nombre)
+    for carpeta in (SAL_SOLICITACIONES, SAL_VIGAS, SAL_COLUMNAS, SAL_BASES):
+        patron = f"{clave}.json"
+        for archivo in listar(carpeta, patron):
+            try:
+                archivo.unlink()
+            except OSError:
+                pass
+
+
+# ---------------------------------------------------------------------------
+# Principio 4 — Acumulación de solicitudes biaxial por columna global
+# ---------------------------------------------------------------------------
+
+def _clave_columna_global(datos_col: dict) -> tuple | None:
+    """Clave única (x, nivel) para identificar una columna física."""
+    try:
+        x = round(float(datos_col["x"]), 4)
+        nivel = round(float(datos_col.get("nivel", datos_col.get("nivel_inicio", 0.0))), 4)
+        return (x, nivel)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _catalogo_columnas_globales(estructura: dict) -> dict[str, dict]:
+    """Construye un catálogo de columnas globales a partir de la estructura."""
+    columnas_raiz = estructura.get("columnas", {}) or {}
+    if isinstance(columnas_raiz, dict) and columnas_raiz:
+        return {gid: dict(d) for gid, d in columnas_raiz.items()}
+    catalogo: dict[str, dict] = {}
+    contador = 1
+    for nombre, datos in estructura.items():
+        if not isinstance(datos, dict):
+            continue
+        if str(datos.get("tipo", "")).lower() == "muro":
+            continue
+        if not (datos.get("vigas") or datos.get("columnas")):
+            continue
+        columnas_p = datos.get("columnas", {}) or {}
+        if isinstance(columnas_p, list):
+            continue
+        for cid, cd in columnas_p.items():
+            if not isinstance(cd, dict):
+                continue
+            clave = _clave_columna_global(cd)
+            if clave is None:
+                continue
+            existente = next(
+                (gid for gid, d in catalogo.items()
+                 if _clave_columna_global(d) == clave),
+                None,
+            )
+            if existente is None:
+                gid = f"COL-{contador:03d}"
+                contador += 1
+                catalogo[gid] = {
+                    "x": cd.get("x"),
+                    "nivel": cd.get("nivel", cd.get("nivel_inicio", 0.0)),
+                    "altura_m": cd.get("altura_m"),
+                    "eje_id": cd.get("eje_id"),
+                    "eje_nombre": cd.get("eje_nombre"),
+                }
+    return catalogo
+
+
+def siguiente_id_columna_global(estructura: dict | None = None) -> str:
+    """Devuelve el próximo ID de columna global libre (COL-001, COL-002, ...)."""
+    estructura = estructura if estructura is not None else cargar_estructura()
+    columnas = estructura.get("columnas", {}) or {}
+    mayor = 0
+    for gid in columnas:
+        m = re.fullmatch(r"COL-(\d+)", str(gid))
+        if m:
+            mayor = max(mayor, int(m.group(1)))
+    return f"COL-{mayor + 1:03d}"
+
+
+def obtener_o_crear_columna_global(
+    x: float,
+    nivel: float,
+    altura_m: float,
+    eje_id: str,
+    eje_nombre: str,
+    nivel_inicio: str,
+    estructura: dict | None = None,
+) -> str:
+    """Devuelve el ID global de una columna por coordenadas (x, nivel).
+
+    Si ya existe una columna global con esas coordenadas en
+    estructura["columnas"], devuelve su ID. Si no existe, crea una nueva
+    con el próximo ID COL-XXX disponible y la registra en el catálogo
+    global de la obra.
+
+    Este es el paso clave del principio 4: las columnas son entidades
+    globales de la obra, compartidas por todos los pórticos que las usan.
+    """
+    if estructura is None:
+        estructura = cargar_estructura()
+
+    columnas = estructura.get("columnas")
+    if not isinstance(columnas, dict):
+        columnas = {}
+        estructura["columnas"] = columnas
+
+    clave_buscar = (round(float(x), 4), round(float(nivel), 4))
+
+    # 1. Buscar si ya existe una columna global con esas coordenadas
+    for gid, datos in columnas.items():
+        if not isinstance(datos, dict):
+            continue
+        clave_existente = _clave_columna_global(datos)
+        if clave_existente == clave_buscar:
+            return gid
+
+    # 2. Crear una nueva columna global
+    gid = siguiente_id_columna_global(estructura)
+    columnas[gid] = {
+        "x": float(x),
+        "nivel": float(nivel),
+        "altura_m": float(altura_m),
+        "eje_id": eje_id,
+        "eje_nombre": eje_nombre,
+        "nivel_inicio": nivel_inicio,
+    }
+    return gid
+
+
+def siguiente_id_base_global(estructura: dict | None = None) -> str:
+    """Devuelve el próximo ID de base global libre (BASE-001, BASE-002, ...)."""
+    estructura = estructura if estructura is not None else cargar_estructura()
+    bases = estructura.get("bases", {}) or {}
+    mayor = 0
+    for gid in bases:
+        m = re.fullmatch(r"BASE-(\d+)", str(gid))
+        if m:
+            mayor = max(mayor, int(m.group(1)))
+    return f"BASE-{mayor + 1:03d}"
+
+
+def obtener_o_crear_base_global(
+    x: float,
+    nivel: float,
+    eje_id: str,
+    eje_nombre: str,
+    estructura: dict | None = None,
+) -> str:
+    """Devuelve el ID global de una base por coordenadas (x, nivel).
+
+    Si ya existe una base global con esas coordenadas en
+    estructura["bases"], devuelve su ID. Si no existe, crea una nueva
+    con el próximo ID BASE-XXX disponible y la registra en el catálogo
+    global de la obra.
+    """
+    if estructura is None:
+        estructura = cargar_estructura()
+
+    bases = estructura.get("bases")
+    if not isinstance(bases, dict):
+        bases = {}
+        estructura["bases"] = bases
+
+    clave_buscar = (round(float(x), 4), round(float(nivel), 4))
+
+    for gid, datos in bases.items():
+        if not isinstance(datos, dict):
+            continue
+        clave_existente = (round(float(datos.get("x", 0.0)), 4),
+                           round(float(datos.get("nivel", 0.0)), 4))
+        if clave_existente == clave_buscar:
+            return gid
+
+    gid = siguiente_id_base_global(estructura)
+    bases[gid] = {
+        "x": float(x),
+        "nivel": float(nivel),
+        "tipo": "empotramiento",
+        "eje_id": eje_id,
+        "eje_nombre": eje_nombre,
+    }
+    return gid
+
+
+def _mapear_cids_a_globales(nombre_portico: str, estructura: dict,
+                            catalogo: dict[str, dict]) -> dict[str, str]:
+    """Devuelve {cid_local: id_global} para un pórtico."""
+    p = pórtico(estructura, nombre_portico) or {}
+    columnas_p = p.get("columnas", {}) or {}
+    if isinstance(columnas_p, list):
+        return {gid: gid for gid in columnas_p}
+    mapeo: dict[str, str] = {}
+    for cid, cd in columnas_p.items():
+        if not isinstance(cd, dict):
+            continue
+        clave = _clave_columna_global(cd)
+        if clave is None:
+            continue
+        for gid, d in catalogo.items():
+            if _clave_columna_global(d) == clave:
+                mapeo[cid] = gid
+                break
+    return mapeo
+
+
+def acumular_solicitaciones_columnas(estructura: dict | None = None) -> dict[str, str]:
+    """Lee todos los JSON de salidas/solicitaciones y acumula por columna global.
+
+    Post-procesamiento del principio 4 de ARQUITECTURA.md: vincula las
+    solicitudes de cada pórtico al ID global de la columna para que los
+    dimensionadores evalúen el efecto bidireccional (flexión esviada).
+
+    Devuelve {id_global: ruta_archivo_guardado}.
+    """
+    if estructura is None:
+        estructura = cargar_estructura()
+
+    catalogo = _catalogo_columnas_globales(estructura)
+    if not catalogo:
+        return {}
+
+    SAL_COLUMNAS.mkdir(parents=True, exist_ok=True)
+
+    resultados: dict[str, str] = {}
+    archivos = listar(SAL_SOLICITACIONES, "*.json")
+    for archivo in archivos:
+        datos = leer_json(archivo, {}) or {}
+        nombre_portico = datos.get("portico") or archivo.stem
+        mapeo = _mapear_cids_a_globales(nombre_portico, estructura, catalogo)
+        if not mapeo:
+            continue
+
+        envolvente = datos.get("envolvente", {}).get("columnas", {})
+        solicitudes = datos.get("solicitaciones", {})
+
+        for cid, valores in envolvente.items():
+            if not valores:
+                continue
+            gid = mapeo.get(cid)
+            if gid is None:
+                continue
+
+            entrada_por_combo: dict[str, dict] = {}
+            for combo, bloque in solicitudes.items():
+                col_bloque = bloque.get("columnas", {}).get(cid, {})
+                if col_bloque:
+                    entrada_por_combo[combo] = {
+                        "M_inf": col_bloque.get("M_inf", 0.0),
+                        "M_sup": col_bloque.get("M_sup", 0.0),
+                        "N": col_bloque.get("N", 0.0),
+                        "deriva": col_bloque.get("deriva", 0.0),
+                    }
+
+            m_inf = valores.get("M_inf", 0.0)
+            m_sup = valores.get("M_sup", 0.0)
+            envol_entry = {
+                "M_inf": m_inf,
+                "M_sup": m_sup,
+                "N": valores.get("N", 0.0),
+                "deriva": valores.get("deriva", 0.0),
+                "|M|_máx": max(abs(m_inf), abs(m_sup)),
+                "|N|_máx": abs(valores.get("N", 0.0)),
+            }
+
+            salida = {
+                "columna_global": gid,
+                "pórtico": nombre_portico,
+                "combinaciones": entrada_por_combo,
+                "envolvente_pórtico": envol_entry,
+            }
+
+            archivo_salida = SAL_COLUMNAS / f"{gid}.json"
+            previo = leer_json(archivo_salida, {}) or {}
+            porticos = previo.get("pórticos", {})
+            porticos[nombre_portico] = salida
+
+            env_global: dict[str, float] = {}
+            for p_datos in porticos.values():
+                env_p = p_datos.get("envolvente_pórtico", {})
+                for clave2 in ("M_inf", "M_sup", "N", "deriva", "|M|_máx", "|N|_máx"):
+                    val = env_p.get(clave2, 0.0)
+                    if clave2 in ("M_inf", "M_sup"):
+                        if clave2 not in env_global or abs(val) > abs(env_global[clave2]):
+                            env_global[clave2] = val
+                    else:
+                        env_global[clave2] = max(env_global.get(clave2, 0.0), abs(val))
+
+            salida_global = {
+                "columna_global": gid,
+                "catalogo": catalogo.get(gid, {}),
+                "pórticos": porticos,
+                "envolvente_global": env_global,
+                "n_pórticos": len(porticos),
+            }
+            guardar_json(archivo_salida, salida_global)
+            resultados[gid] = str(archivo_salida)
+
+    return resultados
+
+

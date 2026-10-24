@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QAbstractItemView,
     QApplication,
     QComboBox,
+    QDoubleSpinBox,
     QDialog,
     QFormLayout,
     QGridLayout,
@@ -48,6 +49,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QMessageBox,
     QPlainTextEdit,
     QScrollArea,
+    QSpinBox,
     QPushButton,
     QInputDialog,
     QSplitter,
@@ -259,7 +261,7 @@ def datos_columnas(portico: str):
 
 
 ENC_BASES = (
-    "Base", "Lado (m)", "Área (m²)", "Excentricidad (m)", "Espesor (m)",
+    "Base", "Lado (m)", "Ãrea (m²)", "Excentricidad (m)", "Espesor (m)",
     "q máx (kPa)", "q mín (kPa)", "Viga de fundación", "Armadura", "Peso (kg)",
 )
 
@@ -695,6 +697,16 @@ class VentanaPrincipal(QMainWindow):
         pestanias.addTab(self._pagina_porticos(), "Pórticos")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
+
+        pestanias.addTab(self._pagina_losas(), "5 · Losas")
+        pestanias.addTab(self.pagina_muros, "6 · Muros")
+        pestanias.addTab(self._pagina_archivos(), "7 · Archivos")
+
+        principal.addWidget(pestanias, 1)
+        self.setCentralWidget(contenedor)
+        self.statusBar().showMessage(f"Carpeta del proyecto: {rutas.RAIZ}")
+
+    def _pagina_vigas(self) -> QWidget:
         pagina = QWidget()
         caja_vigas = QVBoxLayout(pagina)
         self.etiqueta_vigas = QLabel()
@@ -719,8 +731,9 @@ class VentanaPrincipal(QMainWindow):
         contenido_vigas.setSizes([300, 320])
         caja_vigas.addWidget(contenido_vigas, 1)
         self.etiqueta_vigas_fuente = self.etiqueta_vigas
-        pestanias.addTab(pagina, "2 · Vigas")
+        return pagina
 
+    def _pagina_columnas(self) -> QWidget:
         pagina = QWidget()
         caja_columnas = QVBoxLayout(pagina)
         self.etiqueta_columnas = QLabel()
@@ -741,8 +754,9 @@ class VentanaPrincipal(QMainWindow):
         contenido_columnas.addWidget(panel_planillas_columnas)
         contenido_columnas.setSizes([300, 320])
         caja_columnas.addWidget(contenido_columnas, 1)
-        pestanias.addTab(pagina, "3 · Columnas")
+        return pagina
 
+    def _pagina_bases(self) -> QWidget:
         pagina = QWidget()
         caja_bases = QVBoxLayout(pagina)
         self.etiqueta_bases = QLabel()
@@ -763,15 +777,7 @@ class VentanaPrincipal(QMainWindow):
         contenido_bases.addWidget(panel_planillas_bases)
         contenido_bases.setSizes([300, 320])
         caja_bases.addWidget(contenido_bases, 1)
-        pestanias.addTab(pagina, "4 · Bases")
-
-        pestanias.addTab(self._pagina_losas(), "5 · Losas")
-        pestanias.addTab(self.pagina_muros, "6 · Muros")
-        pestanias.addTab(self._pagina_archivos(), "7 · Archivos")
-
-        principal.addWidget(pestanias, 1)
-        self.setCentralWidget(contenedor)
-        self.statusBar().showMessage(f"Carpeta del proyecto: {rutas.RAIZ}")
+        return pagina
 
     def _pagina_etapas(self) -> QWidget:
         pagina = QWidget()
@@ -799,6 +805,113 @@ class VentanaPrincipal(QMainWindow):
         division.setSizes([280, 900])
         caja.addWidget(division, 1)
         return pagina
+
+    def _pagina_terreno(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        grupo = QGroupBox("Datos de fundación / terreno (toda la obra)")
+        form = QFormLayout(grupo)
+
+        self.spin_profundidad_fundacion = QDoubleSpinBox()
+        self.spin_profundidad_fundacion.setRange(0.1, 20.0)
+        self.spin_profundidad_fundacion.setDecimals(2)
+        self.spin_profundidad_fundacion.setSuffix(" m")
+
+        self.spin_q_adm = QDoubleSpinBox()
+        self.spin_q_adm.setRange(1.0, 10000.0)
+        self.spin_q_adm.setDecimals(2)
+        self.spin_q_adm.setSuffix(" kPa")
+
+        form.addRow("Profundidad hasta el fondo de zapata:", self.spin_profundidad_fundacion)
+        form.addRow("Presión admisible del suelo q_adm:", self.spin_q_adm)
+
+        btn = QPushButton("Guardar datos de terreno")
+        btn.clicked.connect(self._guardar_terreno)
+
+        caja.addWidget(grupo)
+        caja.addWidget(btn)
+        caja.addStretch(1)
+        self._cargar_terreno()
+        return pagina
+
+    def _cargar_terreno(self) -> None:
+        datos = rutas.leer_json(rutas.TERRENO, {}) or {}
+        self.spin_profundidad_fundacion.setValue(float(datos.get("profundidad_fundacion_m", 0.8)))
+        self.spin_q_adm.setValue(float(datos.get("q_adm_kPa", 0.87 * 98.1)))
+
+    def _guardar_terreno(self) -> None:
+        datos = rutas.leer_json(rutas.TERRENO, {}) or {}
+        datos.update({
+            "profundidad_fundacion_m": float(self.spin_profundidad_fundacion.value()),
+            "q_adm_kPa": float(self.spin_q_adm.value()),
+        })
+        rutas.guardar_json(rutas.TERRENO, datos)
+        QMessageBox.information(self, "Terreno", "Datos de fundación guardados.")
+
+
+    def _pagina_parametros_motor(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        grupo = QGroupBox("Parámetros del motor de pórticos")
+        form = QFormLayout(grupo)
+
+        def spin(minimo, maximo, decimales=6):
+            c = QDoubleSpinBox()
+            c.setRange(minimo, maximo)
+            c.setDecimals(decimales)
+            return c
+
+        self.spin_e_mod = spin(0.001, 1e6, 6)
+        self.spin_g_mod = spin(0.001, 1e6, 6)
+        self.spin_ea = spin(0.0, 1e9, 3)
+        self.spin_ei = spin(0.0, 1e9, 3)
+        self.spin_poisson = spin(0.0, 0.5, 3)
+        self.spin_peso_hormigon = spin(1.0, 100.0, 2)
+        self.txt_reglamento = QLineEdit("CIRSOC 201/2024")
+
+        form.addRow("Módulo de elasticidad E_MOD:", self.spin_e_mod)
+        form.addRow("Módulo de corte G_MOD:", self.spin_g_mod)
+        form.addRow("Rigidez axial EA:", self.spin_ea)
+        form.addRow("Rigidez a flexión EI:", self.spin_ei)
+        form.addRow("Coeficiente de Poisson ν:", self.spin_poisson)
+        form.addRow("Peso específico hormigón (kN/m³):", self.spin_peso_hormigon)
+        form.addRow("Reglamento aplicado:", self.txt_reglamento)
+
+        btn = QPushButton("Guardar parámetros")
+        btn.clicked.connect(self._guardar_parametros_motor)
+
+        caja.addWidget(grupo)
+        caja.addWidget(btn)
+        caja.addStretch(1)
+        self._cargar_parametros_motor()
+        return pagina
+
+    def _cargar_parametros_motor(self) -> None:
+        datos = rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}
+        self.spin_e_mod.setValue(float(datos.get("E_MOD", 1.0)))
+        self.spin_g_mod.setValue(float(datos.get("G_MOD", 1.0)))
+        self.spin_ea.setValue(float(datos.get("EA", 15000.0)))
+        self.spin_ei.setValue(float(datos.get("EI", 5000.0)))
+        self.spin_poisson.setValue(float(datos.get("POISSON", 0.3)))
+        self.spin_peso_hormigon.setValue(float(datos.get("PESO_ESPECIFICO_HORMIGON_KN_M3", 25.0)))
+        self.txt_reglamento.setText(str(datos.get("VERSION_MOTOR", "CIRSOC 201/2024")))
+
+    def _guardar_parametros_motor(self) -> None:
+        datos = {
+            "E_MOD": float(self.spin_e_mod.value()),
+            "G_MOD": float(self.spin_g_mod.value()),
+            "EA": float(self.spin_ea.value()),
+            "EI": float(self.spin_ei.value()),
+            "POISSON": float(self.spin_poisson.value()),
+            "PESO_ESPECIFICO_HORMIGON_KN_M3": float(self.spin_peso_hormigon.value()),
+            "VERSION_MOTOR": self.txt_reglamento.text().strip(),
+        }
+        rutas.guardar_json(rutas.PARAMETROS_MOTOR, datos)
+        import importlib
+        import calc.portico as _cp
+        importlib.reload(_cp)
+        QMessageBox.information(self, "Parámetros", "Parámetros guardados.")
+
 
     def _pagina_porticos(self) -> QWidget:
         pagina = QWidget()
@@ -870,7 +983,19 @@ class VentanaPrincipal(QMainWindow):
         division_vertical.setChildrenCollapsible(False)
         caja.addWidget(division_vertical, 1)
 
-        return pagina
+        pagina_portico = pagina
+        contenedor_porticos = QWidget()
+        caja_porticos = QVBoxLayout(contenedor_porticos)
+        subpestanias = QTabWidget()
+        subpestanias.setDocumentMode(True)
+        subpestanias.addTab(pagina_portico, "Pórtico")
+        subpestanias.addTab(self._pagina_vigas(), "Vigas")
+        subpestanias.addTab(self._pagina_columnas(), "Columnas")
+        subpestanias.addTab(self._pagina_bases(), "Bases")
+        subpestanias.addTab(self._pagina_terreno(), "Terreno")
+        subpestanias.addTab(self._pagina_parametros_motor(), "Parámetros")
+        caja_porticos.addWidget(subpestanias)
+        return contenedor_porticos
 
 
     def _pagina_archivos(self) -> QWidget:
@@ -1008,7 +1133,7 @@ class VentanaPrincipal(QMainWindow):
         filas: list[tuple[str, str, str]] = [
             ("Columnas", str(len(columnas)), "N<nivel>-<columna>"),
             ("Vigas", str(len(vigas)), "V<nivel>-N T<tramo>"),
-            ("Bases", str(len(bases)), "B0-<columna global>"),
+            ("Bases", str(len(bases)), "BASE-XXX (global)"),
         ]
         for nombre, cantidad, detalle in filas:
             fila = self.tabla_portico_resumen.rowCount()
@@ -1566,8 +1691,9 @@ class VentanaPrincipal(QMainWindow):
             "posicion_planta_m": ubicacion["posicion_planta_m"],
             "niveles_geometria": ubicacion["niveles"],
         }
-        primer_numero_columna = rutas.siguiente_numero_columna(estructura)
         conteo_transferencias = 0
+        ids_columnas_globales: list[str] = []
+        ids_bases_globales: list[str] = []
         for piso, tramo_nivel in enumerate(ubicacion["tramos_nivel"]):
             columnas_nivel = tramo_nivel["ejes_columna"]
             coordenadas = [float(eje["x_local_m"]) for eje in columnas_nivel]
@@ -1575,17 +1701,30 @@ class VentanaPrincipal(QMainWindow):
             cota_superior = float(tramo_nivel["cota_superior_m"])
             altura = cota_superior - y
             for indice, (eje_columna, x) in enumerate(zip(columnas_nivel, coordenadas)):
-                numero_columna = primer_numero_columna + indice
-                datos["columnas"][f"C{piso}-{numero_columna}"] = {
-                    "x": x, "altura_m": altura, "nivel": y,
-                    "eje_id": eje_columna["id"],
-                    "eje_nombre": eje_columna["nombre"],
-                    "nivel_inicio": tramo_nivel["nivel_inferior"],
-                }
+                # PRINCIPIO 4: columnas son entidades globales de la obra,
+                # identificadas por coordenadas (x, nivel) y reusables entre
+                # pórticos. No se usan nombres locales acumulativos C{piso}-N.
+                gid_columna = rutas.obtener_o_crear_columna_global(
+                    x=x,
+                    nivel=y,
+                    altura_m=altura,
+                    eje_id=eje_columna["id"],
+                    eje_nombre=eje_columna["nombre"],
+                    nivel_inicio=tramo_nivel["nivel_inferior"],
+                    estructura=estructura,
+                )
+                ids_columnas_globales.append(gid_columna)
+
                 if piso == 0:
-                    datos["bases"][f"B0-{numero_columna}"] = {
-                        "x": x, "tipo": "empotramiento"
-                    }
+                    gid_base = rutas.obtener_o_crear_base_global(
+                        x=x,
+                        nivel=y,
+                        eje_id=eje_columna["id"],
+                        eje_nombre=eje_columna["nombre"],
+                        estructura=estructura,
+                    )
+                    ids_bases_globales.append(gid_base)
+
             nombre_nivel_viga = tramo_nivel["nivel_superior"]
             viga_id = f"V{piso}-{numero_portico}"
             tramos = []
@@ -1669,6 +1808,9 @@ class VentanaPrincipal(QMainWindow):
                 viga_id, tramos, cota_superior, nombre_nivel_viga
             ):
                 return
+
+        datos["columnas"] = ids_columnas_globales
+        datos["bases"] = ids_bases_globales
         estructura[nombre] = datos
         rutas.guardar_estructura(estructura)
         self.refrescar()
@@ -1982,7 +2124,7 @@ class VentanaPrincipal(QMainWindow):
         dialogo.resize(980, 660)
         caja = QVBoxLayout(dialogo)
         referencia_apoyos = (
-            "▲ Apoyo articulado · rayado: empotramiento."
+            "â–² Apoyo articulado · rayado: empotramiento."
             if diagrama.get("apoyos")
             else "Recalculá las solicitaciones para mostrar los apoyos."
         )
@@ -2381,13 +2523,15 @@ class VentanaPrincipal(QMainWindow):
                 "y dimensioná las columnas del pórtico.",
             )
             return
-        try:
-            terreno = pedir_datos_bases(self)
-        except (OSError, ValueError) as exc:
-            QMessageBox.critical(self, "No se pudieron guardar los datos del terreno", str(exc))
-            return
-        if terreno is None:
-            return
+        terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
+        if not (terreno.get("profundidad_fundacion_m") and terreno.get("q_adm_kPa")):
+            try:
+                terreno = pedir_datos_bases(self)
+            except (OSError, ValueError) as exc:
+                QMessageBox.critical(self, "No se pudieron guardar los datos del terreno", str(exc))
+                return
+            if terreno is None:
+                return
         respuestas = f"{terreno['profundidad_fundacion_m']}\n"
         resultado = self._ejecutar_dimensionado("bases", portico, respuestas)
         if resultado is not None:

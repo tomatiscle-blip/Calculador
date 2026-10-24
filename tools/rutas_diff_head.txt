@@ -1,0 +1,168 @@
+diff --git a/calc/rutas.py b/calc/rutas.py
+index 3f46f7b..1cc053f 100644
+--- a/calc/rutas.py
++++ b/calc/rutas.py
+@@ -225,7 +225,7 @@ def inicializar_obras() -> Path:
+ def numero_portico(nombre: str, estructura: dict | None = None) -> int:
+     """Obtiene el número del nombre o propone el siguiente número acumulativo."""
+     usados = set()
+-    for portico_id, datos in (estructura or {}).items():
++    for portico_id, datos in (estructura or {}).get("pórticos", {}).items():
+         m = re.search(r"(\d+)\s*$", str(portico_id))
+         if m:
+             usados.add(int(m.group(1)))
+@@ -238,7 +238,7 @@ def numero_portico(nombre: str, estructura: dict | None = None) -> int:
+         numero = int(coincidencia.group(1))
+         if numero in usados:
+             otro = str(numero)
+-            for portico_id, datos in (estructura or {}).items():
++            for portico_id, datos in (estructura or {}).get("pórticos", {}).items():
+                 m_nombre = re.search(r"(\d+)\s*$", str(portico_id))
+                 coincide_nombre = bool(m_nombre and int(m_nombre.group(1)) == numero)
+                 coincide_viga = any(
+@@ -597,7 +597,7 @@ def listar_porticos() -> list[str]:
+     estructura = cargar_estructura()
+     return [
+         nombre
+-        for nombre, datos in estructura.items()
++        for nombre, datos in (estructura.get("pórticos", {}) or {}).items()
+         if isinstance(datos, dict)
+         and str(datos.get("tipo", "")).lower() != "muro"
+         and (datos.get("vigas") or datos.get("columnas"))
+@@ -612,6 +612,14 @@ def listar_muros() -> list[str]:
+         for nombre, datos in estructura.items()
+         if isinstance(datos, dict)
+         and str(datos.get("tipo", "")).lower() == "muro"
++        and nombre
++        not in (
++            "columnas",
++            "nudos",
++            "bases",
++            "pórticos",
++            "nodos",
++        )
+     ]
+ 
+ 
+@@ -628,3 +636,121 @@ def proximo_nombre_portico() -> str:
+     while f"Pórtico {numero}" in existentes or f"Portico {numero}" in existentes:
+         numero += 1
+     return f"Pórtico {numero}"
++
++def partes(estructura: dict) -> tuple[dict, dict, dict, dict]:
++    """Separa la estructura en sus cuatro partes:
++    (columnas globales, nudos globales, bases globales, pórticos)."""
++    return (
++        estructura.get("columnas", {}) or {},
++        estructura.get("nudos", {}) or {},
++        estructura.get("bases", {}) or {},
++        estructura.get("pórticos", {}) or {},
++    )
++
++
++def columnas_globales(estructura: dict) -> dict:
++    """Catálogo global de columnas definido a nivel de obra."""
++    return partes(estructura)[0]
++
++
++def nudos_globales(estructura: dict) -> dict:
++    return partes(estructura)[1]
++
++
++def bases_globales(estructura: dict) -> dict:
++    return partes(estructura)[2]
++
++
++def porticos(estructura: dict) -> dict:
++    return partes(estructura)[3]
++
++
++def pórtico(estructura: dict, nombre: str):
++    """Devuelve el diccionario del pórtico o None si no existe."""
++    return porticos(estructura).get(nombre)
++
++
++def vigas_por_portico(nombre: str, estructura: dict | None = None) -> dict:
++    """Vigas de un pórtico, sin importar cómo esté guardado el resto."""
++    p = pórtico(estructura, nombre) if estructura is not None else {}
++    return p.get("vigas", {}) if isinstance(p, dict) else {}
++
++
++def columnas_referencia(nombre: str, estructura: dict | None = None) -> list[str]:
++    """IDs globales de las columnas que utiliza un pórtico."""
++    p = pórtico(estructura, nombre) if estructura is not None else {}
++    return p.get("columnas", []) if isinstance(p, dict) else []
++
++
++def bases_referencia(nombre: str, estructura: dict | None = None) -> list[str]:
++    """IDs globales de las columnas que tienen base en un pórtico."""
++    p = pórtico(estructura, nombre) if estructura is not None else {}
++    return p.get("bases", []) if isinstance(p, dict) else []
++
++
++def columna_global(id_columna: str, estructura: dict | None = None) -> dict | None:
++    """Encuentra una columna por su ID global."""
++    return columnas_globales(estructura).get(id_columna)
++
++
++def base_global(id_columna: str, estructura: dict | None = None) -> dict | None:
++    """Encuentra la base de una columna por su ID global."""
++    return bases_globales(estructura).get(id_columna)
++
++
++def eliminar_portico(nombre: str, estructura: dict | None = None) -> bool:
++    """Elimina un pórtico del proyecto, su traza analítica y dimensionados,
++    pero conserva las columnas/bases globales que todavía usan otros
++    elementos de la obra.
++
++    Devuelve True si se eliminó, False si el pórtico no existía.
++    """
++    if estructura is None:
++        estructura = cargar_estructura()
++    if not isinstance(estructura, dict):
++        return False
++
++    pórticos = estructura.get("pórticos", {}) or {}
++    if nombre not in pórticos:
++        return False
++
++    del pórticos[nombre]
++
++    # Columnas y bases que siguen siendo útiles para el resto de la obra.
++    siguen_usadas = set()
++    for datos in pórticos.values():
++        if isinstance(datos, dict):
++            siguen_usadas.update(datos.get("columnas") or [])
++            siguen_usadas.update(datos.get("bases") or [])
++
++    columnas = estructura.get("columnas", {}) or {}
++    bases = estructura.get("bases", {}) or {}
++    for gid in list(columnas.keys()):
++        if gid not in siguen_usadas:
++            del columnas[gid]
++    for gid in list(bases.keys()):
++        if gid not in siguen_usadas:
++            del bases[gid]
++
++    estructura["columnas"] = columnas
++    estructura["nudos"] = estructura.get("nudos", {}) or {}
++    estructura["bases"] = bases
++    estructura["pórticos"] = pórticos
++
++    guardar_estructura(estructura)
++    _borrar_salidas_portico(nombre)
++    return True
++
++
++def _borrar_salidas_portico(nombre: str) -> None:
++    """Borra los archivos de cálculo de un pórtico."""
++    clave = nombre_seguro(nombre)
++    for carpeta in (SAL_SOLICITACIONES, SAL_VIGAS, SAL_COLUMNAS, SAL_BASES):
++        patron = f"{clave}.json"
++        for archivo in listar(carpeta, patron):
++            try:
++                archivo.unlink()
++            except OSError:
++                pass
++
++

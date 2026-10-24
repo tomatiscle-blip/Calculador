@@ -1,0 +1,24 @@
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1976, in paintEvent
+    escena = self._escena()
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1604, in _escena
+    for col in columnas_datos.values()
+               ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'values'
+QBackingStore::endPaint() called with active painter; did you forget to destroy it or call QPainter::end() on it?
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1976, in paintEvent
+    escena = self._escena()
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1604, in _escena
+    for col in columnas_datos.values()
+               ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'values'
+QBackingStore::endPaint() called with active painter; did you forget to destroy it or call QPainter::end() on it?
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1976, in paintEvent
+    escena = self._escena()
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 1604, in _escena
+    for col in columnas_datos.values()
+               ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'values'
+QBackingStore::endPaint() called with active painter; did you forget to destroy it or call QPainter::end() on it?

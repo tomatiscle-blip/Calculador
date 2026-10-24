@@ -1,9 +1,21 @@
+import sys
+from pathlib import Path
+_RAIZ = Path(__file__).resolve().parent.parent
+if str(_RAIZ) not in sys.path:
+    sys.path.insert(0, str(_RAIZ))
+
 import math
 import json
 import os
 import csv, os
 import sys
 from calc import rutas
+
+# ============================================================
+# ADAPTADO A ESTRUCTURA GLOBAL (IDs globales) — version integrada
+# No confundir con la version legacy original del mismo nombre.
+# ============================================================
+
 
 # ==============================
 # Funciones de predimensión
@@ -701,7 +713,7 @@ def factor_k(nivel_columna):
 from pathlib import Path
 
 # =========================================================
-# PROGRAMA PRINCIPAL – análisis de COLUMNAS
+# PROGRAMA PRINCIPAL – análisis de COLUMNAS (IDs globales)
 # =========================================================
 
 BASE = rutas.CARPETA_OBRA or Path(__file__).parent
@@ -735,7 +747,15 @@ fallas_columnas = []
 
 
 print(f"Procesando pórtico: {nombre_portico}")
-columnas = estructura[nombre_portico].get("columnas", {})
+raw_columnas = estructura[nombre_portico].get("columnas", [])
+catalogo_columnas = rutas.columnas_globales(estructura)
+if isinstance(raw_columnas, dict):
+    columnas = raw_columnas
+else:
+    columnas = {
+        cid: (catalogo_columnas.get(cid, {}) or {})
+        for cid in (raw_columnas or [])
+    }
 archivo_motor = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(nombre_portico)}.json"
 resultado_motor = rutas.leer_json(archivo_motor, {}) or {}
 envolvente_columnas = resultado_motor.get("envolvente", {}).get("columnas", {})

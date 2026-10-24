@@ -1,9 +1,21 @@
 import os
 import json
 import math
+import sys
+from pathlib import Path
+_RAIZ = Path(__file__).resolve().parent.parent
+if str(_RAIZ) not in sys.path:
+    sys.path.insert(0, str(_RAIZ))
+
 import csv
 import sys
 from calc import rutas
+
+# ============================================================
+# ADAPTADO A ESTRUCTURA GLOBAL (IDs globales) — version integrada
+# No confundir con la version legacy original del mismo nombre.
+# ============================================================
+
 
 # ============================================================
 # CONFIGURACIÓN GENERAL
@@ -255,7 +267,7 @@ def calcular_viga_fundacion(base_i, base_j):
     }
 
 # ============================================================
-# LECTURA ESTRUCTURA
+# LECTURA ESTRUCTURA (IDs globales)
 # ============================================================
 
 with open(JSON_ESTRUCTURA, "r", encoding="utf-8") as f:
@@ -280,10 +292,15 @@ else:
         raise ValueError(f"No existe el pórtico {seleccion}.")
 
 columnas = leer_columnas_csv(portico)
-bases = {
-    nombre: dict(base)
-    for nombre, base in estructura[portico]["bases"].items()
-}
+raw_bases = estructura[portico].get("bases", [])
+catalogo_bases = rutas.bases_globales(estructura)
+if isinstance(raw_bases, dict):
+    bases = {nombre: dict(base) for nombre, base in raw_bases.items()}
+else:
+    bases = {
+        bid: dict(catalogo_bases.get(bid, {}) or {})
+        for bid in (raw_bases or [])
+    }
 archivo_motor = rutas.SAL_SOLICITACIONES / f"{rutas.nombre_seguro(portico)}.json"
 resultado_motor = rutas.leer_json(archivo_motor, {}) or {}
 reacciones_servicio = (

@@ -1,0 +1,4 @@
+  File "calc/rutas.py", line 637
+    """Separa la estructura en sus cuatro partes:
+       ^^^^^^
+SyntaxError: invalid syntax

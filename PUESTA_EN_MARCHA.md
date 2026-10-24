@@ -97,7 +97,7 @@ Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
 ## 6. Detalles anotados (para no olvidarlos)
 
 * `P06_Portico_dxf.py` tiene el pórtico fijo dentro del script: `PORTICO = "Portico 3"`.
-* `P04_Columnas_portico.py` **reescribe entero** `salidas/columnas/planilla_columnas.csv` cada vez.
+* `P04_Columnas_portico.py` y `P05_Bases_portico.py` se ejecutan desde `Legacy/` (se agregó `sys.path` a la raíz) y ya leen columnas/bases globales (`COL-XXX`/`BASE-XXX`) del esquema actual de estructura.
 * `V03_guardar_vigas_excel.py` usa `pandas.to_excel` sin indicar motor: necesita
   `openpyxl` (falta instalarlo). `P03` ya usa `engine="xlsxwriter"`, por eso ese sí funciona.
 * Los nombres de archivo con espacios y paréntesis (ej. `Portico 3(mercedes) `) son

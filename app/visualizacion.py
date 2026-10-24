@@ -54,6 +54,7 @@ class VistaDiagramaMomentos(QWidget):
                 Qt.AlignmentFlag.AlignCenter,
                 "No hay datos de momentos para representar.",
             )
+            painter.end()
             return
 
         puntos_extremos = [
@@ -155,6 +156,7 @@ class VistaDiagramaMomentos(QWidget):
                 Qt.AlignmentFlag.AlignCenter,
                 "No hay datos de corte. Recalculá las solicitaciones para generarlos.",
             )
+            painter.end()
             return
 
         for apoyo in (self.diagrama or {}).get("apoyos", []):
@@ -268,6 +270,7 @@ class VistaDiagramaMomentos(QWidget):
                 painter.setPen(QPen(QColor("#ffffff"), 2))
                 painter.setBrush(QColor("#dc2626"))
                 painter.drawEllipse(punto, 6, 6)
+                painter.end()
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton and self._puntos_seleccionables:
@@ -395,12 +398,27 @@ class VistaPortico(QWidget):
         else:
             self.tipo = "pórtico"
             self.muro_nombre = ""
-            self.columnas = estructura.get("columnas", {})
             self.vigas = estructura.get("vigas", {})
             # Contexto: se conservan los muros existentes del proyecto para
             # dibujarlos tenues detrás del pórtico (ver paintEvent). Esto no
             # altera la escala del pórtico.
             estructura_completa = rutas.cargar_estructura() or {}
+            # --- Construir self.columnas como diccionario {gid: datos} ---
+            # datos["columnas"] puede ser:
+            #  a) dict {cid: datos} (formato antiguo de pórticos creados antes del PRINCIPIO 4)
+            #  b) lista de IDs globales ["COL-001", "COL-002"] (formato nuevo, PRINCIPIO 4)
+            columnas_raw = estructura.get("columnas", {}) or {}
+            columnas_globales = estructura_completa.get("columnas", {}) or {}
+            if isinstance(columnas_raw, dict):
+                self.columnas = columnas_raw
+            elif isinstance(columnas_raw, list):
+                self.columnas = {
+                    gid: dict(columnas_globales.get(gid, {}))
+                    for gid in columnas_raw
+                    if gid in columnas_globales
+                }
+            else:
+                self.columnas = {}
             self.muros = {
                 n: d for n, d in estructura_completa.items()
                 if isinstance(d, dict) and str(d.get("tipo", "")).lower() == "muro"
@@ -439,9 +457,11 @@ class VistaPortico(QWidget):
                 self.ancho_viento_m = float(configuracion_viento.get("ancho_tributario_m", 0.0))
                 columnas_por_piso = {}
                 for cid, columna in self.columnas.items():
-                    prefijo = str(cid).split("-")[0]
-                    if prefijo.startswith("C") and prefijo[1:].isdigit():
-                        columnas_por_piso.setdefault(prefijo, []).append(columna)
+                    # PRINCIPIO 4: las columnas ahora son globales (COL-XXX), ya no
+                    # hay prefijo "C{piso}-". Se agrupan por su cota de base (nivel)
+                    # para repartir el viento piso por piso.
+                    clave = round(float(columna.get("nivel", 0.0)), 4)
+                    columnas_por_piso.setdefault(clave, []).append(columna)
                 for columnas in columnas_por_piso.values():
                     if not columnas:
                         continue
@@ -493,10 +513,25 @@ class VistaPortico(QWidget):
             piso = cabeza[1:] if cabeza[:1].upper() == "V" else ""
             if not piso.isdigit():
                 continue
-            columnas = sorted(
-                (c for cid, c in self.columnas.items() if str(cid).startswith(f"C{piso}-")),
-                key=lambda c: float(c.get("x", 0.0)),
-            )
+            cota_viga = viga.get("cota_m")
+            if cota_viga is not None:
+                columnas = sorted(
+                    (c for c in self.columnas.values()
+                     if abs(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) - float(cota_viga)) < 1e-6),
+                    key=lambda c: float(c.get("x", 0.0)),
+                )
+            else:
+                columnas = sorted(
+                    (c for cid, c in self.columnas.items() if str(cid).startswith(f"C{piso}-")),
+                    key=lambda c: float(c.get("x", 0.0)),
+                )
+                # PRINCIPIO 4: fallback para pórticos con IDs globales (COL-XXX)
+                # que no tienen prefijo "C{piso}-": usar todas las columnas.
+                if not columnas and self.columnas:
+                    columnas = sorted(
+                        self.columnas.values(),
+                        key=lambda c: float(c.get("x", 0.0)),
+                    )
             if not columnas:
                 continue
             y = float(columnas[0].get("nivel", 0.0)) + float(columnas[0].get("altura_m", 0.0))
@@ -542,7 +577,11 @@ class VistaPortico(QWidget):
             # Pórtico de referencia: incluir sus columnas en el escalado
             portico_ref = self._portico_referencia_para_muro()
             if portico_ref:
-                for col in (portico_ref.get("columnas", {}) or {}).values():
+                cols_ref = portico_ref.get("columnas", {}) or {}
+                if isinstance(cols_ref, (list, tuple)):
+                    cat_col = self.estructura.get("columnas", {}) if isinstance(self.estructura, dict) else {}
+                    cols_ref = {gid: (cat_col.get(gid, {}) if isinstance(cat_col, dict) else {}) for gid in cols_ref}
+                for col in cols_ref.values():
                     cx = float(col.get("x", 0.0))
                     cy0 = float(col.get("nivel", 0.0))
                     cy1 = cy0 + float(col.get("altura_m", 0.0))
@@ -551,10 +590,12 @@ class VistaPortico(QWidget):
             if not xs or not ys:
                 painter.setPen(QColor("#64748b"))
                 painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No hay geometría de muro seleccionada")
+                painter.end()
                 return
         elif not self.columnas:
             painter.setPen(QColor("#64748b"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Seleccioná un pórtico con geometría")
+            painter.end()
             return
 
         if self.tipo != "muro":
@@ -570,6 +611,7 @@ class VistaPortico(QWidget):
                 xs.extend((float(muro_ref.get("x_inicio", 0.0)), float(muro_ref.get("x_fin", 0.0))))
                 ys.extend((float(muro_ref.get("nivel_inicio", 0.0)), float(muro_ref.get("nivel_fin", 0.0))))
             if not xs or not ys:
+                painter.end()
                 return
         ancho, alto = self.width(), self.height()
         margen_x = 56.0
@@ -704,6 +746,7 @@ class VistaPortico(QWidget):
             # representan como flechas sobre el paño (exclusivo de muros).
             if self.cargas:
                 self._dibujar_cargas_muro(painter, punto)
+            painter.end()
             return
 
         painter.setPen(QPen(QColor("#334155"), 3))
@@ -865,6 +908,7 @@ class VistaPortico(QWidget):
         if self.aviso:
             painter.setPen(QColor("#b91c1c"))
             painter.drawText(8, 17, self.aviso)
+        painter.end()
 
     # ---------------------------------------------------------------------------
     # Dibujo de cargas sobre muro (exclusivo del visor de muro)
@@ -1169,7 +1213,11 @@ class VistaPlantaPorticos(QWidget):
                 continue
             geom = self._geometria(datos_p)
             geoms.append(geom)
-            for columna in (datos_p.get("columnas", {}) or {}).values():
+            cols = datos_p.get("columnas", {}) or {}
+            if isinstance(cols, (list, tuple)):
+                cat_col = self.estructura.get("columnas", {}) if isinstance(self.estructura, dict) else {}
+                cols = {gid: (cat_col.get(gid, {}) if isinstance(cat_col, dict) else {}) for gid in cols}
+            for columna in cols.values():
                 if not isinstance(columna, dict):
                     continue
                 x = self._numero(columna.get("x"))
@@ -1564,6 +1612,21 @@ class VistaPlantaPorticos(QWidget):
             columnas_datos = datos.get("columnas", {}) or {}
             vigas_datos = datos.get("vigas", {}) or {}
             bases_datos = datos.get("bases", {}) or {}
+            # PRINCIPIO 4: los pórticos nuevos almacenan listas de IDs globales
+            # (COL-XXX / BASE-XXX) en lugar de dicts locales. Resolverlas contra
+            # el catálogo global de la estructura.
+            if isinstance(columnas_datos, (list, tuple)):
+                cat_col = self.estructura.get("columnas", {}) if isinstance(self.estructura, dict) else {}
+                columnas_datos = {
+                    gid: (cat_col.get(gid, {}) if isinstance(cat_col, dict) else {})
+                    for gid in columnas_datos
+                }
+            if isinstance(bases_datos, (list, tuple)):
+                cat_base = self.estructura.get("bases", {}) if isinstance(self.estructura, dict) else {}
+                bases_datos = {
+                    bid: (cat_base.get(bid, {}) if isinstance(cat_base, dict) else {})
+                    for bid in bases_datos
+                }
             eje_nombre = _nombre_eje_aplicacion(datos, direccion)
             # Nombre del eje longitudinal inicial (X1, Y2...): dice desde
             # dónde se miden las x locales de columnas/vigas.
@@ -2287,6 +2350,7 @@ class VistaPlantaPorticos(QWidget):
                 nota += f" (+{len(escena['etiquetas']) - 4})"
         painter.setPen(QPen(QColor("#94a3b8"), 1))
         painter.drawText(QPointF(margen, self.height() - 12), nota)
+        painter.end()
 
     def wheelEvent(self, event):
         """Zoom con la rueda del mouse: adelante acerca, atrás aleja."""

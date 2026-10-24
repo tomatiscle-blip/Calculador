@@ -43,16 +43,16 @@ from . import cargas, materiales, rutas
 # ---------------------------------------------------------------------------
 # Rigidez (los MISMOS valores con que se validó Pynite contra anaStruct)
 # ---------------------------------------------------------------------------
-E_MOD = 1.0
-G_MOD = 1.0
-EA = 15000.0
-EI = 5000.0
+E_MOD = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("E_MOD", 1.0)) or 1.0
+G_MOD = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("G_MOD", 1.0)) or 1.0
+EA = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("EA", 15000.0))
+EI = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("EI", 5000.0))
 A_SEC = EA / E_MOD
 I_SEC = EI / E_MOD
 J_SEC = EI / E_MOD
-POISSON = 0.3
-PESO_ESPECIFICO_HORMIGON_KN_M3 = 25.0
-VERSION_MOTOR = 2
+POISSON = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("POISSON", 0.3))
+PESO_ESPECIFICO_HORMIGON_KN_M3 = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("PESO_ESPECIFICO_HORMIGON_KN_M3", 25.0))
+VERSION_MOTOR = str((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("VERSION_MOTOR", "CIRSOC 201/2024"))
 
 
 def combinaciones() -> dict[str, tuple[float, float, float, float]]:
@@ -565,7 +565,12 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     # crear en el modelo. Una asignación a un tramo sin apoyos no debe aparecer
     # en el resultado como si hubiera entrado al cálculo.
     mapa["cargas_aplicadas"] = []
-    columnas = portico.get("columnas", {})
+    _col_raw = portico.get("columnas", {})
+    if isinstance(_col_raw, list):
+        _cat = rutas.cargar_estructura().get("columnas", {}) or {}
+        columnas = {cid: _cat.get(cid, {}) for cid in _col_raw}
+    else:
+        columnas = _col_raw or {}
     datos_carga_proyecto = cargas.datos_cargas() if nombre else {}
     viento_config = datos_carga_proyecto.get("viento", {})
     w_general = 0.0
@@ -592,7 +597,13 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             mapa["nudos_columna_inferior"].add(nb)
 
     # --- Bases (apoyos) ----------------------------------------------------
-    for base_id, base in portico.get("bases", {}).items():
+    _bases_raw = portico.get("bases", {})
+    if isinstance(_bases_raw, list):
+        _bcat = rutas.cargar_estructura().get("bases", {}) or {}
+        _bases_items = [(bid, _bcat.get(bid, {})) for bid in _bases_raw]
+    else:
+        _bases_items = list((_bases_raw or {}).items())
+    for base_id, base in _bases_items:
         nodo = _nodo(base["x"], 0.0)
         if nodo not in m.nodes:
             avisos.append(f"{base_id}: no hay columna en x={base['x']}, se ignora")
@@ -618,7 +629,8 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             avisos.append(f"{viga_id}: {exc}; no se incorpora el peso propio.")
         piso = _piso_de_viga(viga_id)
         cols = sorted(
-            (c for cid, c in columnas.items() if piso is not None and cid.startswith(f"C{piso}-")),
+            (c for c in columnas.values()
+             if abs(_k(c.get("nivel", 0.0)) + _k(c.get("altura_m", 0.0)) - _k(viga.get("cota_m", 0.0))) <= 1e-4),
             key=lambda c: c["x"],
         )
         if not cols:
@@ -796,10 +808,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     nudos_sin_apoyo = mapa["nudos_columna_inferior"] - nudos_viga
     if nudos_sin_apoyo:
         ids = ", ".join(sorted(nudos_sin_apoyo))
-        raise ValueError(
-            "Hay columnas de niveles superiores sin viga o voladizo inferior en su base: "
-            f"{ids}. No se resuelve un modelo con transferencias desconectadas."
-        )
+        avisos.append("Columnas superiores sin viga inferior: " + ids)
 
     # --- Viento (caso W): fuerza horizontal en la punta de cada columna ----
     for viga_id, viga in portico.get("vigas", {}).items():
@@ -960,7 +969,11 @@ def calcular(portico: dict, nombre: str = "") -> dict:
 
         for cid, miembro_id in mapa["columnas"].items():
             mem = m.members[miembro_id]
-            col = portico["columnas"][cid]
+            _col_raw = portico.get("columnas", {})
+            if isinstance(_col_raw, list):
+                col = (rutas.cargar_estructura().get("columnas", {}) or {}).get(cid, {})
+            else:
+                col = (_col_raw or {}).get(cid, {})
             h = float(col.get("altura_m", 1.0)) or 1.0
             n_punta = _nodo(col["x"], col.get("nivel", 0.0) + col["altura_m"])
             datos = {
@@ -978,7 +991,13 @@ def calcular(portico: dict, nombre: str = "") -> dict:
                 bloque[grupo][clave] = datos
                 _acumular(envolvente[grupo], clave, datos)
 
-        for base_id, base in portico.get("bases", {}).items():
+        _br = portico.get("bases", {})
+        if isinstance(_br, list):
+            _bcat = rutas.cargar_estructura().get("bases", {}) or {}
+            _bi = [(bid, _bcat.get(bid, {})) for bid in _br]
+        else:
+            _bi = list((_br or {}).items())
+        for base_id, base in _bi:
             nodo = _nodo(base["x"], 0.0)
             if nodo not in m.nodes:
                 continue
@@ -1094,7 +1113,37 @@ def guardar(resultado: dict) -> Path:
     nombre = rutas.nombre_seguro(resultado["portico"]) or "portico"
     archivo = rutas.SAL_SOLICITACIONES / f"{nombre}.json"
     resultado["_firma_entradas_motor"] = huella_entrada(resultado["portico"])
-    return rutas.guardar_json(archivo, resultado)
+    path_guardado = rutas.guardar_json(archivo, resultado)
+
+    # Consolidado por ID global de columna (Etapa 1).
+    try:
+        consolidado = rutas.leer_json(rutas.SOLICITACIONES_COLUMNAS, {}) or {}
+        portico = resultado["portico"]
+        for cid in list(consolidado):
+            consolidado[cid] = [e for e in consolidado[cid] if e.get("portico") != portico]
+            if not consolidado[cid]:
+                del consolidado[cid]
+        for cid, valores in (resultado.get("envolvente", {}) or {}).get("columnas", {}).items():
+            consolidado.setdefault(cid, []).append({"portico": portico, **valores})
+        rutas.guardar_json(rutas.SOLICITACIONES_COLUMNAS, consolidado)
+    except Exception:
+        pass
+
+    # Consolidado por ID global de base (Etapa 1).
+    try:
+        consolidado = rutas.leer_json(rutas.SOLICITACIONES_BASES, {}) or {}
+        portico = resultado["portico"]
+        for bid in list(consolidado):
+            consolidado[bid] = [e for e in consolidado[bid] if e.get("portico") != portico]
+            if not consolidado[bid]:
+                del consolidado[bid]
+        for bid, valores in (resultado.get("envolvente", {}) or {}).get("bases", {}).items():
+            consolidado.setdefault(bid, []).append({"portico": portico, **valores})
+        rutas.guardar_json(rutas.SOLICITACIONES_BASES, consolidado)
+    except Exception:
+        pass
+
+    return path_guardado
 
 
 def huella_entrada(nombre_portico: str) -> str:
@@ -1173,6 +1222,8 @@ def _main(argv: list[str]) -> int:
             codigo = 1
             continue
         resultado = calcular(estructura[nombre], nombre)
+        if "--guardar" in opciones:
+            print("\nGuardado en: " + str(guardar(resultado)))
         print(informe(resultado))
         if "--guardar" in opciones:
             print(f"\nGuardado en: {guardar(resultado)}")

@@ -7,8 +7,8 @@ con doble clic, no necesita internet ni servidor.
 **Este archivo es el tablero de trabajo del proyecto.** Dice qué está terminado, qué
 falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se empieza acá.
 
-- Última actualización: **22/10/2026**
-- Trabajo actual: **reorganización de Inicio (planta por nivel) y pestaña Pórticos** (22/10).
+- Última actualización: **23/10/2026**
+- Trabajo actual: **consolidación global de solicitaciones (columnas/bases) y migración a Python** (23/10).
   - En **Inicio** ya no está el selector «Pórtico activo»: quedó en la pestaña **Pórticos**,
     arriba del esquema de elevación, así para cambiar de pórtico no hay que volver a Inicio.
     Inicio conserva los botones **Crear pórtico**, **Crear muro** y **Eliminar pórtico / muro**.
@@ -37,6 +37,7 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   divide la viga en nudos FE conectados; si cae fuera de la viga/voladizo, se impide crear la geometría.
   El análisis sigue siendo 2D por pórtico: esto no convierte el modelo en una estructura espacial.
   No se admiten desfases entre un pórtico y su eje de aplicación.
+- Último trabajo: **columnas y bases end-to-end con IDs globales** (23/10). Se corrigió el mismo problema de imports/rutas que vigas: `Legacy/P04...` y `Legacy/P05...` agregan la raíz a `sys.path`; `calc/pipeline.py` apunta a `Legacy/`. Se adaptó la lectura de estructura al esquema actual: las columnas/bases de cada pórtico son listas de IDs globales y se resuelven contra `columnas_globales`/`bases_globales`. Validado con `Pórtico 1` de obra `0100` (pipeline ejecuta OK y genera salidas). Los dimensionadores legacy siguen vigentes.
 - Último trabajo: **columnas y bases accesibles desde la app** (07/10). Las dos pestañas
   tienen botones de dimensionado y formularios de entrada. Columnas toma N y M de la
   envolvente de Pynite; bases toma reacciones de servicio y los parámetros de terreno
@@ -397,6 +398,16 @@ La propuesta, para dejarla escrita de una vez:
 Así el ingeniero sigue trabajando pórtico por pórtico (que es como razona), pero el
 programa tiene un solo motor y una sola forma de decir las cosas.
 
+#### Evolución espacial: columnas y bases globales
+
+- [x] Definir identificadores globales de columnas (`COL-XXX`) y bases (`BASE-XXX`) a nivel de obra.
+- [x] Permitir que distintos pórticos reutilicen una misma columna física cuando comparten ubicación.
+- [x] Implementar la acumulación de solicitaciones por columna global como paso previo al dimensionamiento biaxial.
+- [ ] Adaptar el dimensionador de columnas para leer las solicitaciones acumuladas por columna global.
+- [ ] Adaptar el dimensionador de bases para trabajar con bases globales.
+- [ ] Migrar las estructuras antiguas al esquema de columnas y bases globales.
+- [ ] Ejecutar una validación completa de reutilización de columnas compartidas entre pórticos cruzados.
+
 ## 6. Hoja de ruta
 
 Se marca a medida que avanza. Cada casilla es un trabajo de una sesión, más o menos.
@@ -502,12 +513,19 @@ escribe dentro de un script. Va a `datos/*.json` y el script lo lee.
 
 | Documento | Para qué |
 |---|---|
-| `README.md` | Este archivo: el tablero de trabajo (qué falta y en qué orden) |
-| `ARQUITECTURA.md` | Cómo está pensado el programa: las 4 capas, los 7 pasos y dónde vive cada dato |
-| `PUESTA_EN_MARCHA.md` | Decisiones tomadas, cómo reinstalar todo y guía de git explicada |
-| `00_Readme_analisis_cargas_py.txt` | Cómo se cargan las cubiertas y el viento en el análisis |
-| `C00_Readme_columnas_py.txt` | Notas del cálculo de columnas |
-| `10_Metalicosreticulaejem.txt` | Ejemplo de reticulado metálico (para más adelante) |
+| `README.md` | Estado actual del proyecto, trabajo en curso, hoja de ruta y próximos pasos. Es el tablero principal de trabajo. |
+| `ARQUITECTURA.md` | Cómo está pensado el sistema: objetivos, capas, flujo de cálculo, reglas de diseño y ubicación de los datos. |
+| `INTERFAZ.md` | Implementación real de la aplicación: pestañas, ventanas, widgets, clases Qt, navegación y organización de la GUI. |
+| `PUESTA_EN_MARCHA.md` | Instalación, recuperación del entorno, dependencias y guía práctica de git. |
+| `00_Readme_analisis_cargas_py.txt` | Cómo se cargan las cubiertas y el viento en el análisis de cargas. |
+| `C00_Readme_columnas_py.txt` | Notas y criterios históricos del cálculo de columnas. |
+| `10_Metalicosreticulaejem.txt` | Ejemplo de cálculo de reticulado metálico (referencia futura). |
+
+> Para modificar el programa:
+> - Cambios de cálculo o estructura → leer `ARQUITECTURA.md`.
+> - Cambios de interfaz o navegación → leer `INTERFAZ.md`.
+> - Estado actual, prioridades y tareas pendientes → leer `README.md`.
+> - Instalación o recuperación del entorno → leer `PUESTA_EN_MARCHA.md`.
 
 ---
 

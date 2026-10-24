@@ -1,5 +1,0 @@
-Pórtico;Columna;Tipo;Tipo_seccion;Dimensiones;Altura_libre(m);Recubrimiento(cm);Pu(kN);Mu(kNm);f'c(MPa);λ;Clasificación;Ast(cm²);n_barras;diam_long(cm);diam_estribo(cm);paso_estribo(cm);cumple_estribo;Nota_diagrama
-Pórtico 2;C0-1;estribos;I;b=20.0, h=30.0;3.00;4.00;56.79274273871925;33.38979650405056;20;34.64;CORTA;6.00;6;12;6;14.4;;γ=0.73, X=1.856, Y=0.947, ρg=0.010
-Pórtico 2;C0-2;estribos;I;b=20.0, h=30.0;3.00;3.60;124.93225726128077;4.4067566863421614;20;34.64;CORTA;6.00;6;12;6;14.4;;γ=0.76, X=0.245, Y=2.082, ρg=0.010
-Pórtico 2;C0-3;estribos;I;b=20.0, h=30.0;3.00;3.60;124.93225726128074;4.406756686342158;20;34.64;CORTA;6.00;6;12;6;14.4;;γ=0.76, X=0.245, Y=2.082, ρg=0.010
-Pórtico 2;C0-4;estribos;I;b=20.0, h=30.0;3.00;4.00;56.792742738719255;33.38979650405056;20;34.64;CORTA;6.00;6;12;6;14.4;;γ=0.73, X=1.856, Y=0.947, ρg=0.010
