@@ -1,0 +1,11 @@
+{
+  "obra": "102",
+  "id_proyecto": "102",
+  "notas": "",
+  "viento": {
+    "activo": 0,
+    "ancho_tributario_m": 0.0
+  },
+  "elementos": {},
+  "aplicaciones": []
+}
