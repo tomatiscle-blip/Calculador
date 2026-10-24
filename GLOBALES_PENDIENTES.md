@@ -56,3 +56,24 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 - Aplicar cargas de viento solo a pórticos con el sentido correspondiente.
 - Si una columna recibe excesivo momento por viento, evaluar agregar pórtico transversal para compensar.
 - Integrar con columnas globales para consolidar solicitaciones de viento.
+
+## Actualización: UI y planilla local (Octubre 2026)
+- Pestaña "Columnas globales" habilitada cuando todos los porticos que comparten la columna estan resueltos.
+- En la planilla de columnas por portico, si una columna es global se calcula igual pero se avisa que debe revisarse en Columnas globales; el dato local no vale, vale el global.
+- Preferido: el listado de columnas por portico se acumula/actualiza en columnas globales, quedando siempre activo y una planilla de todas las columnas de la obra.
+- Bases siempre globales: acumular por BASE-XXX y flag momentos_otro_sentido para activar/desactivar contribucion transversal.
+
+## Actualización: identidad global por posición y momentos por eje
+
+### Implementado
+- Columnas globales identificadas por coordenada global `(X, Y, nivel)`, no por `(x, nivel)` local del pórtico.
+- Numeración por piso: `C0-x` para PB, `C1-x` para N1, etc.
+- Catálogo global (`estructura["columnas"]`) guarda `X`, `Y`, `x`, `nivel`, `eje_id`, `eje_nombre`, `nivel_inicio`, `piso`, `momentos_otro_sentido`.
+- `obtener_o_crear_columna_global(..., piso=...)` reutiliza columna global si ya existe en esa posición y piso.
+- Momentos por eje consolidados: las columnas globales acumulan `Mx`, `My`, `Mx_otro_sentido`, `My_otro_sentido`.
+- Opción en UI para eliminar la obra actual y crear una obra nueva (limpia `estructura.json`, `cargas.json` y salidas).
+
+### Pendiente
+- El visor de pórtico (`app/visualizacion.py::VistaPortico`) usa `columna["x"]` (coordenada local del pórtico que creó la columna). En pórticos transversales que reutilizan columnas globales, esa coordenada no corresponde y el dibujo colapsa (línea vertical, vigas como puntos).
+- Corregir `_geometria_tramos()` para calcular la coordenada local de cada columna a partir de su `X/Y` global y la `referencia_planta` + `posicion_planta_m` del pórtico activo, en lugar de `columna["x"]`.
+- Podría ser también el armado de estructura del pórtico (asociación de columnas) lo que deba normalizar la coordenada local por pórtico.

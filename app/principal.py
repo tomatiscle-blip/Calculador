@@ -62,7 +62,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QWidget,
 )
 
-from calc import cargas, pipeline, rutas  # noqa: E402
+from calc import cargas, columnas, bases, pipeline, rutas  # noqa: E402
 from app.cargas_proyecto import PaginaCargas  # noqa: E402
 from app.muros_proyecto import PaginaMuros  # noqa: E402
 from app.diseno_columnas_bases import datos_bases as pedir_datos_bases  # noqa: E402
@@ -482,6 +482,7 @@ class VentanaPrincipal(QMainWindow):
         self.combo_obras.setMinimumWidth(190)
         self.combo_nivel_planta = QComboBox()
         self.boton_nueva_obra = QPushButton("Nueva obra")
+        self.boton_eliminar_obra = QPushButton("Eliminar obra")
         self.boton_actualizar = QPushButton("Actualizar")
         self.etiqueta_resumen = QLabel()
         self.etiqueta_resumen.setWordWrap(True)
@@ -677,6 +678,7 @@ class VentanaPrincipal(QMainWindow):
         barra.addWidget(QLabel("Obra:"))
         barra.addWidget(self.combo_obras)
         barra.addWidget(self.boton_nueva_obra)
+        barra.addWidget(self.boton_eliminar_obra)
         barra.addWidget(self.boton_actualizar)
         barra.addWidget(self.etiqueta_resumen, 1)
         banda_superior = QWidget()
@@ -739,6 +741,12 @@ class VentanaPrincipal(QMainWindow):
         self.etiqueta_columnas = QLabel()
         self.etiqueta_columnas.setWordWrap(True)
         caja_columnas.addWidget(self.etiqueta_columnas)
+        nota_columnas = QLabel(
+            "Nota: esta pestaña calcula cada columna en forma plana según el pórtico seleccionado. "
+            "La consolidación global (Mx/My por ID de columna compartida) se realiza en “Columnas globales”."
+        )
+        nota_columnas.setWordWrap(True)
+        caja_columnas.addWidget(nota_columnas)
         caja_columnas.addWidget(self.boton_dimensionar_columnas, 0, Qt.AlignmentFlag.AlignLeft)
         contenido_columnas = QSplitter(Qt.Orientation.Vertical)
         contenido_columnas.addWidget(self.tabla_columnas)
@@ -755,6 +763,41 @@ class VentanaPrincipal(QMainWindow):
         contenido_columnas.setSizes([300, 320])
         caja_columnas.addWidget(contenido_columnas, 1)
         return pagina
+
+    def _pagina_columnas_globales(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        etiqueta = QLabel("Columnas consolidadas por ID global (COL-XXX).")
+        etiqueta.setWordWrap(True)
+        caja.addWidget(etiqueta)
+        boton = QPushButton("Calcular columnas globales")
+        boton.clicked.connect(self._calcular_columnas_globales)
+        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        self.tabla_columnas_globales = QTableWidget(0, 9)
+        self.tabla_columnas_globales.setHorizontalHeaderLabels(
+            ("ID", "Eje", "Nivel", "Mx", "My", "N", "Deriva", "Pórticos", "Estado")
+        )
+        caja.addWidget(self.tabla_columnas_globales, 1)
+        return pagina
+
+    def _calcular_columnas_globales(self) -> None:
+        try:
+            resultados = columnas.calcular_global()
+            self.tabla_columnas_globales.setRowCount(0)
+            for r in resultados:
+                fila = self.tabla_columnas_globales.rowCount()
+                self.tabla_columnas_globales.insertRow(fila)
+                self.tabla_columnas_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_columnas_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("eje_nombre") or r.get("eje_id"))))
+                self.tabla_columnas_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("nivel"))))
+                self.tabla_columnas_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_columnas_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_columnas_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("N"))))
+                self.tabla_columnas_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("deriva"))))
+                self.tabla_columnas_globales.setItem(fila, 7, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_columnas_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Columnas globales", str(exc))
 
     def _pagina_bases(self) -> QWidget:
         pagina = QWidget()
@@ -991,6 +1034,7 @@ class VentanaPrincipal(QMainWindow):
         subpestanias.addTab(pagina_portico, "Pórtico")
         subpestanias.addTab(self._pagina_vigas(), "Vigas")
         subpestanias.addTab(self._pagina_columnas(), "Columnas")
+        subpestanias.addTab(self._pagina_columnas_globales(), "Columnas globales")
         subpestanias.addTab(self._pagina_bases(), "Bases")
         subpestanias.addTab(self._pagina_terreno(), "Terreno")
         subpestanias.addTab(self._pagina_parametros_motor(), "Parámetros")
@@ -1014,6 +1058,7 @@ class VentanaPrincipal(QMainWindow):
         self.boton_actualizar.clicked.connect(self.refrescar)
         self.combo_obras.currentIndexChanged.connect(self._seleccionar_obra_ui)
         self.boton_nueva_obra.clicked.connect(self._crear_obra_ui)
+        self.boton_eliminar_obra.clicked.connect(self._eliminar_obra_ui)
         self.boton_guardar_proyecto.clicked.connect(self._guardar_ficha_proyecto)
         self.boton_crear_portico.clicked.connect(self._crear_portico)
         self.boton_eliminar_portico.clicked.connect(self._eliminar_portico)
@@ -1223,6 +1268,45 @@ class VentanaPrincipal(QMainWindow):
             self.statusBar().showMessage(f"Obra creada en {carpeta}", 7000)
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "No se pudo crear la obra", str(exc))
+
+    def _eliminar_obra_ui(self) -> None:
+        carpeta = rutas.CARPETA_OBRA
+        if carpeta is None:
+            QMessageBox.information(self, "Eliminar obra", "No hay obra activa.")
+            return
+        try:
+            carpeta = Path(carpeta).resolve()
+            obras_raiz = rutas.OBRAS.resolve()
+            if obras_raiz not in carpeta.parents:
+                raise ValueError("La carpeta seleccionada no es una obra válida.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Eliminar obra", str(exc))
+            return
+        respuesta = QMessageBox.question(
+            self,
+            "Eliminar obra",
+            f"¿Eliminar definitivamente la obra '{carpeta.name}' y todos sus datos/salidas?\n\nEsta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            import shutil
+            if carpeta.exists():
+                shutil.rmtree(carpeta)
+            # si era la activa, seleccionar otra o ninguna
+            obras = rutas.listar_obras()
+            if obras:
+                rutas.seleccionar_obra(obras[0])
+            else:
+                rutas.seleccionar_obra(None)
+            importlib.reload(pipeline)
+            self.pagina_cargas.recargar()
+            self.refrescar()
+            self.statusBar().showMessage(f"Obra eliminada: {carpeta.name}", 7000)
+        except Exception as exc:
+            QMessageBox.critical(self, "No se pudo eliminar la obra", str(exc))
 
     # ------------------------------------------------------------------
     # Pestaña Inicio
@@ -1694,6 +1778,11 @@ class VentanaPrincipal(QMainWindow):
         conteo_transferencias = 0
         ids_columnas_globales: list[str] = []
         ids_bases_globales: list[str] = []
+        ref = ubicacion["referencia_planta"]
+        direccion = ref.get("direccion")
+        desfase_long = float(ref.get("desfase_longitudinal_m", 0.0) or 0.0)
+        origen_long = float(ref.get("origen_longitudinal_m", 0.0) or 0.0)
+        pos_transversal = float(ubicacion.get("posicion_planta_m", ref.get("desfase_m", 0.0)) or 0.0)
         for piso, tramo_nivel in enumerate(ubicacion["tramos_nivel"]):
             columnas_nivel = tramo_nivel["ejes_columna"]
             coordenadas = [float(eje["x_local_m"]) for eje in columnas_nivel]
@@ -1702,8 +1791,13 @@ class VentanaPrincipal(QMainWindow):
             altura = cota_superior - y
             for indice, (eje_columna, x) in enumerate(zip(columnas_nivel, coordenadas)):
                 # PRINCIPIO 4: columnas son entidades globales de la obra,
-                # identificadas por coordenadas (x, nivel) y reusables entre
-                # pórticos. No se usan nombres locales acumulativos C{piso}-N.
+                # identificadas por posición global (X, Y, nivel).
+                if direccion == "x":
+                    x_global = float(x) + origen_long + desfase_long
+                    y_global = pos_transversal
+                else:
+                    x_global = pos_transversal
+                    y_global = float(x) + origen_long + desfase_long
                 gid_columna = rutas.obtener_o_crear_columna_global(
                     x=x,
                     nivel=y,
@@ -1712,6 +1806,9 @@ class VentanaPrincipal(QMainWindow):
                     eje_nombre=eje_columna["nombre"],
                     nivel_inicio=tramo_nivel["nivel_inferior"],
                     estructura=estructura,
+                    x_global=x_global,
+                    y_global=y_global,
+                    piso=piso,
                 )
                 ids_columnas_globales.append(gid_columna)
 
@@ -1722,6 +1819,8 @@ class VentanaPrincipal(QMainWindow):
                         eje_id=eje_columna["id"],
                         eje_nombre=eje_columna["nombre"],
                         estructura=estructura,
+                        x_global=x_global,
+                        y_global=y_global,
                     )
                     ids_bases_globales.append(gid_base)
 

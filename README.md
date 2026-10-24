@@ -53,9 +53,10 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
     arranque se copian los datos fuente y las salidas anteriores se guardan aparte en
     `archivo_migracion/salidas`.
   - **Alcance:** cargas, estructura, losas, terreno y resultados son propios de cada obra.
-    `moments_input.json` solo se copia al migrar datos existentes; una obra nueva no recibe
-    los datos de ejemplo. Materiales y tablas de diseño siguen siendo compartidos. La viga
-    aislada aún no tiene recorrido integrado en la app.
+    Materiales y tablas de diseño siguen siendo compartidos. La viga
+    aislada aún no tiene recorrido integrado en la app. `moments_input.json`
+    ya no se copia ni se mantiene en `datos/` de la raíz; las obras nuevas
+    arrancan vacías.
   - **Losas desde ejes:** desde Inicio o Cargas se delimita el paño seleccionando dos ejes X
     y dos Y; luego se define la dirección de luz, el nivel y las dos vigas de apoyo existentes
     sobre los ejes correspondientes. La composición y las cargas se editan después. Las losas
@@ -561,7 +562,7 @@ Calculador\
 ├─ datos\                <- los datos: la única fuente de verdad
 │   ├─ estructura.json  cargas.json  materiales.json
 │   ├─ terreno.json  tipos_losa.json  viguetas.json
-│   ├─ coeficientes_kd.json  perfiles_metalicos.json  moments_input.json
+│   ├─ coeficientes_kd.json  perfiles_metalicos.json
 │   └─ diagramas_interaccion\
 ├─ salidas\              <- resultados (no se editan a mano)
 │   ├─ analisis_cargas\  vigas\  columnas\  bases\  losas\  reacciones\  dxf\

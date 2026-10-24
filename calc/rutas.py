@@ -47,8 +47,8 @@ SAL_DXF: Path = SALIDAS / "dxf"
 SAL_LOSAS: Path = SALIDAS / "losas"
 SAL_REACCIONES: Path = SALIDAS / "reacciones"
 SAL_SOLICITACIONES: Path = SALIDAS / "solicitaciones"
-SOLICITACIONES_COLUMNAS: Path = SALIDAS / "solicitaciones_columnas.json"
-SOLICITACIONES_BASES: Path = SALIDAS / "solicitaciones_bases.json"
+SOLICITACIONES_COLUMNAS: Path = SAL_SOLICITACIONES / "solicitaciones_columnas.json"
+SOLICITACIONES_BASES: Path = SAL_SOLICITACIONES / "solicitaciones_bases.json"
 _NOMBRES_CARPETAS_SALIDA = (
     "analisis_cargas",
     "vigas",
@@ -128,8 +128,18 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     SAL_LOSAS = SALIDAS / "losas"
     SAL_REACCIONES = SALIDAS / "reacciones"
     SAL_SOLICITACIONES = SALIDAS / "solicitaciones"
-    SOLICITACIONES_COLUMNAS = SALIDAS / "solicitaciones_columnas.json"
-    SOLICITACIONES_BASES = SALIDAS / "solicitaciones_bases.json"
+    SOLICITACIONES_COLUMNAS = SAL_SOLICITACIONES / "solicitaciones_columnas.json"
+    SOLICITACIONES_BASES = SAL_SOLICITACIONES / "solicitaciones_bases.json"
+    # Migración: mover consolidados viejos de la raíz de salidas a solicitaciones/.
+    for nombre in ("solicitaciones_columnas.json", "solicitaciones_bases.json"):
+        viejo = SALIDAS / nombre
+        nuevo = SAL_SOLICITACIONES / nombre
+        if viejo.exists() and not nuevo.exists():
+            try:
+                SAL_SOLICITACIONES.mkdir(parents=True, exist_ok=True)
+                viejo.replace(nuevo)
+            except OSError:
+                pass
     CARPETAS_SALIDA = _carpetas_salida(SALIDAS)
     ESTRUCTURA = DATOS / "estructura.json"
     CARGAS = DATOS / "cargas.json"
@@ -160,8 +170,8 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
         directorio.mkdir(parents=True, exist_ok=True)
     if copiar_actual:
         origen_datos = DATOS
-        for archivo in ("cargas.json", "estructura.json", "losas.json", "terreno.json",
-                        "tipos_losa.json", "moments_input.json", "ejes.json", "niveles.json"):
+        for archivo in ("losas.json", "terreno.json",
+                        "tipos_losa.json", "ejes.json", "niveles.json"):
             origen = origen_datos / archivo
             if origen.is_file():
                 shutil.copy2(origen, carpeta / "datos" / archivo)
@@ -216,12 +226,7 @@ def inicializar_obras() -> Path:
         return seleccionar_obra(seleccion)
     existentes = listar_obras()
     if not existentes:
-        legado = leer_json(DATOS_GLOBAL / "cargas.json", {}) or {}
-        nombre = str(legado.get("obra") or "Obra nueva").replace("_", " ").strip()
-        existente = OBRAS / nombre_seguro(nombre)
-        if existente.exists():
-            existente = OBRAS / (nombre_seguro(nombre) + " (2)")
-        carpeta = crear_obra(existente.name, copiar_actual=bool(legado or (DATOS_GLOBAL / "estructura.json").exists()))
+        carpeta = crear_obra("Obra nueva", copiar_actual=False)
         existentes = [carpeta]
     return seleccionar_obra(existentes[0])
 
@@ -313,6 +318,8 @@ def ruta_salida(*partes: str) -> Path:
 
 def asegurar_directorios() -> list[Path]:
     """Crea las carpetas de salida si no existen. Devuelve las carpetas usadas."""
+    if CARPETA_OBRA is None:
+        return []
     for carpeta in CARPETAS_SALIDA:
         carpeta.mkdir(parents=True, exist_ok=True)
     return list(CARPETAS_SALIDA)
@@ -782,10 +789,17 @@ def _borrar_salidas_portico(nombre: str) -> None:
 # ---------------------------------------------------------------------------
 
 def _clave_columna_global(datos_col: dict) -> tuple | None:
-    """Clave única (x, nivel) para identificar una columna física."""
+    """Clave única (X, Y, nivel) para identificar una columna física."""
     try:
-        x = round(float(datos_col["x"]), 4)
+        if "X" in datos_col or "Y" in datos_col:
+            x = round(float(datos_col.get("X", datos_col.get("x", 0.0))), 4)
+            y = round(float(datos_col.get("Y", datos_col.get("y", 0.0))), 4)
+        else:
+            x = round(float(datos_col["x"]), 4)
+            y = 0.0
         nivel = round(float(datos_col.get("nivel", datos_col.get("nivel_inicio", 0.0))), 4)
+        if "X" in datos_col or "Y" in datos_col:
+            return (x, y, nivel)
         return (x, nivel)
     except (KeyError, TypeError, ValueError):
         return None
@@ -852,6 +866,9 @@ def obtener_o_crear_columna_global(
     eje_nombre: str,
     nivel_inicio: str,
     estructura: dict | None = None,
+    x_global: float | None = None,
+    piso: int | str = 0,
+    y_global: float | None = None,
 ) -> str:
     """Devuelve el ID global de una columna por coordenadas (x, nivel).
 
@@ -871,7 +888,9 @@ def obtener_o_crear_columna_global(
         columnas = {}
         estructura["columnas"] = columnas
 
-    clave_buscar = (round(float(x), 4), round(float(nivel), 4))
+    clave_buscar = (round(float(x_global if x_global is not None else x), 4),
+                    round(float(y_global if y_global is not None else 0.0), 4),
+                    round(float(nivel), 4)) if (x_global is not None or y_global is not None) else (round(float(x), 4), round(float(nivel), 4))
 
     # 1. Buscar si ya existe una columna global con esas coordenadas
     for gid, datos in columnas.items():
@@ -881,9 +900,19 @@ def obtener_o_crear_columna_global(
         if clave_existente == clave_buscar:
             return gid
 
-    # 2. Crear una nueva columna global
-    gid = siguiente_id_columna_global(estructura)
-    columnas[gid] = {
+    # 2. Crear una nueva columna global con ID por piso y posicion
+    prefijo = "C{}".format(piso)
+    numeros = []
+    for gid_existente in columnas:
+        txt = str(gid_existente)
+        if txt.startswith(prefijo + "-"):
+            try:
+                numeros.append(int(txt.split("-", 1)[1]))
+            except ValueError:
+                pass
+    seq = (max(numeros) + 1) if numeros else 1
+    gid = "{}-{}".format(prefijo, seq)
+    nuevo = {
         "x": float(x),
         "nivel": float(nivel),
         "altura_m": float(altura_m),
@@ -891,6 +920,11 @@ def obtener_o_crear_columna_global(
         "eje_nombre": eje_nombre,
         "nivel_inicio": nivel_inicio,
     }
+    if x_global is not None:
+        nuevo["X"] = float(x_global)
+    if y_global is not None:
+        nuevo["Y"] = float(y_global)
+    columnas[gid] = nuevo
     return gid
 
 
@@ -912,6 +946,8 @@ def obtener_o_crear_base_global(
     eje_id: str,
     eje_nombre: str,
     estructura: dict | None = None,
+    x_global: float | None = None,
+    y_global: float | None = None,
 ) -> str:
     """Devuelve el ID global de una base por coordenadas (x, nivel).
 
@@ -928,24 +964,39 @@ def obtener_o_crear_base_global(
         bases = {}
         estructura["bases"] = bases
 
-    clave_buscar = (round(float(x), 4), round(float(nivel), 4))
+    if x_global is not None or y_global is not None:
+        clave_buscar = (round(float(x_global if x_global is not None else x), 4),
+                        round(float(y_global if y_global is not None else 0.0), 4),
+                        round(float(nivel), 4))
+    else:
+        clave_buscar = (round(float(x), 4), round(float(nivel), 4))
 
     for gid, datos in bases.items():
         if not isinstance(datos, dict):
             continue
-        clave_existente = (round(float(datos.get("x", 0.0)), 4),
-                           round(float(datos.get("nivel", 0.0)), 4))
+        if "X" in datos or "Y" in datos:
+            clave_existente = (round(float(datos.get("X", datos.get("x", 0.0))), 4),
+                               round(float(datos.get("Y", datos.get("y", 0.0))), 4),
+                               round(float(datos.get("nivel", 0.0)), 4))
+        else:
+            clave_existente = (round(float(datos.get("x", 0.0)), 4),
+                               round(float(datos.get("nivel", 0.0)), 4))
         if clave_existente == clave_buscar:
             return gid
 
     gid = siguiente_id_base_global(estructura)
-    bases[gid] = {
+    nuevo = {
         "x": float(x),
         "nivel": float(nivel),
         "tipo": "empotramiento",
         "eje_id": eje_id,
         "eje_nombre": eje_nombre,
     }
+    if x_global is not None:
+        nuevo["X"] = float(x_global)
+    if y_global is not None:
+        nuevo["Y"] = float(y_global)
+    bases[gid] = nuevo
     return gid
 
 

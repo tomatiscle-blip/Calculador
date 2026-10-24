@@ -246,6 +246,22 @@ def _marca_bases(portico: str = "") -> tuple[bool, str]:
     return True, f"{len(bases)} bases calculadas"
 
 
+def _marca_columnas_globales(_portico: str = "") -> tuple[bool, str]:
+    archivo = rutas.SAL_COLUMNAS / "resultados_columnas_globales.json"
+    datos = rutas.leer_json(archivo)
+    if not datos:
+        return False, "falta salidas/columnas/resultados_columnas_globales.json"
+    return True, f"{len(datos)} columnas globales"
+
+
+def _marca_bases_globales(_portico: str = "") -> tuple[bool, str]:
+    archivo = rutas.SAL_BASES / "resultados_bases_globales.json"
+    datos = rutas.leer_json(archivo)
+    if not datos:
+        return False, "falta salidas/bases/resultados_bases_globales.json"
+    return True, f"{len(datos)} bases globales"
+
+
 def _marca_planos(portico: str = "") -> tuple[bool, str]:
     archivo = rutas.SAL_DXF / f"{rutas.nombre_seguro(portico)}_lateral.dxf"
     if not archivo.exists():
@@ -376,6 +392,30 @@ ETAPAS: tuple[Etapa, ...] = (
         interactiva=True,
         marca=_marca_bases,
         nota="Usa q_adm y profundidad de fundación guardados en datos/terreno.json.",
+    ),
+    Etapa(
+        clave="columnas_globales",
+        nombre="9. Columnas globales",
+        descripcion="Dimensionado consolidado de columnas compartidas por varios porticos.",
+        script="calc/columnas_globales.py",
+        entradas=(rutas.SAL_COLUMNAS / "resultados_*_columnas.json",),
+        salidas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
+        depende_de=("columnas", "vigas"),
+        interactiva=False,
+        marca=_marca_columnas_globales,
+        nota="Se habilita cuando los porticos intervenidos estan resueltos.",
+    ),
+    Etapa(
+        clave="bases_globales",
+        nombre="10. Bases globales",
+        descripcion="Dimensionado consolidado de bases compartidas por varios porticos.",
+        script=None,
+        entradas=(rutas.SAL_BASES / "resultados_*_bases.json",),
+        salidas=(rutas.SAL_BASES / "resultados_bases_globales.json",),
+        depende_de=("bases", "columnas_globales"),
+        interactiva=False,
+        marca=_marca_bases_globales,
+        nota="Bases siempre globales: acumula por BASE-XXX.",
     ),
     Etapa(
         clave="planos",

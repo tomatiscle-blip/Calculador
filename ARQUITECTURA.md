@@ -226,9 +226,11 @@ Calculador\
 `Obras/<nombre>/datos`; los resultados previos se conservan bajo
 `Obras/<nombre>/archivo_migracion/salidas` y los originales siguen en la raíz. El botón
 **Nueva obra** crea una carpeta independiente y vacía; el selector cambia entre obras.
-`calc/rutas.py` dirige cargas, estructura, losas, terreno, `moments_input.json` y resultados
+`calc/rutas.py` dirige cargas, estructura, losas, terreno, `moments_input.json` (cuando se genera) y resultados
 a la obra seleccionada. Materiales, viguetas, perfiles, coeficientes y viento quedan en
-`datos/` como bibliotecas compartidas.
+`datos/` como bibliotecas compartidas. Las obras nuevas arrancan vacías: `cargas.json`,
+`estructura.json` y `moments_input.json` se crean en la carpeta de la obra y ya no se copian
+desde `datos/` de la raíz.
 
 ## 8. Evolución espacial: Columnas compartidas y pórticos cruzados (Octubre 2026)
 
