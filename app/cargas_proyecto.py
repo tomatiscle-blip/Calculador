@@ -1773,7 +1773,6 @@ class PaginaCargas(QWidget):
             return
         from calc import cargas as _cargas
         from calc import rutas
-        from calc.portico import direccion_portico if False else None
         estructura = rutas.cargar_estructura() or {}
         for fila in range(self.tabla_viento_porticos.rowCount()):
             item = self.tabla_viento_porticos.item(fila, 0)
