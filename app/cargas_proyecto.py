@@ -1771,8 +1771,9 @@ class PaginaCargas(QWidget):
         direccion = self.direccion_viento.currentData()
         if direccion not in ("x", "y"):
             return
+        from calc import cargas as _cargas
         from calc import rutas
-        from calc.portico import direccion_portico
+        from calc.portico import direccion_portico if False else None
         estructura = rutas.cargar_estructura() or {}
         for fila in range(self.tabla_viento_porticos.rowCount()):
             item = self.tabla_viento_porticos.item(fila, 0)
@@ -1780,7 +1781,7 @@ class PaginaCargas(QWidget):
                 continue
             nombre = item.text()
             portico = estructura.get(nombre, {})
-            es_paralelo = (direccion_portico(portico) == direccion)
+            es_paralelo = (_cargas.direccion_portico(portico) == direccion)
             cb = self.tabla_viento_porticos.cellWidget(fila, 1)
             if cb is not None:
                 cb.setChecked(es_paralelo)
