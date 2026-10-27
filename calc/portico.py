@@ -843,6 +843,10 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         ids = ", ".join(sorted(nudos_sin_apoyo))
         avisos.append("Columnas superiores sin viga inferior: " + ids)
 
+    direccion_portico_actual = direccion_portico(portico)
+    eje_carga = "FX" if direccion_portico_actual == "x" else "FY"
+
+
     # --- Viento (caso W): fuerza horizontal en la punta de cada columna ----
     for viga_id, viga in portico.get("vigas", {}).items():
         piso = _piso_de_viga(viga_id)
@@ -867,7 +871,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                 continue
             n_punta = _nodo(_x_local(col), col.get("nivel", 0.0) + col["altura_m"])
             if n_punta in m.nodes:
-                m.add_node_load(n_punta, "FX", por_col, case="W")
+                m.add_node_load(n_punta, eje_carga, por_col, case="W")
 
     # --- Combinaciones -----------------------------------------------------
     for nombre, (fD, fL, fW, fP) in combinaciones().items():

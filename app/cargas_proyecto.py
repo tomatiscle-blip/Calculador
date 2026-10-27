@@ -826,6 +826,8 @@ class PaginaCargas(QWidget):
             "Referencia guardada en el proyecto; el motor todavía calcula el viento con la configuración anterior."
         )
         self.nota_viento_ref.setWordWrap(True)
+        self.direccion_viento.currentIndexChanged.connect(self._auto_marcar_viento_por_direccion)
+
         # Viento manual por pórtico
         self.etiqueta_viento_porticos = QLabel("Viento por pórtico (manual): marca los pórticos que reciben viento y su ancho tributario.")
         self.etiqueta_viento_porticos.setWordWrap(True)
@@ -1765,6 +1767,25 @@ class PaginaCargas(QWidget):
             QMessageBox.critical(self, "No se pudo generar el informe", str(exc))
             return
         self.boton_abrir.setEnabled(True)
+    def _auto_marcar_viento_por_direccion(self) -> None:
+        direccion = self.direccion_viento.currentData()
+        if direccion not in ("x", "y"):
+            return
+        from calc import rutas
+        from calc.portico import direccion_portico
+        estructura = rutas.cargar_estructura() or {}
+        for fila in range(self.tabla_viento_porticos.rowCount()):
+            item = self.tabla_viento_porticos.item(fila, 0)
+            if item is None:
+                continue
+            nombre = item.text()
+            portico = estructura.get(nombre, {})
+            es_paralelo = (direccion_portico(portico) == direccion)
+            cb = self.tabla_viento_porticos.cellWidget(fila, 1)
+            if cb is not None:
+                cb.setChecked(es_paralelo)
+
+
         QMessageBox.information(self, "Informe generado", f"Se guardó:\n{self.ultimo_informe}")
         if self.al_guardar:
             self.al_guardar()
