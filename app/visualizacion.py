@@ -493,10 +493,13 @@ class VistaPortico(QWidget):
         activo = bool(configuracion_viento.get("activo"))
         if activo:
             try:
-                items_viento = cargas.items_viento_general(proyecto, materiales.cargar())
-                self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
+                ancho_override = None
                 if self.nombre in self.anchos_viento_por_portico and self.anchos_viento_por_portico[self.nombre]:
-                    self.ancho_viento_m = float(self.anchos_viento_por_portico[self.nombre])
+                    ancho_override = float(self.anchos_viento_por_portico[self.nombre])
+                items_viento = cargas.items_viento_general(proyecto, materiales.cargar(), ancho_override=ancho_override)
+                self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
+                if ancho_override is not None and ancho_override > 0:
+                    self.ancho_viento_m = ancho_override
                 else:
                     self.ancho_viento_m = float(configuracion_viento.get("ancho_tributario_m", 0.0))
                 columnas_por_piso = {}
