@@ -584,7 +584,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         # Compatibilidad con modo anterior (dirección automática)
         if viento_config.get("activo"):
             direccion = str(viento_config.get("direccion_viento", "x")).strip().lower()
-            if direccion == direccion_portico(portico):
+            if direccion != direccion_portico(portico):
                 items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
                 w_general = sum(float(item["valor"]) for item in items_viento)
     else:
