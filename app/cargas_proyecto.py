@@ -826,7 +826,8 @@ class PaginaCargas(QWidget):
             "Referencia guardada en el proyecto; el motor todavía calcula el viento con la configuración anterior."
         )
         self.nota_viento_ref.setWordWrap(True)
-        self.direccion_viento.currentIndexChanged.connect(self._auto_marcar_viento_por_direccion)
+        # Viento manual por pórtico (auto-marca se hace al cargar, no al cambiar combo)
+        # self.direccion_viento.currentIndexChanged.connect(self._auto_marcar_viento_por_direccion)
 
         # Viento manual por pórtico
         self.etiqueta_viento_porticos = QLabel("Viento por pórtico (manual): marca los pórticos que reciben viento y su ancho tributario.")
@@ -1812,6 +1813,7 @@ class PaginaCargas(QWidget):
             spin.setDecimals(2)
             spin.setValue(float(anchos.get(nombre, viento.get("ancho_tributario_m", 0.0)) or 0.0))
             self.tabla_viento_porticos.setCellWidget(fila, 2, spin)
+        self._auto_marcar_viento_por_direccion()
 
     def _guardar_viento_porticos(self) -> None:
         from calc import rutas
