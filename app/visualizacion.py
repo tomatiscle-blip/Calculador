@@ -488,9 +488,11 @@ class VistaPortico(QWidget):
             self.direccion_viento = "x"
         self.anchos_viento_por_portico = configuracion_viento.get("anchos_por_portico", {}) or {}
         porticos_activos = configuracion_viento.get("porticos_activos")
-        # El visor muestra el viento configurado si está activo globalmente;
-        # la aplicación real al pórtico se decide en calc/portico.py.
         activo = bool(configuracion_viento.get("activo"))
+        if porticos_activos is None:
+            activo = activo
+        else:
+            activo = bool(porticos_activos) and (self.nombre in (porticos_activos or []))
         if activo:
             try:
                 ancho_override = None

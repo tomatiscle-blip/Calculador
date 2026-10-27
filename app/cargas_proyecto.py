@@ -1785,7 +1785,7 @@ class PaginaCargas(QWidget):
                 continue
             nombre = item.text()
             portico = estructura.get(nombre, {})
-            es_afectado = (_cargas.direccion_portico(portico) != direccion)
+            es_afectado = (_cargas.direccion_portico(portico) == direccion)
             cb = self.tabla_viento_porticos.cellWidget(fila, 1)
             if cb is not None:
                 cb.setChecked(es_afectado)
