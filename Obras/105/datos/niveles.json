@@ -1,0 +1,16 @@
+{
+  "niveles": [
+    {
+      "nombre": "PB",
+      "cota_m": 0.0
+    },
+    {
+      "nombre": "N1",
+      "cota_m": 3.0
+    },
+    {
+      "nombre": "N2",
+      "cota_m": 6.0
+    }
+  ]
+}
