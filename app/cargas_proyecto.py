@@ -1832,8 +1832,6 @@ class PaginaCargas(QWidget):
         # Modo manual: desactivar direccion automatica
         viento["activo"] = 1 if porticos_activos else 0
         rutas.guardar_json(rutas.CARGAS, datos)
-        if self.al_guardar:
-            self.al_guardar()
         QMessageBox.information(self, "Viento", "Viento por pórtico guardado.")
 
 
