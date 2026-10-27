@@ -1768,6 +1768,10 @@ class PaginaCargas(QWidget):
             QMessageBox.critical(self, "No se pudo generar el informe", str(exc))
             return
         self.boton_abrir.setEnabled(True)
+        QMessageBox.information(self, "Informe generado", f"Se guardó:\n{self.ultimo_informe}")
+        if self.al_guardar:
+            self.al_guardar()
+
     def _auto_marcar_viento_por_direccion(self) -> None:
         direccion = self.direccion_viento.currentData()
         if direccion not in ("x", "y"):
@@ -1785,11 +1789,6 @@ class PaginaCargas(QWidget):
             cb = self.tabla_viento_porticos.cellWidget(fila, 1)
             if cb is not None:
                 cb.setChecked(es_afectado)
-
-
-        QMessageBox.information(self, "Informe generado", f"Se guardó:\n{self.ultimo_informe}")
-        if self.al_guardar:
-            self.al_guardar()
 
     def _cargar_viento_porticos(self) -> None:
         from calc import rutas
