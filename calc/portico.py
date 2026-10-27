@@ -448,6 +448,34 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
             if longitud <= 0 or x_puntual < 0 or x_puntual > longitud + 1e-8:
                 avisos.append(f"{aplicacion.get('id', '?')}: punto fuera del tramo {tramo_id}; se ignora")
                 continue
+            # Carga puntual: reacción de muro perpendicular aplicada en el tramo receptor.
+            # Se muestra en el visor de pórtico como una flecha puntual sobre el tramo.
+            elemento = deepcopy(fuente)
+            valor_kN = 0.0
+            try:
+                if biblioteca is None:
+                    biblioteca = materiales.cargar()
+                items = cargas.items_de_elemento(f"{fuente.get('id')} · {nombre}", elemento, biblioteca)
+                if items:
+                    valor_lineal = float(items[0].get("valor", 0.0))
+                    influencia = float(apoyo.get("influencia_m", 0.0))
+                    valor_kN = valor_lineal * influencia
+            except Exception:
+                pass
+            resultado.setdefault(tramo_id, []).append({
+                "aplicacion_id": aplicacion.get("id", ""),
+                "carga_id": fuente.get("id", ""),
+                "descripcion": nombre,
+                "tipo": "Muro perp.",
+                "tipo_aplicacion": "puntual",
+                "valor_kN": valor_kN,
+                "x_m": x_puntual,
+                "influencia_m": apoyo.get("influencia_m"),
+                "separacion_m": float(aplicacion.get("separacion_m", 0.0)),
+                "modo_cargas_previas": "sumar",
+                "signo": -1.0,
+            })
+            continue
         else:
             x0 = float(aplicacion.get("x_inicio_m", 0.0))
             x1 = float(aplicacion.get("x_fin_m", longitud))
@@ -482,33 +510,9 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
             avisos.append(f"{aplicacion.get('id', '?')}: no se pudo calcular {nombre}: {exc}")
             continue
 
-        if apoyo is not None:
-            influencia = float(apoyo.get("influencia_m", 0.0))
-            if influencia <= 0 or elemento.get("tipo") != "muro":
-                avisos.append(
-                    f"{aplicacion.get('id', '?')}: la reacción transversal requiere muro y ancho positivo; se ignora"
-                )
-                continue
-            x_local = x_puntual
-            if tramo.get("es_voladizo") and "der" in str(tramo_id).lower():
-                x_local = longitud - x_puntual
-            for item in items:
-                if item["tipo"] != "D":
-                    continue
-                resultado.setdefault(tramo_id, []).append({
-                    "aplicacion_id": aplicacion.get("id", ""),
-                    "carga_id": fuente.get("id", ""),
-                    "descripcion": nombre,
-                    "tipo": "D",
-                    "tipo_aplicacion": "puntual",
-                    "valor_kN": float(item["valor"]) * influencia,
-                    "x_m": x_local,
-                    "influencia_m": influencia,
-                    "separacion_m": float(aplicacion.get("separacion_m", influencia * 2)),
-                    "modo_cargas_previas": "sumar",
-                    "signo": -1.0,
-                })
-            continue
+        # Nota: la carga puntual automática (muro/viga sobre voladizo) se eliminó
+        # porque ya no es necesaria; las cargas de muro/viga se definen ahora
+        # directamente desde la pestaña de Cargas.
 
         # Pynite toma las cargas parciales desde el eje local del miembro. En el
         # voladizo derecho ese eje apunta desde la punta hacia la columna.
@@ -579,9 +583,22 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         w_general = sum(float(item["valor"]) for item in items_viento)
     mapa["viento_general_kN_m"] = w_general
 
+    def _x_local(col):
+        ref = portico.get("referencia_planta", {}) or {}
+        direccion = str(ref.get("direccion", "x")).lower()
+        try:
+            origen = float(ref.get("origen_longitudinal_m", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            origen = 0.0
+        valor = col.get("Y" if direccion == "y" else "X", col.get("x", 0.0))
+        try:
+            return float(valor) - origen
+        except (TypeError, ValueError):
+            return float(col.get("x", 0.0))
+
     # --- Columnas (de abajo hacia arriba: i-end = base, j-end = punta) -----
     for cid, col in columnas.items():
-        x = _k(col["x"])
+        x = _k(_x_local(col))
         y0 = _k(col.get("nivel", 0.0))
         h = _k(col["altura_m"])
         nb, nt = _nodo(x, y0), _nodo(x, y0 + h)
@@ -604,7 +621,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     else:
         _bases_items = list((_bases_raw or {}).items())
     for base_id, base in _bases_items:
-        nodo = _nodo(base["x"], 0.0)
+        nodo = _nodo(_x_local(base), 0.0)
         if nodo not in m.nodes:
             avisos.append(f"{base_id}: no hay columna en x={base['x']}, se ignora")
             continue
@@ -613,7 +630,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         else:  # empotramiento (por defecto)
             m.def_support(nodo, True, True, True, True, True, True)
         mapa["apoyos"].append({
-            "x": float(base["x"]),
+            "x": float(_x_local(base)),
             "y": 0.0,
             "tipo": "articulado" if base.get("tipo") == "articulado" else "empotramiento",
         })
@@ -690,7 +707,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             estaciones_nodos.extend(
                 (float(c["x"]) - camino_inicio) * signo_x
                 for c in columnas.values()
-                if abs(_k(c.get("nivel", 0.0)) - y_viga) <= 1e-4
+                if abs(_k(c.get("nivel", 0.0)) + _k(c.get("altura_m", 0.0)) - y_viga) <= 1e-4
                 and -1e-6 < (float(c["x"]) - camino_inicio) * signo_x < longitud_camino - 1e-6
             )
             estaciones_nodos.extend(
@@ -832,7 +849,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         for cid, col in columnas.items():
             if not cid.startswith(f"C{piso}-"):
                 continue
-            n_punta = _nodo(col["x"], col.get("nivel", 0.0) + col["altura_m"])
+            n_punta = _nodo(_x_local(col), col.get("nivel", 0.0) + col["altura_m"])
             if n_punta in m.nodes:
                 m.add_node_load(n_punta, "FX", por_col, case="W")
 
@@ -967,6 +984,19 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             "columnas": {}, "vigas": {}, "voladizos": {}, "bases": {}, "desplazamientos": {},
         }
 
+        def _x_local(col):
+            ref=portico.get("referencia_planta",{}) or {}
+            direccion=str(ref.get("direccion","x")).lower()
+            try:
+                origen=float(ref.get("origen_longitudinal_m",0.0) or 0.0)
+            except (TypeError,ValueError):
+                origen=0.0
+            valor=col.get("Y" if direccion=="y" else "X",col.get("x",0.0))
+            try:
+                return float(valor)-origen
+            except (TypeError,ValueError):
+                return float(col.get("x",0.0))
+
         for cid, miembro_id in mapa["columnas"].items():
             mem = m.members[miembro_id]
             _col_raw = portico.get("columnas", {})
@@ -975,7 +1005,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             else:
                 col = (_col_raw or {}).get(cid, {})
             h = float(col.get("altura_m", 1.0)) or 1.0
-            n_punta = _nodo(col["x"], col.get("nivel", 0.0) + col["altura_m"])
+            n_punta = _nodo(_x_local(col), col.get("nivel", 0.0) + col["altura_m"])
             datos = {
                 "M_inf": float(mem.moment("Mz", 0.0, combo)),
                 "M_sup": float(mem.moment("Mz", mem.L(), combo)),
@@ -998,7 +1028,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
         else:
             _bi = list((_br or {}).items())
         for base_id, base in _bi:
-            nodo = _nodo(base["x"], 0.0)
+            nodo = _nodo(_x_local(base), 0.0)
             if nodo not in m.nodes:
                 continue
             n = m.nodes[nodo]
@@ -1055,10 +1085,10 @@ def informe(resultado: dict) -> str:
         lineas.extend(["", "CARGAS APLICADAS DESDE EL PROYECTO:"])
         for carga in aplicaciones:
             linea = (
-                f"{carga['carga_id']} · {carga['descripcion']} → {carga['tramo_id']} "
-                f"x={carga['x_inicio_m']:.2f}–{carga['x_fin_m']:.2f} m: "
-                f"{carga['valor_kN_m']:.2f} kN/m ({carga['tipo']}); "
-                f"P00: {carga['modo_cargas_previas']}"
+                f"{carga.get('carga_id', '?')} · {carga.get('descripcion', '?')} → {carga.get('tramo_id', '?')} "
+                f"x={float(carga.get('x_inicio_m', 0.0)):.2f}–{float(carga.get('x_fin_m', 0.0)):.2f} m: "
+                f"{float(carga.get('valor_kN_m', 0.0)):.2f} kN/m ({carga.get('tipo', '?')}); "
+                f"P00: {carga.get('modo_cargas_previas', '?')}"
             )
             if carga.get("ancho_tributario_m") is not None:
                 linea += f"; b trib.={carga['ancho_tributario_m']:.2f} m"

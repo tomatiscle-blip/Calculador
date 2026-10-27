@@ -62,7 +62,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QWidget,
 )
 
-from calc import cargas, columnas, bases, pipeline, rutas  # noqa: E402
+from calc import cargas, columnas, bases, pipeline, rutas, vigas_globales  # noqa: E402
 from app.cargas_proyecto import PaginaCargas  # noqa: E402
 from app.muros_proyecto import PaginaMuros  # noqa: E402
 from app.diseno_columnas_bases import datos_bases as pedir_datos_bases  # noqa: E402
@@ -402,9 +402,9 @@ class VentanaPrincipal(QMainWindow):
                 background: #ffffff;
                 color: #26354d;
                 border: 1px solid #cbd5e1;
-                border-radius: 6px;
-                padding: 7px 12px;
-                min-height: 20px;
+                border-radius: 7px;
+                padding: 9px 16px;
+                min-height: 32px;
             }
             QPushButton:hover {
                 background: #eff6ff;
@@ -421,6 +421,7 @@ class VentanaPrincipal(QMainWindow):
                 color: #ffffff;
                 border: 1px solid #1d4ed8;
                 font-weight: 600;
+                min-height: 32px;
             }
             QPushButton[role="primary"]:hover {
                 background: #1e40af;
@@ -431,11 +432,12 @@ class VentanaPrincipal(QMainWindow):
                 background: #ffffff;
                 color: #172033;
                 border: 1px solid #d5deea;
-                border-radius: 5px;
+                border-radius: 6px;
                 selection-background-color: #dbeafe;
                 selection-color: #172033;
             }
-            QComboBox, QLineEdit { padding: 5px 7px; }
+            QComboBox, QLineEdit { padding: 6px 9px; }
+            QComboBox::drop-down { border: none; width: 20px; }
             QTabWidget::pane {
                 background: #f8fafc;
                 border: 1px solid #d9e1ec;
@@ -447,7 +449,7 @@ class VentanaPrincipal(QMainWindow):
                 color: #475569;
                 border: 1px solid #d9e1ec;
                 border-bottom: none;
-                padding: 8px 13px;
+                padding: 9px 14px;
                 margin-right: 3px;
                 border-top-left-radius: 6px;
                 border-top-right-radius: 6px;
@@ -462,7 +464,7 @@ class VentanaPrincipal(QMainWindow):
                 color: #334155;
                 border: none;
                 border-bottom: 1px solid #cbd5e1;
-                padding: 7px 5px;
+                padding: 8px 6px;
                 font-weight: 600;
             }
             QTableWidget { gridline-color: #e7edf5; }
@@ -470,6 +472,66 @@ class VentanaPrincipal(QMainWindow):
                 background: #eaf0f8;
                 color: #475569;
                 border-top: 1px solid #d9e1ec;
+            }
+
+            /* Ventanas emergentes: diálogos y mensajes */
+            QDialog {
+                background: #f3f6fb;
+                color: #172033;
+                font-family: "Segoe UI";
+                font-size: 10pt;
+            }
+            QMessageBox {
+                background: #ffffff;
+                color: #172033;
+                min-width: 420px;
+            }
+            QMessageBox QLabel {
+                color: #172033;
+                font-size: 10pt;
+                padding: 6px;
+            }
+            QMessageBox QPushButton {
+                min-width: 90px;
+                min-height: 30px;
+                padding: 6px 14px;
+                font-size: 10pt;
+            }
+
+            /* Barras de desplazamiento más discretas */
+            QScrollBar:vertical {
+                background: #f1f5f9;
+                width: 12px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e1;
+                border-radius: 6px;
+                min-height: 40px;
+            }
+            QScrollBar::handle:vertical:hover { background: #94a3b8; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+                border: none;
+                height: 0;
+            }
+            QScrollBar:horizontal {
+                background: #f1f5f9;
+                height: 12px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #cbd5e1;
+                border-radius: 6px;
+                min-width: 40px;
+            }
+            QScrollBar::handle:horizontal:hover { background: #94a3b8; }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                background: none;
+                border: none;
+                width: 0;
             }
         """)
 
@@ -697,6 +759,7 @@ class VentanaPrincipal(QMainWindow):
         pestanias.addTab(self._pagina_inicio(), "Inicio")
         pestanias.addTab(self.pagina_cargas, "Cargas")
         pestanias.addTab(self._pagina_porticos(), "Pórticos")
+        pestanias.addTab(self._pagina_estructura_global(), "Estructura global")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
 
@@ -798,6 +861,83 @@ class VentanaPrincipal(QMainWindow):
                 self.tabla_columnas_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("estado"))))
         except Exception as exc:
             QMessageBox.warning(self, "Columnas globales", str(exc))
+
+    def _pagina_vigas_globales(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        etiqueta = QLabel("Vigas consolidadas por tramo de pórtico (VIG-P{pórtico}-{tramo}).")
+        etiqueta.setWordWrap(True)
+        caja.addWidget(etiqueta)
+        boton = QPushButton("Calcular vigas globales")
+        boton.clicked.connect(self._calcular_vigas_globales)
+        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        self.tabla_vigas_globales = QTableWidget(0, 6)
+        self.tabla_vigas_globales.setHorizontalHeaderLabels(
+            ("ID", "Pórtico", "Nivel", "M", "V", "Estado")
+        )
+        caja.addWidget(self.tabla_vigas_globales, 1)
+        return pagina
+
+    def _calcular_vigas_globales(self) -> None:
+        try:
+            resultados = vigas_globales.calcular_global()
+            self.tabla_vigas_globales.setRowCount(0)
+            for r in resultados:
+                fila = self.tabla_vigas_globales.rowCount()
+                self.tabla_vigas_globales.insertRow(fila)
+                self.tabla_vigas_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_vigas_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("portico"))))
+                self.tabla_vigas_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("nivel"))))
+                self.tabla_vigas_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_vigas_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("V"))))
+                self.tabla_vigas_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Vigas globales", str(exc))
+
+    def _pagina_bases_globales(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        etiqueta = QLabel("Bases consolidadas por ID global (BASE-XXX), con Mx/My acumulados.")
+        etiqueta.setWordWrap(True)
+        caja.addWidget(etiqueta)
+        boton = QPushButton("Calcular bases globales")
+        boton.clicked.connect(self._calcular_bases_globales)
+        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        self.tabla_bases_globales = QTableWidget(0, 8)
+        self.tabla_bases_globales.setHorizontalHeaderLabels(
+            ("ID", "Mx", "My", "M", "Fx", "Fy", "Pórticos", "Estado")
+        )
+        caja.addWidget(self.tabla_bases_globales, 1)
+        return pagina
+
+    def _calcular_bases_globales(self) -> None:
+        try:
+            resultados = bases.calcular_global()
+            self.tabla_bases_globales.setRowCount(0)
+            for r in resultados:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Bases globales", str(exc))
+
+    def _pagina_estructura_global(self) -> QWidget:
+        contenedor = QWidget()
+        caja = QVBoxLayout(contenedor)
+        subpestanias = QTabWidget()
+        subpestanias.setDocumentMode(True)
+        subpestanias.addTab(self._pagina_columnas_globales(), "Columnas globales")
+        subpestanias.addTab(self._pagina_vigas_globales(), "Vigas globales")
+        subpestanias.addTab(self._pagina_bases_globales(), "Bases globales")
+        caja.addWidget(subpestanias)
+        return contenedor
 
     def _pagina_bases(self) -> QWidget:
         pagina = QWidget()
@@ -973,11 +1113,15 @@ class VentanaPrincipal(QMainWindow):
         grupo_motor = QGroupBox("Solicitaciones del pórtico")
         caja_motor = QVBoxLayout(grupo_motor)
         caja_motor.addWidget(self.lbl_motor)
-        fila_motor = QHBoxLayout()
-        fila_motor.addWidget(self.boton_resolver_motor)
-        fila_motor.addWidget(self.boton_ver_motor)
-        fila_motor.addStretch(1)
-        caja_motor.addLayout(fila_motor)
+        fila_resolver = QHBoxLayout()
+        fila_resolver.addWidget(self.boton_resolver_motor)
+        fila_resolver.addStretch(1)
+        caja_motor.addLayout(fila_resolver)
+
+        fila_ver = QHBoxLayout()
+        fila_ver.addWidget(self.boton_ver_motor)
+        fila_ver.addStretch(1)
+        caja_motor.addLayout(fila_ver)
         caja_motor.addWidget(self.boton_diagrama_momentos)
         caja_motor.addWidget(self.boton_eliminar_portico)
 
@@ -989,14 +1133,14 @@ class VentanaPrincipal(QMainWindow):
         caja_lateral.addWidget(grupo_motor)
         caja_lateral.addStretch(1)
 
-        panel_lateral_portico.setMaximumWidth(260)
+        panel_lateral_portico.setMaximumWidth(340)
         # Parte superior: imagen a la izquierda (más espacio), controles a la derecha
         division_superior = QSplitter(Qt.Orientation.Horizontal)
         division_superior.addWidget(panel_visor)
         division_superior.addWidget(panel_lateral_portico)
         division_superior.setStretchFactor(0, 5)
         division_superior.setStretchFactor(1, 1)
-        division_superior.setSizes([900, 260])
+        division_superior.setSizes([820, 340])
         division_superior.setChildrenCollapsible(False)
 
         # Parte inferior: datos del pórtico (resumen + envolvente) en pantalla dividida
@@ -1034,7 +1178,6 @@ class VentanaPrincipal(QMainWindow):
         subpestanias.addTab(pagina_portico, "Pórtico")
         subpestanias.addTab(self._pagina_vigas(), "Vigas")
         subpestanias.addTab(self._pagina_columnas(), "Columnas")
-        subpestanias.addTab(self._pagina_columnas_globales(), "Columnas globales")
         subpestanias.addTab(self._pagina_bases(), "Bases")
         subpestanias.addTab(self._pagina_terreno(), "Terreno")
         subpestanias.addTab(self._pagina_parametros_motor(), "Parámetros")
@@ -1199,6 +1342,45 @@ class VentanaPrincipal(QMainWindow):
         # copia que quedó en memoria.
         self.estructura = rutas.cargar_estructura()
         self.vista_planta.set_datos(self.ejes, self.niveles, self.estructura)
+        # Datos de viento para dibujar la flecha direccional en la planta
+        try:
+            proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
+            configuracion_viento = proyecto.get("viento", {}) or {}
+            direccion = str(configuracion_viento.get("direccion_viento", "x")).strip().lower()
+            if direccion not in ("x", "y"):
+                direccion = "x"
+            activo = bool(configuracion_viento.get("activo"))
+            lineal = 0.0
+            ancho = 0.0
+            nodos = []
+            if activo:
+                try:
+                    from calc import materiales
+                    items_viento = cargas.items_viento_general(proyecto, materiales.cargar())
+                    lineal = sum(float(item["valor"]) for item in items_viento)
+                    ancho = float(configuracion_viento.get("ancho_tributario_m", 0.0))
+                    columnas_por_piso = {}
+                    for _cid, _col in self.estructura.items():
+                        if not isinstance(_col, dict):
+                            continue
+                        _clave = round(float(_col.get("nivel", 0.0)), 4)
+                        columnas_por_piso.setdefault(_clave, []).append(_col)
+                    for _columnas in columnas_por_piso.values():
+                        if not _columnas:
+                            continue
+                        _altura = float(_columnas[0].get("altura_m", 0.0))
+                        _fuerza = lineal * _altura / len(_columnas)
+                        for _col in _columnas:
+                            nodos.append({
+                                "x": float(_col.get("x", 0.0)),
+                                "y": float(_col.get("nivel", 0.0)) + float(_col.get("altura_m", 0.0)),
+                                "valor_kN": _fuerza,
+                            })
+                except Exception:
+                    nodos = []
+            self.vista_planta.set_datos_viento(nodos, direccion, lineal, ancho)
+        except Exception:
+            pass
         # El selector de nivel se repuebla en _cargar_inicio (único lugar que
         # lo gobierna) para no duplicar la lista de niveles.
         self.combo_obras.blockSignals(True)
@@ -1494,6 +1676,8 @@ class VentanaPrincipal(QMainWindow):
         cargas_datos = rutas.leer_json(rutas.CARGAS, {}) or {}
         elementos_carga = cargas_datos.get("elementos", {}) or {}
         self.vista_planta.set_losas(elementos_carga)
+        # Aplicaciones de cargas.json: flechas de muro perpendicular entre pórticos.
+        self.vista_planta.set_aplicaciones(cargas_datos.get("aplicaciones", []))
         estructura_completa = rutas.cargar_estructura()
         estructura = estructura_completa.get(portico, {}) if portico else {}
         referencia = estructura.get("referencia_planta", {}) or {}
@@ -1903,10 +2087,9 @@ class VentanaPrincipal(QMainWindow):
                     ):
                         conteo_transferencias += 1
 
-            if not self._ingresar_cargas_puntuales_nivel(
-                viga_id, tramos, cota_superior, nombre_nivel_viga
-            ):
-                return
+            # Nota: el ingreso manual de cargas puntuales al crear el pórtico se
+            # eliminó de este flujo (voladizos inicio/fin se mantienen). Las
+            # cargas puntuales se definen ahora desde la pestaña de Cargas.
 
         datos["columnas"] = ids_columnas_globales
         datos["bases"] = ids_bases_globales

@@ -1,34 +1,34 @@
 {
   "x": [
     {
-      "id": "e04197c9-2425-419f-8e9e-438fd6839066",
+      "id": "0b5e0074-036d-4681-90ac-42d8fa4e624f",
       "nombre": "X1",
       "coordenada_m": 0.0
     },
     {
-      "id": "79b19feb-31b4-4364-80f6-c6d6a09a8278",
+      "id": "6f900e0a-3a47-40f6-801f-5b00fc85c298",
       "nombre": "X2",
       "coordenada_m": 5.0
     },
     {
-      "id": "d9c05020-a7bd-4405-93df-99d0da47d4a7",
+      "id": "e4e911d6-b0a0-4dbb-b164-e638e0f9ab06",
       "nombre": "X3",
       "coordenada_m": 10.0
     }
   ],
   "y": [
     {
-      "id": "6ee7e9c3-7346-4bba-bb4e-50637a780e46",
+      "id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
       "nombre": "Y1",
       "coordenada_m": 0.0
     },
     {
-      "id": "18b4a201-42ec-4478-b02e-83e3fb367bd4",
+      "id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
       "nombre": "Y2",
       "coordenada_m": 5.0
     },
     {
-      "id": "f5083f3e-8697-4a49-939a-36c39d7eabf9",
+      "id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
       "nombre": "Y3",
       "coordenada_m": 10.0
     }

@@ -105,12 +105,50 @@ LOSAS = {
     "Losa 2": {"tipo": "losa"},
 }
 
+APLICACIONES = [
+    {
+        "id": "Aplicacion 0-1",
+        "carga_id": "peso-propio:V0-1",
+        "tipo_aplicacion": "muro_perpendicular",
+        "activa": True,
+        "separacion_m": 5.0,
+        "reacciones": [
+            {"portico": "Pórtico 1", "tramo_id": "V0-1 T1", "x_m": 2.5,
+             "influencia_m": 2.5},
+            {"portico": "Pórtico 2", "tramo_id": "V0-1 T1", "x_m": 2.0,
+             "influencia_m": 2.5},
+        ],
+    },
+    # Inactiva: debe ignorarse (no genera flecha).
+    {
+        "id": "Aplicacion 0-2",
+        "carga_id": "peso-propio:V0-1",
+        "tipo_aplicacion": "muro_perpendicular",
+        "activa": False,
+        "separacion_m": 5.0,
+        "reacciones": [
+            {"portico": "Pórtico 1", "tramo_id": "V0-1 T1", "x_m": 0.0},
+            {"portico": "Pórtico 2", "tramo_id": "V0-1 T1", "x_m": 0.0},
+        ],
+    },
+    # Tipo distinto: no afecta a las flechas de muro perpendicular.
+    {
+        "id": "Aplicacion 0-3",
+        "carga_id": "peso-propio:V0-1",
+        "tipo_aplicacion": "lineal",
+        "activa": True,
+        "portico": "Pórtico 1",
+        "tramo_id": "V0-1 T1",
+    },
+]
+
 
 def vista_con(cota):
     vista = VistaPlantaPorticos()
     vista.resize(600, 400)
     vista.set_datos(EJES, NIVELES, ESTRUCTURA)
     vista.set_losas(LOSAS)
+    vista.set_aplicaciones(APLICACIONES)
     vista.set_portico_activo("Pórtico 1")
     vista.set_nivel_activo(cota)
     return vista
@@ -132,6 +170,58 @@ class GeometriaDePlanta(unittest.TestCase):
     def test_muro_usa_coordenadas_absolutas(self):
         geom = vista_con(None)._geometria(ESTRUCTURA["Muro 1"])
         self.assertEqual(vista_con(None)._punto(geom, 5.0), (5.0, 0.0))
+
+    # --- flechas de muro perpendicular entre pórticos -------------------------
+
+    def test_flecha_muro_perpendicular_en_escena(self):
+        """Las aplicaciones muro_perpendicular resuelven flechas entre pórticos.
+
+        Pórtico 1 corre en X sobre Y2 (y=4.0): x_m=2.5 → (2.5, 4.0).
+        Pórtico 2 corre en Y sobre X1 (x=0.0): x_m=2.0 → (0.0, 2.0).
+        La aplicación inactiva y la de tipo lineal no generan flechas.
+        """
+        escena = vista_con(3.0)._escena()
+        cargas = escena["cargas_muro"]
+        self.assertEqual(len(cargas), 1, "solo la aplicación activa debería renderizar")
+        flecha = cargas[0]
+        self.assertEqual(flecha["p1"], (2.5, 4.0))
+        self.assertEqual(flecha["p2"], (0.0, 2.0))
+        self.assertEqual(flecha["direccion"], "x")
+        self.assertEqual(flecha["influencia_m"], 5.0)
+        # Los puntos de apoyo participan del encuadre global.
+        puntos = escena["puntos"]
+        self.assertIn((2.5, 4.0), puntos)
+        self.assertIn((0.0, 2.0), puntos)
+
+    def test_set_aplicaciones_filtra_inactivas(self):
+        """set_aplicaciones conserva solo muros perpendiculares activos."""
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, ESTRUCTURA)
+        vista.set_aplicaciones(APLICACIONES)
+        # La inactiva (Aplicacion 0-2) y la lineal (0-3) quedan fuera.
+        self.assertEqual(len(vista.aplicaciones), 1)
+        self.assertEqual(vista.aplicaciones[0]["id"], "Aplicacion 0-1")
+
+    def test_aplicacion_sin_reacciones_no_dibuja(self):
+        """Una aplicación con una sola reacción no produce flecha."""
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, ESTRUCTURA)
+        vista.set_aplicaciones([
+            {"tipo_aplicacion": "muro_perpendicular", "activa": True,
+             "separacion_m": 5.0,
+             "reacciones": [
+                 {"portico": "Pórtico 1", "tramo_id": "V0-1 T1", "x_m": 2.5},
+             ]},
+        ])
+        self.assertEqual(vista._escena()["cargas_muro"], [])
+
+    def test_pintar_muro_perpendicular_no_lanza_excepciones(self):
+        """Render completo con flechas de muro perpendicular no explota."""
+        from PySide6.QtGui import QColor, QImage
+
+        imagen = QImage(600, 400, QImage.Format.Format_ARGB32)
+        imagen.fill(QColor("#ffffff"))
+        vista_con(3.0).render(imagen)
 
 
 class FiltroPorNivel(unittest.TestCase):

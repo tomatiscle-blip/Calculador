@@ -25,23 +25,42 @@ def calcular(datos, portico="Portico 4"):
 
 def calcular_global() -> list[dict]:
     consolidado = rutas.leer_json(rutas.SOLICITACIONES_BASES, {}) or {}
+    estructura = rutas.cargar_estructura()
     resultados = []
     for bid in sorted(consolidado):
         entradas = consolidado[bid] or []
         combinado: dict = {}
+        # Cargas verticales/horizontales: se toma el máximo en módulo.
+        for clave in ("Fx", "Fy"):
+            valores = [float(e.get(clave, 0.0) or 0.0) for e in entradas]
+            if valores:
+                combinado[clave] = max(valores, key=abs)
+        # Momentos por eje: Mz del pórtico se asigna a Mx o My según dirección.
+        mx = 0.0
+        my = 0.0
         for entrada in entradas:
-            for clave, valor in entrada.items():
-                if clave == "portico":
-                    continue
-                if isinstance(valor, (int, float)):
-                    if clave not in combinado or abs(float(valor)) > abs(float(combinado[clave])):
-                        combinado[clave] = valor
+            mz = float(entrada.get("Mz", 0.0) or 0.0)
+            try:
+                portico = rutas.pórtico(estructura, entrada.get("portico")) or {}
+                direccion = (portico.get("referencia_planta", {}) or {}).get("direccion")
+            except Exception:
+                direccion = None
+            if direccion == "x":
+                if abs(mz) > abs(my):
+                    my = mz
+            else:
+                if abs(mz) > abs(mx):
+                    mx = mz
+        combinado["Mx"] = mx
+        combinado["My"] = my
+        combinado["M"] = max(abs(mx), abs(my))
         resultados.append({
             "id": bid,
             "porticos": [e.get("portico") for e in entradas],
             "n_porticos": len(entradas),
             "momentos_otro_sentido": any(bool(e.get("momentos_otro_sentido")) for e in entradas),
             **combinado,
+            "estado": "OK" if combinado.get("M", 0) < 200 and abs(combinado.get("Fy", 0)) < 400 else "Revisar",
         })
 
     salida = rutas.SAL_BASES / "resultados_bases_globales.json"

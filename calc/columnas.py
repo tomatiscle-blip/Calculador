@@ -1,8 +1,85 @@
 import json
 import os
+import math
 from pathlib import Path
 
 from . import rutas
+from . import columnas_biaxial
+
+# ============================================================
+# Bloque 1 (portado): predimensión y parámetros normativos
+# Extraídos de Legacy/P04_Columnas_portico.py
+# ============================================================
+
+PHI = {
+    "estribos": 0.65,   # columnas con estribos rectos
+    "sunchos": 0.70     # columnas zunchadas (espiral)
+}
+ALPHA = {
+    "estribos": 0.80,
+    "sunchos": 0.85
+}
+
+
+def definir_fck(nombre_columna, Pu_kN):
+    """Define el fck de la columna. C0 = planta baja, C1/C2 = pisos superiores."""
+    if str(nombre_columna).startswith("C0"):
+        if Pu_kN > 600:
+            return 25
+        return 20
+    return 20
+
+
+def predimensionar_seccion(Pu_kN, Mu_kNm, fck_MPa):
+    """Predimensionado controlado para columnas rectangulares."""
+    Pu = abs(Pu_kN) * 1000  # N
+    Mu = abs(Mu_kNm) * 1e6  # Nmm
+
+    if Pu > 0:
+        e_cm = Mu / Pu / 10.0  # cm
+    else:
+        e_cm = 0
+
+    if abs(Mu_kNm) > 200:
+        b = 30.0
+    elif abs(Mu_kNm) > 120:
+        b = 25.0
+    else:
+        b = 20.0
+
+    h = b + 0.15 * e_cm
+    h = max(30.0, min(h, 55.0))
+    h = math.ceil(h / 5.0) * 5.0
+
+    return b, h, e_cm
+
+
+def predimensionar_suncho(Pu_kN, Mu_kNm, fck_MPa, diam_min=20):
+    """Predimensionado para columnas circulares (zunchadas)."""
+    Pu = abs(Pu_kN) * 1000  # N
+    Mu = abs(Mu_kNm) * 1e6  # Nmm
+
+    Ag = Pu / (0.35 * fck_MPa * 10)  # cm²
+    d = math.sqrt(4 * Ag / math.pi)
+
+    e_cm = Mu / Pu / 10 if Pu > 0 else 0
+
+    if e_cm > d:
+        d = d + 0.1 * e_cm
+
+    moldes = [20, 25, 30, 35, 40]
+    d_final = max(diam_min, min(moldes, key=lambda m: abs(m - d)))
+
+    return d_final, e_cm
+
+
+def cargar_diagrama(nombre):
+    try:
+        with open(nombre, encoding="utf-8") as f:
+            return json.load(f)
+    except UnicodeDecodeError:
+        with open(nombre, encoding="latin-1") as f:
+            return json.load(f)
 
 
 def calcular(datos, portico="Portico 4"):
@@ -69,6 +146,10 @@ def calcular_global() -> list[dict]:
                 mx = max(mx, m)
         Mu = max(mx, my)
         porticos_nombres = list(porticos.keys())
+        # Bloque 2: predimensión de sección (unidireccional por Mu)
+        fck = definir_fck(gid, n_val)
+        b, h, e_cm = predimensionar_seccion(n_val, Mu, fck)
+        biaxial = columnas_biaxial.combinar_momentos_globales(mx, my)
         resultados.append({
             "id": gid,
             "eje_id": catalogo.get("eje_id"),
@@ -82,6 +163,11 @@ def calcular_global() -> list[dict]:
             "deriva": deriva,
             "porticos": porticos_nombres,
             "n_porticos": len(porticos_nombres),
+            "biaxial": biaxial,
+            "fck_MPa": fck,
+            "b_cm": b,
+            "h_cm": h,
+            "excentricidad_cm": e_cm,
             "estado": "OK" if Mu < 200 and n_val < 400 else "Revisar",
         })
 

@@ -1,0 +1,233 @@
+{
+  "obra": "104",
+  "id_proyecto": "104",
+  "notas": "",
+  "viento": {
+    "activo": 0,
+    "ancho_tributario_m": 0.0,
+    "direccion_viento": "y",
+    "anchos_por_portico": {},
+    "referencia_cirsoc_102_25": {
+      "ubicacion": {
+        "pais": "Argentina",
+        "provincia": "Santa Fe",
+        "ciudad": "Santa Fe"
+      },
+      "categoria_riesgo": "I",
+      "V_basica_ms": 58.3,
+      "fuente": "CIRSOC 102-25, Figura 1.5-1D"
+    }
+  },
+  "elementos": {
+    "L0-1": {
+      "id": "Carga 0-1",
+      "tipo": "losa",
+      "activo": true,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "ceramica",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 5.0,
+      "ancho_losa_m": 10.0,
+      "apoya_en": {
+        "izq": {
+          "tipo": "portico",
+          "portico": "Pórtico 1",
+          "viga": "V0-1"
+        },
+        "der": {
+          "tipo": "portico",
+          "portico": "Pórtico 2",
+          "viga": "V0-2"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "x",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "0b5e0074-036d-4681-90ac-42d8fa4e624f",
+              "nombre": "X1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "6f900e0a-3a47-40f6-801f-5b00fc85c298",
+              "nombre": "X2",
+              "coordenada_m": 5.0
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+              "nombre": "Y1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+              "nombre": "Y3",
+              "coordenada_m": 10.0
+            }
+          }
+        },
+        "desfase_inicio_m": 0.0,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 0.0,
+        "coordenada_libre_fin_m": 10.0
+      }
+    },
+    "M_noportante": {
+      "tipo": "muro",
+      "activo": true,
+      "grupo": "Mamposteria",
+      "clave": "ladrillo_comun",
+      "espesor_m": 0.2,
+      "altura_m": 3.0,
+      "id": "Carga 0-2"
+    },
+    "L02": {
+      "id": "Carga 0-3",
+      "tipo": "losa",
+      "activo": true,
+      "ancho_tributario_m": 1.0,
+      "componentes": [
+        {
+          "clave": "cascotes_cal",
+          "espesor_m": 0.08,
+          "grupo": "Hormigon"
+        },
+        {
+          "clave": "cemento_arena",
+          "espesor_m": 0.03,
+          "grupo": "Morteros_Revoques"
+        },
+        {
+          "clave": "ceramica",
+          "grupo": "Pisos"
+        },
+        {
+          "clave": "yeso_suspendido",
+          "grupo": "Cielorrasos"
+        },
+        {
+          "grupo": "Forjados",
+          "clave": "Losa_alivianada"
+        }
+      ],
+      "sobrecarga": "vivienda",
+      "viento_activo": 0,
+      "tipologia": "alivianada",
+      "luz_transversal_m": 5.0,
+      "ancho_losa_m": 10.0,
+      "apoya_en": {
+        "izq": {
+          "tipo": "portico",
+          "portico": "Pórtico 2",
+          "viga": "V0-2"
+        },
+        "der": {
+          "tipo": "portico",
+          "portico": "Pórtico 3",
+          "viga": "V0-3"
+        }
+      },
+      "panel_ejes": {
+        "direccion_luz": "x",
+        "nivel_apoyo_nombre": "N1",
+        "cota_apoyo_m": 3.0,
+        "ejes": {
+          "x": {
+            "inicio": {
+              "id": "6f900e0a-3a47-40f6-801f-5b00fc85c298",
+              "nombre": "X2",
+              "coordenada_m": 5.0
+            },
+            "fin": {
+              "id": "e4e911d6-b0a0-4dbb-b164-e638e0f9ab06",
+              "nombre": "X3",
+              "coordenada_m": 10.0
+            }
+          },
+          "y": {
+            "inicio": {
+              "id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+              "nombre": "Y1",
+              "coordenada_m": 0.0
+            },
+            "fin": {
+              "id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+              "nombre": "Y3",
+              "coordenada_m": 10.0
+            }
+          }
+        },
+        "desfase_inicio_m": 0.0,
+        "desfase_fin_m": 0.0,
+        "coordenada_libre_inicio_m": 0.0,
+        "coordenada_libre_fin_m": 10.0
+      }
+    }
+  },
+  "aplicaciones": [
+    {
+      "id": "Aplicacion 0-1",
+      "carga_id": "Carga 0-2",
+      "tipo_aplicacion": "muro_perpendicular",
+      "reacciones": [
+        {
+          "portico": "Pórtico 1",
+          "tramo_id": "V0-1 T1",
+          "x_m": 2.5,
+          "influencia_m": 2.5
+        },
+        {
+          "portico": "Pórtico 2",
+          "tramo_id": "V0-2 T1",
+          "x_m": 2.5,
+          "influencia_m": 2.5
+        }
+      ],
+      "separacion_m": 5.0,
+      "modo_cargas_previas": "sumar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-2",
+      "carga_id": "Carga 0-2",
+      "tipo_aplicacion": "lineal",
+      "portico": "Muro 1",
+      "tramo_id": "MURO_COMPLETO",
+      "x_inicio_m": 0.0,
+      "x_fin_m": 10.0,
+      "ancho_modo": null,
+      "ancho_tributario_m": null,
+      "modo_cargas_previas": "sumar",
+      "activa": true
+    }
+  ]
+}

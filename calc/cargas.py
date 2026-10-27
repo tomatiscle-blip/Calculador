@@ -99,7 +99,26 @@ def ancho_tributario_entre_porticos(estructura: dict, nombre_portico: str) -> fl
     return ancho if ancho > 0 else None
 
 
-def presion_viento(V: float, rho: float = 1.25) -> float:
+def porticos_afectados_por_viento(estructura: dict, direccion_viento: str) -> list[str]:
+    """Pórticos cuyo plano es perpendicular a la dirección del viento."""
+    direccion_viento = direccion_viento.strip().lower()
+    if direccion_viento not in ("x", "y"):
+        return []
+    return [
+        nombre
+        for nombre, datos in estructura.items()
+        if isinstance(datos, dict) and direccion_portico(datos) != direccion_viento
+    ]
+
+
+def anchos_tributarios_viento(estructura: dict, direccion_viento: str) -> dict[str, float | None]:
+    """Anchos tributarios automáticos (mitades de separación) para pórticos
+    afectados por el viento en la dirección indicada."""
+    resultado: dict[str, float | None] = {}
+    for nombre in porticos_afectados_por_viento(estructura, direccion_viento):
+        resultado[nombre] = ancho_tributario_entre_porticos(estructura, nombre)
+    return resultado
+
     """Presión dinámica del viento en kN/m2 (CIRSOC 102)."""
     return 0.5 * rho * (V**2) / 1000
 

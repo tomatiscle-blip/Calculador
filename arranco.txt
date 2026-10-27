@@ -14,4 +14,30 @@ VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\
     self.etiqueta_vigas.setWordWrap(True)
     ^^^^^^^^^^^^^^^^^^^
 AttributeError: 'VentanaPrincipal' object has no attribute 'etiqueta_vigas'. Did you mean: 'etiqueta_inicio'?
-VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 2880, in main
+    ventana = VentanaPrincipal()
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 629, in __init__
+    self.refrescar()
+    ~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 1224, in refrescar
+    self.vista_portico.actualizar(portico)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "D:\03 Ingenieria\Calculador\app\visualizacion.py", line 426, in actualizar
+    geom = self._geometria(estructura)
+           ^^^^^^^^^^^^^^^
+AttributeError: 'VistaPortico' object has no attribute '_geometria'. Did you mean: 'geometry'?
+VentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "d:\03 Ingenieria\Calculador\app\principal.py", line 2880, in main
+    ventana = VentanaPrincipal()
+  File "d:\03 Ingenieria\Calculador\app\principal.py", line 629, in __init__
+    self.refrescar()
+    ~~~~~~~~~~~~~~^^
+  File "d:\03 Ingenieria\Calculador\app\principal.py", line 1224, in refrescar
+    self.vista_portico.actualizar(portico)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "d:\03 Ingenieria\Calculador\app\visualizacion.py", line 430, in actualizar
+    origen = self._numero(ref.get("origen_longitudinal_m"))
+             ^^^^^^^^^^^^
+AttributeError: 'VistaPortico' object has no attribute '_numero'
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n

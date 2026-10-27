@@ -61,8 +61,11 @@ def preparar_datos(portico: str, secciones: dict | None = None) -> tuple[dict, l
                 raise ValueError(f"{tramo_id}: la longitud debe ser mayor que cero.")
             q = {"D": 0.0, "L": 0.0}
             for carga in aplicadas_tramo:
+                # Saltar cargas puntuales (usan valor_kN, no valor_kN_m); P02 no las incluye en flecha.
+                if carga.get("tipo_aplicacion") == "puntual":
+                    continue
                 ancho_aplicado = max(0.0, min(longitud, float(carga.get("x_fin_m", longitud))) - max(0.0, float(carga.get("x_inicio_m", 0.0))))
-                q[carga["tipo"]] += float(carga["valor_kN_m"]) * ancho_aplicado / longitud
+                q[carga.get("tipo", "D")] += float(carga.get("valor_kN_m", 0.0)) * ancho_aplicado / longitud
                 if ancho_aplicado < longitud - 1e-8:
                     advertencias.append(f"{tramo_id}: P02 estima flecha con carga uniforme equivalente; hay cargas parciales.")
             carga_puntual = tramo.get("cargas_puntuales", [])

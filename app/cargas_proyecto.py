@@ -808,10 +808,9 @@ class PaginaCargas(QWidget):
         self.etiqueta = QLabel()
         self.etiqueta.setWordWrap(True)
         self.viento_activo = QCheckBox("Aplicar viento horizontal general al pórtico")
-        self.ancho_viento = QDoubleSpinBox()
-        self.ancho_viento.setRange(0.0, 100.0)
-        self.ancho_viento.setDecimals(2)
-        self.ancho_viento.setSingleStep(0.1)
+        self.direccion_viento = QComboBox()
+        self.direccion_viento.addItem("Viento sobre ejes X (frente en Y)", "x")
+        self.direccion_viento.addItem("Viento sobre ejes Y (frente en X)", "y")
         catalogo_viento = rutas.leer_json(rutas.DATOS_GLOBAL / "viento_cirsoc_102_25.json", {}) or {}
         self.catalogo_viento = catalogo_viento.get("ciudades", {})
         self.ciudad_viento = QComboBox()
@@ -851,6 +850,9 @@ class PaginaCargas(QWidget):
         self.boton_editar_composicion.setEnabled(False)
         self.boton_quitar_aplicacion.setEnabled(False)
         self.selector_aplicaciones = QComboBox()
+        # Selector de elemento activo: permite elegir sobre qué pórtico o muro
+        # se aplican las cargas permanentes, en lugar de usar siempre el
+        # pórtico activo por defecto de la pestaña Pórticos.
         self.contexto_aplicaciones = QLabel()
         self.contexto_aplicaciones.setWordWrap(True)
         self.tabla_aplicaciones = QTableWidget(0, 7)
@@ -881,8 +883,8 @@ class PaginaCargas(QWidget):
         self.etiqueta_portico.setStyleSheet("font-weight: 600;")
         fila_viento = QHBoxLayout()
         fila_viento.addWidget(self.viento_activo)
-        fila_viento.addWidget(QLabel("Ancho tributario del viento (m):"))
-        fila_viento.addWidget(self.ancho_viento)
+        fila_viento.addWidget(QLabel("Dirección del viento:"))
+        fila_viento.addWidget(self.direccion_viento)
         fila_viento.addStretch(1)
         caja_elementos.addLayout(fila_viento)
         fila_referencia_viento = QHBoxLayout()
@@ -926,6 +928,7 @@ class PaginaCargas(QWidget):
         fila_seleccion.addWidget(self.boton_editar_composicion)
         fila_seleccion.addWidget(self.boton_aplicaciones)
         caja_aplicaciones.addLayout(fila_seleccion)
+
         caja_aplicaciones.addWidget(self.contexto_aplicaciones)
         caja_aplicaciones.addWidget(self.etiqueta_aplicaciones)
         caja_aplicaciones.addWidget(self.tabla_aplicaciones, 1)
@@ -989,10 +992,10 @@ class PaginaCargas(QWidget):
         )
         self.boton_editar_composicion.setEnabled(disponible)
         if hasattr(self, "contexto_aplicaciones"):
-            portico = str(self.portico_actual() or "").strip() or "todos los pórticos"
+            elemento = str(self.portico_actual() or "").strip() or "todos los elementos"
             nombre = self.selector_aplicaciones.currentData()
             self.contexto_aplicaciones.setText(
-                f"Pórtico activo: {portico}  ·  Elemento seleccionado: {nombre or 'ninguno'}"
+                f"Elemento activo: {elemento}  ·  Elemento seleccionado: {nombre or 'ninguno'}"
             )
 
     def _actualizar_boton_quitar(self) -> None:
@@ -1016,14 +1019,14 @@ class PaginaCargas(QWidget):
         nombres_por_id = {
             elemento.get("id"): nombre for nombre, elemento in elementos.items()
         }
-        portico = str(self.portico_actual() or "").strip()
+        elemento = str(self.portico_actual() or "").strip()
         aplicaciones = [
             (indice, aplicacion)
             for indice, aplicacion in enumerate(datos.get("aplicaciones", []))
             if (
-                not portico
-                or aplicacion.get("portico") == portico
-                or any(r.get("portico") == portico for r in aplicacion.get("reacciones", []))
+                not elemento
+                or aplicacion.get("portico") == elemento
+                or any(r.get("portico") == elemento for r in aplicacion.get("reacciones", []))
             )
         ]
         self.tabla_aplicaciones.setRowCount(len(aplicaciones))
@@ -1031,19 +1034,19 @@ class PaginaCargas(QWidget):
         for fila, (indice_origen, aplicacion) in enumerate(aplicaciones):
             carga_id = aplicacion.get("carga_id")
             nombre = nombres_por_id.get(carga_id, f"Carga desconocida ({carga_id or '?'})")
-            elemento = elementos.get(nombre, {})
+            info_elemento = elementos.get(nombre, {})
             por_carga.add(carga_id)
             reacciones = aplicacion.get("reacciones", [])
             if reacciones:
                 relevantes = [
                     r for r in reacciones
-                    if not portico or r.get("portico") == portico
+                    if not elemento or r.get("portico") == elemento
                 ]
                 try:
                     biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
                     peso_lineal = sum(
                         float(item["valor"])
-                        for item in cargas.items_de_elemento(nombre, elemento, biblioteca)
+                        for item in cargas.items_de_elemento(nombre, info_elemento, biblioteca)
                         if item["tipo"] == "D"
                     )
                     reacciones_kN = [
@@ -1070,7 +1073,7 @@ class PaginaCargas(QWidget):
                 valores = (
                     aplicacion.get("portico", ""),
                     nombre,
-                    elemento.get("tipo", ""),
+                    info_elemento.get("tipo", ""),
                     aplicacion.get("tramo_id", ""),
                     f"{float(aplicacion.get('x_inicio_m', 0.0)):.2f}",
                     f"{float(aplicacion.get('x_fin_m', 0.0)):.2f}",
@@ -1087,7 +1090,7 @@ class PaginaCargas(QWidget):
         self.tabla_aplicaciones.resizeColumnsToContents()
         self.etiqueta_aplicaciones.setText(
             f"{len(aplicaciones)} aplicación(es) "
-            f"{'en ' + portico if portico else 'en toda la obra'} · "
+            f"{'en ' + elemento if elemento else 'en toda la obra'} · "
             f"{len(por_carga)} elemento(s) aplicado(s). "
             "Seleccioná una fila para editar sus aplicaciones; las filas grises están desactivadas."
         )
@@ -1312,7 +1315,9 @@ class PaginaCargas(QWidget):
         id_proyecto = self._id_proyecto(datos)
         viento = datos.get("viento", {})
         self.viento_activo.setChecked(bool(viento.get("activo", 0)))
-        self.ancho_viento.setValue(float(viento.get("ancho_tributario_m", 0.0)))
+        direccion_guardada = str(viento.get("direccion_viento", "x")).strip().lower()
+        indice = self.direccion_viento.findData(direccion_guardada)
+        self.direccion_viento.setCurrentIndex(max(indice, 0))
         referencia = viento.get("referencia_cirsoc_102_25", {})
         ciudad = referencia.get("ubicacion", {}).get("ciudad", "Santa Fe")
         indice_ciudad = self.ciudad_viento.findData(ciudad)
@@ -1607,7 +1612,7 @@ class PaginaCargas(QWidget):
             portico_inicial=self.portico_actual(),
         )
         editor.setWindowTitle(
-            f"Aplicaciones · {nombre} · pórtico activo: "
+            f"Aplicaciones · {nombre} · pórtico: "
             f"{self.portico_actual() or 'ninguno'}"
         )
         if editor.exec() != QDialog.DialogCode.Accepted:
@@ -1667,7 +1672,24 @@ class PaginaCargas(QWidget):
         datos["id_proyecto"] = self._id_proyecto(datos)
         viento = datos.setdefault("viento", {})
         viento["activo"] = int(self.viento_activo.isChecked())
-        viento["ancho_tributario_m"] = self.ancho_viento.value()
+        direccion = self.direccion_viento.currentData()
+        viento["direccion_viento"] = direccion
+        # Anchos tributarios automáticos por pórtico afectado: mitad de la
+        # separación real a los pórticos vecinos en la dirección perpendicular
+        # (borde de obra = solo el vecino existente; irregular = distancia real).
+        anchos_por_portico = {}
+        if direccion in ("x", "y"):
+            estructura = rutas.cargar_estructura() or {}
+            try:
+                anchos = cargas.anchos_tributarios_viento(estructura, direccion)
+            except TypeError:
+                anchos = {}
+            for nombre, ancho in (anchos or {}).items():
+                if ancho is not None and ancho > 0:
+                    anchos_por_portico[str(nombre)] = round(float(ancho), 3)
+        viento["anchos_por_portico"] = anchos_por_portico
+        valores = [v for v in anchos_por_portico.values() if v > 0]
+        viento["ancho_tributario_m"] = round(sum(valores) / len(valores), 3) if valores else 0.0
         ciudad = self.ciudad_viento.currentData()
         categoria = self.categoria_riesgo_viento.currentData()
         datos_ciudad = self.catalogo_viento.get(ciudad, {})

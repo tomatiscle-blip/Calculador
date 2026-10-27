@@ -919,6 +919,7 @@ def obtener_o_crear_columna_global(
         "eje_id": eje_id,
         "eje_nombre": eje_nombre,
         "nivel_inicio": nivel_inicio,
+        "piso": piso,
     }
     if x_global is not None:
         nuevo["X"] = float(x_global)
@@ -1116,3 +1117,6 @@ def acumular_solicitaciones_columnas(estructura: dict | None = None) -> dict[str
     return resultados
 
 
+
+def coordenada_local_portico(portico, elemento) -> float:
+    ref = {}

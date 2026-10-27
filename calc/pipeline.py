@@ -73,6 +73,19 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
         return False, "datos/estructura.json no existe o está vacío"
     nombre = portico or sorted(estructura)[0]
     datos = estructura.get(nombre)
+    def _x_local(c):
+        ref=datos.get("referencia_planta",{}) or {}
+        direccion=str(ref.get("direccion","x")).lower()
+        try:
+            origen=float(ref.get("origen_longitudinal_m",0.0) or 0.0)
+        except (TypeError,ValueError):
+            origen=0.0
+        valor=c.get("Y" if direccion=="y" else "X",c.get("x",0.0))
+        try:
+            return float(valor)-origen
+        except (TypeError,ValueError):
+            return float(c.get("x",0.0))
+
     if not datos:
         return False, f"el pórtico '{nombre}' no está en estructura.json"
     _cols_raw = datos.get("columnas", {})
@@ -94,12 +107,12 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
             columnas_piso = sorted(
                 (c for c in columnas.values()
                  if abs(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) - float(cota_viga)) < 1e-6),
-                key=lambda c: float(c.get("x", 0.0)),
+                key=lambda c: _x_local(c),
             )
         else:
             columnas_piso = sorted(
                 (c for c in columnas.values()),
-                key=lambda c: float(c.get("x", 0.0)),
+                key=lambda c: _x_local(c),
             )
         tramos = viga.get("tramos", [])
         for indice, tramo in enumerate(tramos):
@@ -112,9 +125,8 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
                     f"{len(tramos)} tramo(s)"
                 )
                 continue
-            luz_real = float(columnas_piso[indice + 1].get("x", 0.0)) - float(
-                columnas_piso[indice].get("x", 0.0)
-            )
+            luz_real = _x_local(columnas_piso[indice + 1]) - _x_local(columnas_piso[indice])
+
             luz_declarada = float(tramo.get("longitud_m", 0.0))
             if abs(luz_real - luz_declarada) > 0.01:
                 problemas.append(
@@ -136,7 +148,7 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
             if piso == 0:
                 continue
             viga_inferior = vigas_por_piso.get(piso - 1)
-            x = float(columna.get("x", 0.0))
+            x = _x_local(columna)
             nivel = float(columna.get("nivel", 0.0))
             intervalos = []
             if viga_inferior:
@@ -254,12 +266,19 @@ def _marca_columnas_globales(_portico: str = "") -> tuple[bool, str]:
     return True, f"{len(datos)} columnas globales"
 
 
+def _marca_vigas_globales(_portico: str = "") -> tuple[bool, str]:
+    archivo = rutas.SAL_VIGAS / "resultados_vigas_globales.json"
+    datos = rutas.leer_json(archivo)
+    if not datos:
+        return False, "falta salidas/vigas/resultados_vigas_globales.json"
+    return True, f"{len(datos)} vigas globales"
 def _marca_bases_globales(_portico: str = "") -> tuple[bool, str]:
     archivo = rutas.SAL_BASES / "resultados_bases_globales.json"
     datos = rutas.leer_json(archivo)
     if not datos:
         return False, "falta salidas/bases/resultados_bases_globales.json"
     return True, f"{len(datos)} bases globales"
+
 
 
 def _marca_planos(portico: str = "") -> tuple[bool, str]:
@@ -404,6 +423,18 @@ ETAPAS: tuple[Etapa, ...] = (
         interactiva=False,
         marca=_marca_columnas_globales,
         nota="Se habilita cuando los porticos intervenidos estan resueltos.",
+    ),
+    Etapa(
+        clave="vigas_globales",
+        nombre="9b. Vigas globales",
+        descripcion="Consolidado de solicitaciones M/V por tramo de pórtico.",
+        script="calc/vigas_globales.py",
+        entradas=(rutas.SAL_SOLICITACIONES / "*.json",),
+        salidas=(rutas.SAL_VIGAS / "resultados_vigas_globales.json",),
+        depende_de=("vigas", "columnas_globales"),
+        interactiva=False,
+        marca=_marca_vigas_globales,
+        nota="Acumula por tramo de pórtico; no deduplica elementos compartidos.",
     ),
     Etapa(
         clave="bases_globales",
