@@ -585,12 +585,12 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         if viento_config.get("activo"):
             direccion = str(viento_config.get("direccion_viento", "x")).strip().lower()
             if direccion != direccion_portico(portico):
-                items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
+                items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar(), ancho_override=anchos_por_portico.get(nombre))
                 w_general = sum(float(item["valor"]) for item in items_viento)
     else:
         # Modo manual: viento solo en pórticos marcados
         if nombre in (porticos_activos or []):
-            items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
+            items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar(), ancho_override=anchos_por_portico.get(nombre))
             w_general = sum(float(item["valor"]) for item in items_viento)
     mapa["viento_general_kN_m"] = w_general
     # Ancho tributario efectivo para este pórtico (manual o promedio)

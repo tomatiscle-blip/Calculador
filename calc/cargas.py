@@ -440,7 +440,7 @@ def _items_encadenado(nombre: str, elemento: dict, biblioteca: dict) -> list[dic
     }]
 
 
-def items_viento_general(datos: dict, biblioteca: dict) -> list[dict]:
+def items_viento_general(datos: dict, biblioteca: dict, ancho_override: float | None = None) -> list[dict]:
     """
     El viento que empuja al pórtico (carga horizontal). No es de un elemento:
     es del conjunto, por eso se suma aparte.
@@ -449,7 +449,12 @@ def items_viento_general(datos: dict, biblioteca: dict) -> list[dict]:
     if not configuracion.get("activo"):
         return []
     viento = materiales.viento(biblioteca)
-    ancho = float(configuracion.get("ancho_tributario_m", 0.0))
+    if ancho_override is not None and ancho_override > 0:
+        ancho = float(ancho_override)
+    else:
+        anchos = configuracion.get("anchos_por_portico", {}) or {}
+        # sin override, usar promedio global (compatibilidad)
+        ancho = float(configuracion.get("ancho_tributario_m", 0.0))
     w_viento = carga_lineal_viento(viento["V"], ancho, viento["Cd"], viento["rho"])
     return [{
         "descripcion": f"Viento diseño {viento['ciudad']} (V={viento['V']:.0f} m/s) – general",
