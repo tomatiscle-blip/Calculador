@@ -580,7 +580,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     w_general = 0.0
     porticos_activos = viento_config.get("porticos_activos")
     anchos_por_portico = viento_config.get("anchos_por_portico", {}) or {}
-    if porticos_activos is None:
+    if not porticos_activos:
         if viento_config.get("activo"):
             direccion = str(viento_config.get("direccion_viento", "x")).strip().lower()
             if direccion == direccion_portico(portico):

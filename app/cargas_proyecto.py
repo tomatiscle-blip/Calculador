@@ -1828,7 +1828,7 @@ class PaginaCargas(QWidget):
                 porticos_activos.append(nombre)
             if spin is not None:
                 anchos[nombre] = float(spin.value())
-        viento["porticos_activos"] = porticos_activos
+        viento["porticos_activos"] = porticos_activos if porticos_activos else None
         viento["anchos_por_portico"] = anchos
         # Modo manual: desactivar direccion automatica
         viento["activo"] = 1 if porticos_activos else 0
