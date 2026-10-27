@@ -498,6 +498,11 @@ class VistaPortico(QWidget):
                 ancho_override = None
                 if self.nombre in self.anchos_viento_por_portico and self.anchos_viento_por_portico[self.nombre]:
                     ancho_override = float(self.anchos_viento_por_portico[self.nombre])
+                elif self.anchos_viento_por_portico:
+                    # usar promedio si el pórtico no tiene ancho propio
+                    vals = [float(v) for v in self.anchos_viento_por_portico.values() if v]
+                    if vals:
+                        ancho_override = sum(vals) / len(vals)
                 items_viento = cargas.items_viento_general(proyecto, materiales.cargar(), ancho_override=ancho_override)
                 self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
                 if ancho_override is not None and ancho_override > 0:
