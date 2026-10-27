@@ -843,7 +843,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         ids = ", ".join(sorted(nudos_sin_apoyo))
         avisos.append("Columnas superiores sin viga inferior: " + ids)
 
-    direccion_portico_actual = direccion_portico(portico)
+    direccion_portico_actual = cargas.direccion_portico(portico)
     eje_carga = "FX" if direccion_portico_actual == "x" else "FY"
 
 
