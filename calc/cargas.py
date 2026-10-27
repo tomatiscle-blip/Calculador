@@ -119,6 +119,8 @@ def anchos_tributarios_viento(estructura: dict, direccion_viento: str) -> dict[s
         resultado[nombre] = ancho_tributario_entre_porticos(estructura, nombre)
     return resultado
 
+def presion_viento(V: float, rho: float = 1.25) -> float:
+
     """Presión dinámica del viento en kN/m2 (CIRSOC 102)."""
     return 0.5 * rho * (V**2) / 1000
 
