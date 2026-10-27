@@ -487,11 +487,20 @@ class VistaPortico(QWidget):
         if self.direccion_viento not in ("x", "y"):
             self.direccion_viento = "x"
         self.anchos_viento_por_portico = configuracion_viento.get("anchos_por_portico", {}) or {}
-        if configuracion_viento.get("activo"):
+        porticos_activos = configuracion_viento.get("porticos_activos")
+        activo = configuracion_viento.get("activo")
+        if porticos_activos is None:
+            activo = bool(activo)
+        else:
+            activo = bool(porticos_activos) and (self.nombre in (porticos_activos or []))
+        if activo:
             try:
                 items_viento = cargas.items_viento_general(proyecto, materiales.cargar())
                 self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
-                self.ancho_viento_m = float(configuracion_viento.get("ancho_tributario_m", 0.0))
+                if self.nombre in self.anchos_viento_por_portico and self.anchos_viento_por_portico[self.nombre]:
+                    self.ancho_viento_m = float(self.anchos_viento_por_portico[self.nombre])
+                else:
+                    self.ancho_viento_m = float(configuracion_viento.get("ancho_tributario_m", 0.0))
                 columnas_por_piso = {}
                 for cid, columna in self.columnas.items():
                     # PRINCIPIO 4: las columnas ahora son globales (COL-XXX), ya no

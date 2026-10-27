@@ -826,6 +826,15 @@ class PaginaCargas(QWidget):
             "Referencia guardada en el proyecto; el motor todavía calcula el viento con la configuración anterior."
         )
         self.nota_viento_ref.setWordWrap(True)
+        # Viento manual por pórtico
+        self.etiqueta_viento_porticos = QLabel("Viento por pórtico (manual): marca los pórticos que reciben viento y su ancho tributario.")
+        self.etiqueta_viento_porticos.setWordWrap(True)
+        self.tabla_viento_porticos = QTableWidget(0, 3)
+        self.tabla_viento_porticos.setHorizontalHeaderLabels(("Pórtico", "Aplicar viento", "Ancho tributario (m)"))
+        self.tabla_viento_porticos.verticalHeader().setVisible(False)
+        self.boton_guardar_viento_porticos = QPushButton("Guardar viento por pórtico")
+        self.boton_guardar_viento_porticos.clicked.connect(self._guardar_viento_porticos)
+
         self.ciudad_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
         self.categoria_riesgo_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
         self.tabla = QTableWidget(0, 9)
@@ -896,6 +905,10 @@ class PaginaCargas(QWidget):
         fila_referencia_viento.addStretch(1)
         caja_elementos.addLayout(fila_referencia_viento)
         caja_elementos.addWidget(self.nota_viento_ref)
+        caja_elementos.addWidget(self.etiqueta_viento_porticos)
+        caja_elementos.addWidget(self.tabla_viento_porticos)
+        caja_elementos.addWidget(self.boton_guardar_viento_porticos, 0, Qt.AlignmentFlag.AlignLeft)
+
         caja_elementos.addWidget(self.tabla, 1)
         fila = QHBoxLayout()
         fila.addWidget(self.boton_nueva_losa_planta)
@@ -964,6 +977,8 @@ class PaginaCargas(QWidget):
         self.boton_aplicaciones.clicked.connect(self.editar_aplicaciones)
         self.boton_editar_composicion.clicked.connect(self.editar_composicion_aplicaciones)
         self.boton_quitar_aplicacion.clicked.connect(self.quitar_aplicacion_seleccionada)
+        self._cargar_viento_porticos()
+
         self.boton_informe.clicked.connect(self.generar_informe)
         self.boton_abrir.clicked.connect(self.abrir_informe)
         self.boton_disenar_losa.clicked.connect(self.disenar_losa_seleccionada)
@@ -1753,6 +1768,53 @@ class PaginaCargas(QWidget):
         QMessageBox.information(self, "Informe generado", f"Se guardó:\n{self.ultimo_informe}")
         if self.al_guardar:
             self.al_guardar()
+
+    def _cargar_viento_porticos(self) -> None:
+        from calc import rutas
+        from app.ejes import cargar_ejes
+        datos = rutas.leer_json(rutas.CARGAS, {}) or {}
+        viento = datos.get("viento", {}) or {}
+        porticos_activos = viento.get("porticos_activos", [])
+        anchos = viento.get("anchos_por_portico", {}) or {}
+        estructura = rutas.cargar_estructura() or {}
+        nombres = [n for n in estructura.keys() if isinstance(estructura.get(n), dict) and "referencia_planta" in (estructura.get(n) or {})]
+        self.tabla_viento_porticos.setRowCount(0)
+        for nombre in nombres:
+            fila = self.tabla_viento_porticos.rowCount()
+            self.tabla_viento_porticos.insertRow(fila)
+            self.tabla_viento_porticos.setItem(fila, 0, QTableWidgetItem(nombre))
+            cb = QCheckBox()
+            cb.setChecked(nombre in (porticos_activos or []))
+            self.tabla_viento_porticos.setCellWidget(fila, 1, cb)
+            spin = QDoubleSpinBox()
+            spin.setRange(0.0, 100.0)
+            spin.setDecimals(2)
+            spin.setValue(float(anchos.get(nombre, viento.get("ancho_tributario_m", 0.0)) or 0.0))
+            self.tabla_viento_porticos.setCellWidget(fila, 2, spin)
+
+    def _guardar_viento_porticos(self) -> None:
+        from calc import rutas
+        datos = rutas.leer_json(rutas.CARGAS, {}) or {}
+        viento = datos.setdefault("viento", {})
+        porticos_activos = []
+        anchos = {}
+        for fila in range(self.tabla_viento_porticos.rowCount()):
+            nombre = self.tabla_viento_porticos.item(fila, 0).text()
+            cb = self.tabla_viento_porticos.cellWidget(fila, 1)
+            spin = self.tabla_viento_porticos.cellWidget(fila, 2)
+            if cb is not None and cb.isChecked():
+                porticos_activos.append(nombre)
+            if spin is not None:
+                anchos[nombre] = float(spin.value())
+        viento["porticos_activos"] = porticos_activos
+        viento["anchos_por_portico"] = anchos
+        # Modo manual: desactivar direccion automatica
+        viento["activo"] = 1 if porticos_activos else 0
+        rutas.guardar_json(rutas.CARGAS, datos)
+        if self.al_guardar:
+            self.al_guardar()
+        QMessageBox.information(self, "Viento", "Viento por pórtico guardado.")
+
 
     def abrir_informe(self) -> None:
         if self.ultimo_informe and self.ultimo_informe.exists():

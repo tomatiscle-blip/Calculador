@@ -578,10 +578,23 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     datos_carga_proyecto = cargas.datos_cargas() if nombre else {}
     viento_config = datos_carga_proyecto.get("viento", {})
     w_general = 0.0
-    if viento_config.get("activo"):
-        items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
-        w_general = sum(float(item["valor"]) for item in items_viento)
+    porticos_activos = viento_config.get("porticos_activos")
+    anchos_por_portico = viento_config.get("anchos_por_portico", {}) or {}
+    if porticos_activos is None:
+        if viento_config.get("activo"):
+            direccion = str(viento_config.get("direccion_viento", "x")).strip().lower()
+            if direccion == direccion_portico(portico):
+                items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
+                w_general = sum(float(item["valor"]) for item in items_viento)
+    else:
+        if nombre in (porticos_activos or []):
+            items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar())
+            w_general = sum(float(item["valor"]) for item in items_viento)
     mapa["viento_general_kN_m"] = w_general
+    if nombre in anchos_por_portico and anchos_por_portico[nombre]:
+        mapa["ancho_viento_m"] = float(anchos_por_portico[nombre])
+    else:
+        mapa["ancho_viento_m"] = float(viento_config.get("ancho_tributario_m", 0.0) or 0.0)
 
     def _x_local(col):
         ref = portico.get("referencia_planta", {}) or {}
