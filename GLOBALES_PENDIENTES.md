@@ -169,3 +169,60 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 - Fix aplicado: comparar `nivel + altura_m` con `y_viga`, consistente con el filtro de `cols` (~línea 650).
 - Solución general (no manual): aplica a todos los pórticos/obras automáticamente.
 
+
+## Actualizacion: Fase 1 - Persistencia de dimensionado por portico (Octubre 2026)
+
+### Implementado
+- Nuevo modulo `calc/columnas_persistencia.py` con `generar_dimensionados_json()`.
+- Genera, por cada columna global, un archivo `salidas/columnas/dimensionado_{GID}.json`.
+- Cada archivo acumula, por portico que usa la columna, los datos de dimensionado uniaxial: Pu, Mu, b, h, fck, Ast, armadura longitudinal, estribos/sunchos, gamma, X, Y, rho, clasificacion, lambda, altura libre, recubrimiento.
+- No modifica el calculo por portico ni la UI; solo agrega persistencia estructurada.
+- Ejecucion: `python calc/columnas_persistencia.py` (post-dimensionado de columnas).
+
+### Pendiente (Fases 3-4)
+- Unificacion de seccion/armadura por columna global.
+- Planilla global unica (una fila por columna fisica).
+- Verificacion biaxial (Bresler) para columnas con Mx y My no-cero.
+
+## Actualizacion: Fase 2 - Unificacion por columna global (Octubre 2026)
+
+### Implementado
+- Nuevo modulo `calc/columnas_unificacion.py` con `unificar()`.
+- Genera `salidas/columnas/unificado_{GID}.json` con seccion/armadura candidata unificada por GID.
+- Genera `salidas/columnas/planilla_columnas_globales.csv` (una fila por columna fisica).
+- Criterio de unificacion: seccion del portico con mayor Ast (desempate mayor area b*h); fck maximo; armadura del portico con mayor Ast; estribos mayor diametro / menor paso; clasificacion ESBELTA si algun portico lo es.
+- Incluye solicitaciones globales N, Mx, My, Mu_max y flag biaxial (sin verificacion Bresler).
+- Ejecucion: `python calc/columnas_unificacion.py` (requiere Fase 1 ejecutada).
+
+### Pendiente (Fase 4)
+- Verificacion biaxial (Bresler) para columnas con Mx y My no-cero.
+
+## Actualizacion: Fase 4 - Verificacion biaxial global (Octubre 2026)
+
+### Implementado
+- Nuevo modulo `calc/columnas_biaxial_global.py` con `ejecutar()`.
+- Para cada columna global unificada:
+  - Si es uniaxial: se marca como RESUELTA (uniaxial).
+  - Si es biaxial: calcula Pnx y Pny (capacidad uniaxial por eje via diagrama de interaccion), P0 (carga axial pura) y ejecuta `verificar_biaxial()` (Bresler).
+- Genera `salidas/columnas/resultado_final_{GID}.json` con el resultado final de cada columna global.
+- Ejecucion: `python calc/columnas_biaxial_global.py` (requiere Fase 2 ejecutada).
+
+## Actualizacion: Planilla global final (Octubre 2026)
+
+### Implementado
+- Nuevo modulo `calc/columnas_planilla_final.py` con `generar()`.
+- Genera `salidas/columnas/planilla_columnas_globales_final.csv` con una fila por columna global, incluyendo resultados de verificacion biaxial (Pnx, Pny, P0, Pn_biaxial, Cumple) para las biaxiales.
+- Ejecucion: `python calc/columnas_planilla_final.py` (requiere Fases 2 y 4 ejecutadas).
+
+## Actualizacion final: integracion UI + pipeline (Octubre 2026)
+
+### Implementado
+- Boton "Calcular columnas globales (completo)" en la pestana Estructura global -> Columnas globales (app/principal.py).
+- Tabla de planilla global final en la misma pestana (20 columnas, incluye Pnx/Pny/P0/Cumple).
+- Etapa "columnas_globales_completo" agregada a calc/pipeline.py (orquesta Fases 1->2->4->planilla).
+- Orquestador calc/columnas_globales_completo.py para ejecucion manual.
+- Tests: tests/test_columnas_globales_fases.py (5 tests OK).
+
+### Estado
+- Columnas globales: Fases 1, 2, 4 + planilla final + UI + pipeline COMPLETAS.
+- Bases globales: pendiente (siguiente etapa).

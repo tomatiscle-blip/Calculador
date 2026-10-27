@@ -147,3 +147,15 @@ Ejemplo:
   "COL-002"
 ]
 
+
+
+## Actualizacion: Columnas globales (UI) — Octubre 2026
+
+### Implementado
+- En la pestaña "Estructura global → Columnas globales" se agregó un segundo botón: "Calcular columnas globales (completo)".
+- Al ejecutarlo, se corre el pipeline completo (Fases 1→2→4→planilla final) y se carga la planilla global final en una tabla de 20 columnas.
+- La tabla muestra: Columna, Eje, Nivel, N, Mx, My, Mu_max, Biaxial, b, h, f'c, Ast, Armadura, Clasificacion, Pnx, Pny, P0, Pn_biaxial, Cumple, Porticos.
+
+### Notas
+- El botón "Calcular columnas globales" original sigue disponible para solo consolidar solicitaciones.
+- Los cálculos siguen viviendo en calc/; la UI solo lanza y muestra resultados.

@@ -593,3 +593,24 @@ Calculador\
 - [ ] Separar `salidas\` por obra → resuelve el `[OJO!]` cruzado del semáforo
 - [ ] Datos por obra (`obras\Casa Mercedes\datos\...`): cada obra con su `estructura.json`,
       así un cambio en un pórtico no marca a los otros como "a recalcular"
+
+
+### Fase 1 - Persistencia de dimensionado por portico (Oct 2026)
+- Nuevo modulo `calc/columnas_persistencia.py` genera `salidas/columnas/dimensionado_{GID}.json`
+  con datos de dimensionado uniaxial por portico (Pu, Mu, b, h, fck, Ast, armadura, estribos, gamma, X, Y, rho, clasificacion, lambda, altura libre, recubrimiento).
+- No modifica calculos ni UI. Ejecucion: `python calc/columnas_persistencia.py`.
+
+
+### Ejecucion de columnas globales (Fases 1-4)
+Orden recomendado (sin UI):
+1. Dimensionar columnas por portico (motor / Legacy P04) -> genera planilla_columnas.csv
+2. `python calc/columnas_persistencia.py` -> genera dimensionado_{GID}.json
+3. `python calc/columnas_unificacion.py` -> genera unificado_{GID}.json + planilla_columnas_globales.csv
+4. `python calc/columnas_biaxial_global.py` -> genera resultado_final_{GID}.json
+5. `python calc/columnas_planilla_final.py` -> genera planilla_columnas_globales_final.csv
+
+
+### Columnas globales — completo (Oct 2026)
+- UI: boton "Calcular columnas globales (completo)" en Estructura global -> Columnas globales, con tabla de planilla final.
+- Pipeline: etapa "columnas_globales_completo" (orquesta Fases 1->2->4->planilla).
+- Orquestador: `python calc/columnas_globales_completo.py`.

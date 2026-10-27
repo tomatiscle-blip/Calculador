@@ -477,6 +477,17 @@ ETAPAS: tuple[Etapa, ...] = (
         nota=("Alivianadas: cálculo de viguetas. Macizas: solicitaciones elásticas para "
               "un paño unidireccional simplemente apoyado. Casetonadas y continuidad: pendientes."),
     ),
+    Etapa(
+        clave="columnas_globales_completo",
+        nombre="Columnas globales (completo)",
+        descripcion="Persistencia + unificacion + verificacion biaxial + planilla final de columnas globales.",
+        script="calc/columnas_globales_completo.py",
+        entradas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
+        salidas=(rutas.SAL_COLUMNAS / "planilla_columnas_globales_final.csv",),
+        depende_de=("columnas_globales",),
+        interactiva=False,
+        implementada=True,
+    ),
 )
 
 ETAPAS_POR_CLAVE: dict[str, Etapa] = {e.clave: e for e in ETAPAS}

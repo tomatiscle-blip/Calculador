@@ -833,14 +833,27 @@ class VentanaPrincipal(QMainWindow):
         etiqueta = QLabel("Columnas consolidadas por ID global (COL-XXX).")
         etiqueta.setWordWrap(True)
         caja.addWidget(etiqueta)
+        fila_botones = QHBoxLayout()
         boton = QPushButton("Calcular columnas globales")
         boton.clicked.connect(self._calcular_columnas_globales)
-        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        fila_botones.addWidget(boton, 0)
+        boton_completo = QPushButton("Calcular columnas globales (completo)")
+        boton_completo.clicked.connect(self._calcular_columnas_globales_completo)
+        fila_botones.addWidget(boton_completo, 0)
+        caja.addLayout(fila_botones)
         self.tabla_columnas_globales = QTableWidget(0, 9)
         self.tabla_columnas_globales.setHorizontalHeaderLabels(
             ("ID", "Eje", "Nivel", "Mx", "My", "N", "Deriva", "Pórticos", "Estado")
         )
         caja.addWidget(self.tabla_columnas_globales, 1)
+        etiqueta_final = QLabel("Planilla global final (unificada + verificación biaxial).")
+        etiqueta_final.setWordWrap(True)
+        caja.addWidget(etiqueta_final)
+        self.tabla_columnas_globales_final = QTableWidget(0, 20)
+        self.tabla_columnas_globales_final.setHorizontalHeaderLabels(
+            ("Columna", "Eje", "Nivel", "N(kN)", "Mx(kNm)", "My(kNm)", "Mu_max(kNm)", "Biaxial", "b(cm)", "h(cm)", "f'c(MPa)", "Ast(cm2)", "Armadura", "Clasificacion", "Pnx(kN)", "Pny(kN)", "P0(kN)", "Pn_biaxial(kN)", "Cumple", "Porticos")
+        )
+        caja.addWidget(self.tabla_columnas_globales_final, 1)
         return pagina
 
     def _calcular_columnas_globales(self) -> None:
@@ -859,6 +872,29 @@ class VentanaPrincipal(QMainWindow):
                 self.tabla_columnas_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("deriva"))))
                 self.tabla_columnas_globales.setItem(fila, 7, QTableWidgetItem(", ".join(r.get("porticos", []))))
                 self.tabla_columnas_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Columnas globales", str(exc))
+
+    def _calcular_columnas_globales_completo(self) -> None:
+        try:
+            import importlib
+            mod = importlib.import_module("calc.columnas_globales_completo")
+            mod.main()
+            # cargar planilla final en tabla
+            import csv
+            ruta = rutas.SAL_COLUMNAS / "planilla_columnas_globales_final.csv"
+            self.tabla_columnas_globales_final.setRowCount(0)
+            if ruta.exists():
+                with ruta.open("r", encoding="utf-8-sig", newline="") as f:
+                    reader = csv.reader(f, delimiter=";")
+                    header = next(reader, None)
+                    for row in reader:
+                        fila = self.tabla_columnas_globales_final.rowCount()
+                        self.tabla_columnas_globales_final.insertRow(fila)
+                        for col, val in enumerate(row):
+                            if col < self.tabla_columnas_globales_final.columnCount():
+                                self.tabla_columnas_globales_final.setItem(fila, col, QTableWidgetItem(str(val)))
+            QMessageBox.information(self, "Columnas globales", "Cálculo completo finalizado. Planilla final cargada.")
         except Exception as exc:
             QMessageBox.warning(self, "Columnas globales", str(exc))
 
