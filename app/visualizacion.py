@@ -490,7 +490,11 @@ class VistaPortico(QWidget):
         porticos_activos = configuracion_viento.get("porticos_activos")
         activo = bool(configuracion_viento.get("activo"))
         if porticos_activos is None:
-            activo = activo
+            # modo global: solo pórticos paralelos a la dirección del viento
+            from calc import rutas
+            estructura = rutas.cargar_estructura() or {}
+            dir_portico = str((estructura.get(self.nombre, {}).get("referencia_planta") or {}).get("direccion", "x")).lower()
+            activo = activo and (dir_portico == self.direccion_viento)
         else:
             activo = bool(porticos_activos) and (self.nombre in (porticos_activos or []))
         if activo:
