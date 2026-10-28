@@ -487,15 +487,7 @@ class VistaPortico(QWidget):
         if self.direccion_viento not in ("x", "y"):
             self.direccion_viento = "x"
         self.anchos_viento_por_portico = configuracion_viento.get("anchos_por_portico", {}) or {}
-        porticos_activos = configuracion_viento.get("porticos_activos")
         activo = bool(configuracion_viento.get("activo"))
-        if porticos_activos is None:
-            # modo global: solo pórticos paralelos a la dirección del viento
-            estructura = rutas.cargar_estructura() or {}
-            dir_portico = str((estructura.get(self.nombre, {}).get("referencia_planta") or {}).get("direccion", "x")).lower()
-            activo = activo and (dir_portico == self.direccion_viento)
-        else:
-            activo = bool(porticos_activos) and (self.nombre in (porticos_activos or []))
         if activo:
             try:
                 ancho_override = None
@@ -511,12 +503,8 @@ class VistaPortico(QWidget):
                 self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
                 self.ancho_viento_m = ancho_override if ancho_override and ancho_override > 0 else float(configuracion_viento.get("ancho_tributario_m", 0.0))
                 columnas_por_piso = {}
-                for cid, columna in self.columnas.items():
-                    # PRINCIPIO 4: las columnas ahora son globales (COL-XXX), ya no
-                    # hay prefijo "C{piso}-". Se agrupan por su cota de base (nivel)
-                    # para repartir el viento piso por piso.
-                    clave = round(float(columna.get("nivel", 0.0)), 4)
-                    columnas_por_piso.setdefault(clave, []).append(columna)
+                # skip old block
+
                 for columnas in columnas_por_piso.values():
                     if not columnas:
                         continue
