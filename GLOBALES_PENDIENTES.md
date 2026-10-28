@@ -226,3 +226,17 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 ### Estado
 - Columnas globales: Fases 1, 2, 4 + planilla final + UI + pipeline COMPLETAS.
 - Bases globales: pendiente (siguiente etapa).
+
+## Actualizacion: Viento manual por portico (Octubre 2026)
+
+### Implementado
+- Modo manual de viento por portico en calc/portico.py y script.py.
+- UI en app/cargas_proyecto.py: tabla de porticos con checkbox 'Aplicar viento' y ancho tributario manual.
+- Visor de planta (app/visualizacion.py) muestra viento con ancho por portico o fallback.
+- Fix: presion_viento faltante en calc/cargas.py.
+- Fix: viento aplica FX o FY segun direccion del portico.
+- Fix: visor muestra viento si esta activo globalmente.
+
+### Notas
+- Viento se aplica a todos los porticos si esta activo (sin filtrar por direccion en el calculo).
+- Visor muestra flecha en la direccion configurada.

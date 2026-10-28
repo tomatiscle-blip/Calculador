@@ -614,3 +614,10 @@ Orden recomendado (sin UI):
 - UI: boton "Calcular columnas globales (completo)" en Estructura global -> Columnas globales, con tabla de planilla final.
 - Pipeline: etapa "columnas_globales_completo" (orquesta Fases 1->2->4->planilla).
 - Orquestador: `python calc/columnas_globales_completo.py`.
+
+
+### Viento manual por portico (Oct 2026)
+- UI: tabla "Viento por portico (manual)" en pestana Cargas con checkbox y ancho tributario.
+- Calculo: viento se aplica a todos los porticos si esta activo, con ancho por portico o global.
+- Visor: muestra viento con intensidad > 0 si esta configurado.
+- Fix: presion_viento faltante, FX/FY segun direccion del portico.
