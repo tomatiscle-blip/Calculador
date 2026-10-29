@@ -337,7 +337,11 @@ def datos_solicitaciones(portico: str):
             if not d:
                 continue
             v = max(abs(d.get("V_izq", 0.0)), abs(d.get("V_der", 0.0)))
-            filas.append(([clave, tipo, numero(d.get("M_campo")), numero(v), ""], False))
+            if tipo == "voladizo":
+                m = max(abs(d.get("M_izq", 0.0)), abs(d.get("M_der", 0.0)), abs(d.get("M_campo", 0.0)))
+            else:
+                m = d.get("M_campo", 0.0)
+            filas.append(([clave, tipo, numero(m), numero(v), ""], False))
     return archivo, datos, filas
 
 
@@ -1414,7 +1418,7 @@ class VentanaPrincipal(QMainWindow):
                             })
                 except Exception:
                     nodos = []
-            self.vista_planta.set_datos_viento(nodos, direccion, lineal, ancho)
+            self.vista_planta.set_datos_viento(nodos, direccion, lineal, ancho, porticos_activos=configuracion_viento.get("porticos_activos"))
         except Exception:
             pass
         # El selector de nivel se repuebla en _cargar_inicio (único lugar que

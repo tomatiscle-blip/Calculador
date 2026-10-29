@@ -260,3 +260,47 @@ Actualmente:
 
 Este esquema permite avanzar hacia el dimensionamiento de columnas y bases considerando la interacción entre pórticos longitudinales y transversales, manteniendo el análisis estructural organizado por pórticos planos.
   
+
+## 10. Fuente unica de verdad
+
+- datos/cargas.json
+- datos/materiales.json
+- salidas/solicitaciones/*.json
+
+## 11. Componentes heredados / Legacy
+
+- Legacy/P01_*
+- Legacy/P02_Viga_portico.py
+- Legacy/P04_* / P05_*
+- script.py
+- tools/patch_*.py
+- calc/columnas_persistencia.py
+- viento_activo en cubiertas
+- porticos_afectados_por_viento
+
+## 12. Arquitectura anterior / Historial de migraciones
+
+(Contenido historico conservado.)
+## 9. Arquitectura actual del flujo de cargas, viento y solicitaciones
+
+Flujo real:
+
+cargas.json -> calc.cargas -> calc.portico -> PyNite -> solicitaciones JSON -> envolventes -> dimensionado
+
+### Aplicacion de cargas
+- D: member loads distribuidos sobre tramos (q_D kN/m) en calc/portico.py construir.
+- L: member loads distribuidos sobre tramos (q_L kN/m) en calc/portico.py construir.
+- W: node loads FX en punta de columnas; w_total = items_viento_general(..., ancho_override=ancho). Exclusivo de calc/portico.py.
+
+### Combinaciones
+- calc/cargas.py FACTORES_COMBINACIONES + calc/portico.py combinaciones() (agrega servicio).
+
+### Envolventes
+- calc/portico.py calcular() via _acumular() (maximos en modulo por barra).
+
+### Consumidores
+- app/principal.py (tabla envolvente), calc/diseno_vigas.preparar_datos, Legacy/P02, app/visualizacion.
+
+### Viento en informe de analisis de cargas
+- cargas_del_conjunto no suma W a totales D/L ni combinaciones.
+- informe_completo incluye seccion descriptiva VIENTO GLOBAL DEL PROYECTO.

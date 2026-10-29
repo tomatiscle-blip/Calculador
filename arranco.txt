@@ -40,4 +40,36 @@ VentanaPrincipal ERROR:\nTraceback (most recent call last):
     origen = self._numero(ref.get("origen_longitudinal_m"))
              ^^^^^^^^^^^^
 AttributeError: 'VistaPortico' object has no attribute '_numero'
-VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 3099, in main
+    ventana = VentanaPrincipal()
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 687, in __init__
+    self.pagina_cargas = PaginaCargas(self.refrescar, self._portico)
+                         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\03 Ingenieria\Calculador\app\cargas_proyecto.py", line 983, in __init__
+    self._cargar_viento_porticos()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\cargas_proyecto.py", line 1816, in _cargar_viento_porticos
+    self._auto_marcar_viento_por_direccion()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\cargas_proyecto.py", line 1792, in _auto_marcar_viento_por_direccion
+    self.al_guardar()
+    ~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 1443, in refrescar
+    self.pagina_cargas.actualizar_portico()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'VentanaPrincipal' object has no attribute 'pagina_cargas'. Did you mean: '_pagina_vigas'?
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 3099, in main
+    ventana = VentanaPrincipal()
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 691, in __init__
+    self.refrescar()
+    ~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 1442, in refrescar
+    self.vista_portico.actualizar(portico)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "D:\03 Ingenieria\Calculador\app\visualizacion.py", line 387, in actualizar
+    estructura = rutas.cargar_estructura().get(nombre, {}) if nombre else {}
+                 ^^^^^
+UnboundLocalError: cannot access local variable 'rutas' where it is not associated with a value
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n

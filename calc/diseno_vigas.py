@@ -89,8 +89,20 @@ def preparar_datos(portico: str, secciones: dict | None = None) -> tuple[dict, l
                 "Vu_servicio_der": abs(float(bloque_serv.get("V_der", 0.0))),
             }
             if tramo.get("es_voladizo"):
-                datos["Mu_kNm"] = datos["Mu_kNm_apoyo_izq"]
-                datos["Vu_kN_emp"] = datos["Vu_kN_izq"]
+                datos["Mu_kNm"] = max(
+                    datos["Mu_kNm_apoyo_izq"],
+                    datos["Mu_kNm_apoyo_der"],
+                    datos["Mu_kNm_campo"],
+                )
+                datos["Vu_kN_emp"] = max(datos["Vu_kN_izq"], datos["Vu_kN_der"])
+                datos["Mu_servicio"] = max(
+                    datos["Mu_servicio_izq"],
+                    datos["Mu_servicio_der"],
+                    datos["Mu_servicio_campo"],
+                )
+                datos["Vu_servicio_emp"] = max(
+                    datos["Vu_servicio_izq"], datos["Vu_servicio_der"]
+                )
             entrada["tramos"].append(datos)
         datos_vigas[viga_id] = entrada
     return datos_vigas, sorted(set(advertencias))

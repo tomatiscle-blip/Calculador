@@ -485,7 +485,6 @@ def cargas_del_conjunto(biblioteca: dict | None = None) -> AnalisisCargas:
         identificador = elemento.get("id")
         etiqueta = f"{identificador} · {nombre}" if identificador else nombre
         _agregar_items(analisis, items_de_elemento(etiqueta, elemento, bib))
-    _agregar_items(analisis, items_viento_general(datos, bib))
     return analisis
 
 
@@ -516,6 +515,29 @@ def informe_completo(analisis: AnalisisCargas) -> str:
     texto = analisis.resumen_texto() + "\n\nCOMBINACIONES CIRSOC:\n"
     for nombre, valor in combinaciones(analisis.items).items():
         texto += f"{nombre}: {valor:.2f} kN/m\n"
+    datos = datos_cargas()
+    viento_config = (datos.get("viento") or {})
+    if viento_config.get("activo"):
+        ref = viento_config.get("referencia_cirsoc_102_25", {}) or {}
+        ubic = ref.get("ubicacion", {}) or {}
+        ciudad = ubic.get("ciudad", "")
+        V = ref.get("V_basica_ms")
+        direccion = str(viento_config.get("direccion_viento", "x")).lower()
+        afectados = viento_config.get("porticos_activos") or []
+        anchos = viento_config.get("anchos_por_portico", {}) or {}
+        texto += "\nVIENTO GLOBAL DEL PROYECTO (informativo; la aplicación estructural la realiza calc.portico):\n"
+        texto += f"  Ciudad: {ciudad}\n"
+        texto += f"  Velocidad básica: {V} m/s\n"
+        texto += f"  Dirección: {direccion}\n"
+        texto += f"  Pórticos afectados: {', '.join(afectados) if afectados else 'ninguno'}\n"
+        bib = materiales.cargar()
+        for nombre, ancho in (anchos or {}).items():
+            try:
+                w = items_viento_general(datos, bib, ancho_override=float(ancho))
+                wval = sum(float(i["valor"]) for i in w) if w else 0.0
+            except Exception:
+                wval = 0.0
+            texto += f"  {nombre}: ancho tributario = {ancho} m · carga horizontal equivalente = {wval:.2f} kN/m\n"
     return texto
 
 
@@ -650,13 +672,28 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
             )
             lineas.extend(f"    {nombre_combo}: {valor:.2f} kN/m" for nombre_combo, valor in combos.items())
 
-    viento = items_viento_general(datos, bib)
-    if viento:
-        lineas.extend(["", "VIENTO HORIZONTAL GENERAL (se aplica al pórtico):"])
-        for item in viento:
-            lineas.append(f"  {item['valor']:.2f} {item['unidad']} · {item['descripcion']}")
-            if item.get("composicion"):
-                lineas.append(f"    {item['composicion']}")
+    # --- Viento global del proyecto (informativo, no se suma a D/L) ---
+    viento_config = (datos.get("viento") or {})
+    if viento_config.get("activo"):
+        ref = viento_config.get("referencia_cirsoc_102_25", {}) or {}
+        ubic = ref.get("ubicacion", {}) or {}
+        ciudad = ubic.get("ciudad", "")
+        V = ref.get("V_basica_ms")
+        direccion = str(viento_config.get("direccion_viento", "x")).lower()
+        afectados = viento_config.get("porticos_activos") or []
+        anchos = viento_config.get("anchos_por_portico", {}) or {}
+        lineas.extend(["", "VIENTO GLOBAL DEL PROYECTO (informativo; la aplicación estructural la realiza calc.portico):"])
+        lineas.append(f"  Ciudad: {ciudad}")
+        lineas.append(f"  Velocidad básica: {V} m/s")
+        lineas.append(f"  Dirección: {direccion}")
+        lineas.append(f"  Pórticos afectados: {', '.join(afectados) if afectados else 'ninguno'}")
+        for nombre, ancho in (anchos or {}).items():
+            try:
+                w = items_viento_general(datos, bib, ancho_override=float(ancho))
+                wval = sum(float(i["valor"]) for i in w) if w else 0.0
+            except Exception:
+                wval = 0.0
+            lineas.append(f"  {nombre}: ancho tributario = {ancho} m · carga horizontal equivalente = {wval:.2f} kN/m")
     return "\n".join(lineas) + "\n"
 
 

@@ -4,7 +4,7 @@
       "x": 0.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
       "nivel_inicio": "PB",
       "piso": 0,
@@ -12,32 +12,32 @@
       "Y": 0.0
     },
     "C0-2": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
       "nivel_inicio": "PB",
       "piso": 0,
       "X": 0.0,
-      "Y": 5.0
+      "Y": 4.0
     },
     "C0-3": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
       "nivel_inicio": "PB",
       "piso": 0,
       "X": 0.0,
-      "Y": 10.0
+      "Y": 8.0
     },
     "C1-1": {
       "x": 0.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
       "nivel_inicio": "N1",
       "piso": 1,
@@ -45,125 +45,92 @@
       "Y": 0.0
     },
     "C1-2": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
       "nivel_inicio": "N1",
       "piso": 1,
       "X": 0.0,
-      "Y": 5.0
+      "Y": 4.0
     },
     "C1-3": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
       "nivel_inicio": "N1",
       "piso": 1,
       "X": 0.0,
-      "Y": 10.0
+      "Y": 8.0
     },
     "C0-4": {
       "x": 0.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
       "nivel_inicio": "PB",
       "piso": 0,
-      "X": 5.0,
+      "X": 4.0,
       "Y": 0.0
     },
     "C0-5": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
       "nivel_inicio": "PB",
       "piso": 0,
-      "X": 5.0,
-      "Y": 5.0
+      "X": 4.0,
+      "Y": 4.0
     },
     "C0-6": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 0.0,
       "altura_m": 3.0,
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
       "nivel_inicio": "PB",
       "piso": 0,
-      "X": 5.0,
-      "Y": 10.0
+      "X": 4.0,
+      "Y": 8.0
     },
     "C1-4": {
       "x": 0.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
       "nivel_inicio": "N1",
       "piso": 1,
-      "X": 5.0,
+      "X": 4.0,
       "Y": 0.0
     },
     "C1-5": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
       "nivel_inicio": "N1",
       "piso": 1,
-      "X": 5.0,
-      "Y": 5.0
+      "X": 4.0,
+      "Y": 4.0
     },
     "C1-6": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 3.0,
       "altura_m": 3.0,
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
       "nivel_inicio": "N1",
       "piso": 1,
-      "X": 5.0,
-      "Y": 10.0
-    },
-    "C0-7": {
-      "x": 0.0,
-      "nivel": 0.0,
-      "altura_m": 3.0,
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-      "eje_nombre": "Y1",
-      "nivel_inicio": "PB",
-      "piso": 0,
-      "X": 10.0,
-      "Y": 0.0
-    },
-    "C0-8": {
-      "x": 5.0,
-      "nivel": 0.0,
-      "altura_m": 3.0,
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-      "eje_nombre": "Y2",
-      "nivel_inicio": "PB",
-      "piso": 0,
-      "X": 10.0,
-      "Y": 5.0
-    },
-    "C0-9": {
-      "x": 10.0,
-      "nivel": 0.0,
-      "altura_m": 3.0,
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
-      "eje_nombre": "Y3",
-      "nivel_inicio": "PB",
-      "piso": 0,
-      "X": 10.0,
-      "Y": 10.0
+      "X": 4.0,
+      "Y": 8.0
     }
   },
   "bases": {
@@ -171,82 +138,55 @@
       "x": 0.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
       "X": 0.0,
       "Y": 0.0
     },
     "BASE-002": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
       "X": 0.0,
-      "Y": 5.0
+      "Y": 4.0
     },
     "BASE-003": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
       "X": 0.0,
-      "Y": 10.0
+      "Y": 8.0
     },
     "BASE-004": {
       "x": 0.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "eje_nombre": "Y1",
-      "X": 5.0,
+      "X": 4.0,
       "Y": 0.0
     },
     "BASE-005": {
-      "x": 5.0,
+      "x": 4.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
+      "eje_id": "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
       "eje_nombre": "Y2",
-      "X": 5.0,
-      "Y": 5.0
+      "X": 4.0,
+      "Y": 4.0
     },
     "BASE-006": {
-      "x": 10.0,
+      "x": 8.0,
       "nivel": 0.0,
       "tipo": "empotramiento",
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "eje_nombre": "Y3",
-      "X": 5.0,
-      "Y": 10.0
-    },
-    "BASE-007": {
-      "x": 0.0,
-      "nivel": 0.0,
-      "tipo": "empotramiento",
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-      "eje_nombre": "Y1",
-      "X": 10.0,
-      "Y": 0.0
-    },
-    "BASE-008": {
-      "x": 5.0,
-      "nivel": 0.0,
-      "tipo": "empotramiento",
-      "eje_id": "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-      "eje_nombre": "Y2",
-      "X": 10.0,
-      "Y": 5.0
-    },
-    "BASE-009": {
-      "x": 10.0,
-      "nivel": 0.0,
-      "tipo": "empotramiento",
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
-      "eje_nombre": "Y3",
-      "X": 10.0,
-      "Y": 10.0
+      "X": 4.0,
+      "Y": 8.0
     }
   },
   "Pórtico 1": {
@@ -255,51 +195,47 @@
         "tramos": [
           {
             "id": "V0-1 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           },
           {
             "id": "V0-1 T2",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_inicio": 4.0,
+            "x_fin": 8.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
-        "voladizos_m": {},
-        "b_cm": 20.0,
-        "fc_MPa": 20
+        "voladizos_m": {}
       },
       "V1-1": {
         "tramos": [
           {
             "id": "V1-1 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           },
           {
             "id": "V1-1 T2",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_inicio": 4.0,
+            "x_fin": 8.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N2",
         "cota_m": 6.0,
-        "voladizos_m": {},
-        "b_cm": 20.0,
-        "fc_MPa": 20
+        "voladizos_m": {}
       }
     },
     "columnas": [
@@ -318,9 +254,9 @@
     "cargas_puntuales": [],
     "referencia_planta": {
       "direccion": "y",
-      "eje_id": "0b5e0074-036d-4681-90ac-42d8fa4e624f",
+      "eje_id": "cc50a321-021c-4a26-9d41-d5751f20e51f",
       "desfase_m": 0.0,
-      "eje_longitudinal_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_longitudinal_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "desfase_longitudinal_m": 0.0,
       "origen_longitudinal_m": 0.0,
       "niveles": [
@@ -345,18 +281,18 @@
           "nivel": "PB",
           "cota_m": 0.0,
           "eje_ids": [
-            "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-            "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-            "77c53943-27c1-402a-b6b9-3d6bdc0dc218"
+            "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
+            "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
+            "4e014af7-6a3f-42fd-af79-e9e2f4437e3b"
           ]
         },
         {
           "nivel": "N1",
           "cota_m": 3.0,
           "eje_ids": [
-            "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-            "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-            "77c53943-27c1-402a-b6b9-3d6bdc0dc218"
+            "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
+            "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
+            "4e014af7-6a3f-42fd-af79-e9e2f4437e3b"
           ]
         }
       ]
@@ -386,51 +322,47 @@
         "tramos": [
           {
             "id": "V0-2 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           },
           {
             "id": "V0-2 T2",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_inicio": 4.0,
+            "x_fin": 8.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
-        "voladizos_m": {},
-        "b_cm": 20.0,
-        "fc_MPa": 20
+        "voladizos_m": {}
       },
       "V1-2": {
         "tramos": [
           {
             "id": "V1-2 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           },
           {
             "id": "V1-2 T2",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_inicio": 4.0,
+            "x_fin": 8.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N2",
         "cota_m": 6.0,
-        "voladizos_m": {},
-        "b_cm": 20.0,
-        "fc_MPa": 20
+        "voladizos_m": {}
       }
     },
     "columnas": [
@@ -449,9 +381,9 @@
     "cargas_puntuales": [],
     "referencia_planta": {
       "direccion": "y",
-      "eje_id": "6f900e0a-3a47-40f6-801f-5b00fc85c298",
+      "eje_id": "fc428781-2c84-4fa4-8afb-1d80279caf53",
       "desfase_m": 0.0,
-      "eje_longitudinal_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_longitudinal_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "desfase_longitudinal_m": 0.0,
       "origen_longitudinal_m": 0.0,
       "niveles": [
@@ -476,23 +408,23 @@
           "nivel": "PB",
           "cota_m": 0.0,
           "eje_ids": [
-            "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-            "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-            "77c53943-27c1-402a-b6b9-3d6bdc0dc218"
+            "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
+            "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
+            "4e014af7-6a3f-42fd-af79-e9e2f4437e3b"
           ]
         },
         {
           "nivel": "N1",
           "cota_m": 3.0,
           "eje_ids": [
-            "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-            "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-            "77c53943-27c1-402a-b6b9-3d6bdc0dc218"
+            "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
+            "9b0b91e8-5d72-4e1f-9c97-74af5b4c3e06",
+            "4e014af7-6a3f-42fd-af79-e9e2f4437e3b"
           ]
         }
       ]
     },
-    "posicion_planta_m": 5.0,
+    "posicion_planta_m": 4.0,
     "niveles_geometria": [
       {
         "nombre": "PB",
@@ -511,68 +443,55 @@
       }
     ]
   },
-  "Muro 1": {
-    "tipo": "muro",
-    "referencia_planta": {
-      "direccion": "x",
-      "eje_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-      "desfase_m": 0.0,
-      "eje_longitudinal_id": "0b5e0074-036d-4681-90ac-42d8fa4e624f",
-      "desfase_longitudinal_m": 0.0,
-      "desfase_inicio_m": 0.0,
-      "desfase_fin_m": 0.0
-    },
-    "posicion_planta_m": 0.0,
-    "x_inicio": 0.0,
-    "x_fin": 10.0,
-    "nivel_inicio": 0.0,
-    "nivel_fin": 3.0,
-    "espesor_m": 0.2,
-    "offset": 0.0,
-    "longitud_m": 10.0
-  },
   "Pórtico 3": {
     "vigas": {
       "V0-3": {
         "tramos": [
           {
             "id": "V0-3 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
-            "cargas_puntuales": []
-          },
-          {
-            "id": "V0-3 T2",
-            "longitud_m": 5.0,
-            "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
         "voladizos_m": {}
+      },
+      "V1-3": {
+        "tramos": [
+          {
+            "id": "V1-3 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N2",
+        "cota_m": 6.0,
+        "voladizos_m": {}
       }
     },
     "columnas": [
-      "C0-7",
-      "C0-8",
-      "C0-9"
+      "C0-1",
+      "C0-4",
+      "C1-1",
+      "C1-4"
     ],
     "bases": [
-      "BASE-007",
-      "BASE-008",
-      "BASE-009"
+      "BASE-001",
+      "BASE-004"
     ],
     "cargas_puntuales": [],
     "referencia_planta": {
-      "direccion": "y",
-      "eje_id": "e4e911d6-b0a0-4dbb-b164-e638e0f9ab06",
+      "direccion": "x",
+      "eje_id": "4cc28296-e3d8-4540-965a-d8cf9a4fe6e8",
       "desfase_m": 0.0,
-      "eje_longitudinal_id": "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
+      "eje_longitudinal_id": "cc50a321-021c-4a26-9d41-d5751f20e51f",
       "desfase_longitudinal_m": 0.0,
       "origen_longitudinal_m": 0.0,
       "niveles": [
@@ -585,6 +504,11 @@
           "nombre": "N1",
           "cota_m": 3.0,
           "cota_origen_m": 3.0
+        },
+        {
+          "nombre": "N2",
+          "cota_m": 6.0,
+          "cota_origen_m": 6.0
         }
       ],
       "columnas_por_nivel": [
@@ -592,14 +516,21 @@
           "nivel": "PB",
           "cota_m": 0.0,
           "eje_ids": [
-            "0a80dbd7-9364-4fa3-83fc-4d04091598ab",
-            "3c0c9f9d-a75d-4755-91ab-d58b58940269",
-            "77c53943-27c1-402a-b6b9-3d6bdc0dc218"
+            "cc50a321-021c-4a26-9d41-d5751f20e51f",
+            "fc428781-2c84-4fa4-8afb-1d80279caf53"
+          ]
+        },
+        {
+          "nivel": "N1",
+          "cota_m": 3.0,
+          "eje_ids": [
+            "cc50a321-021c-4a26-9d41-d5751f20e51f",
+            "fc428781-2c84-4fa4-8afb-1d80279caf53"
           ]
         }
       ]
     },
-    "posicion_planta_m": 10.0,
+    "posicion_planta_m": 0.0,
     "niveles_geometria": [
       {
         "nombre": "PB",
@@ -610,6 +541,11 @@
         "nombre": "N1",
         "cota_m": 3.0,
         "cota_origen_m": 3.0
+      },
+      {
+        "nombre": "N2",
+        "cota_m": 6.0,
+        "cota_origen_m": 6.0
       }
     ]
   },
@@ -619,45 +555,49 @@
         "tramos": [
           {
             "id": "V0-4 T1",
-            "longitud_m": 5.0,
+            "longitud_m": 4.0,
             "es_voladizo": false,
             "x_inicio": 0.0,
-            "x_fin": 5.0,
-            "cargas_puntuales": []
-          },
-          {
-            "id": "V0-4 T2",
-            "longitud_m": 5.0,
-            "es_voladizo": false,
-            "x_inicio": 5.0,
-            "x_fin": 10.0,
+            "x_fin": 4.0,
             "cargas_puntuales": []
           }
         ],
         "nivel_nombre": "N1",
         "cota_m": 3.0,
-        "voladizos_m": {},
-        "b_cm": 20.0,
-        "fc_MPa": 20,
-        "h_cm": 50.0
+        "voladizos_m": {}
+      },
+      "V1-4": {
+        "tramos": [
+          {
+            "id": "V1-4 T1",
+            "longitud_m": 4.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N2",
+        "cota_m": 6.0,
+        "voladizos_m": {}
       }
     },
     "columnas": [
       "C0-3",
       "C0-6",
-      "C0-9"
+      "C1-3",
+      "C1-6"
     ],
     "bases": [
       "BASE-003",
-      "BASE-006",
-      "BASE-009"
+      "BASE-006"
     ],
     "cargas_puntuales": [],
     "referencia_planta": {
       "direccion": "x",
-      "eje_id": "77c53943-27c1-402a-b6b9-3d6bdc0dc218",
+      "eje_id": "4e014af7-6a3f-42fd-af79-e9e2f4437e3b",
       "desfase_m": 0.0,
-      "eje_longitudinal_id": "0b5e0074-036d-4681-90ac-42d8fa4e624f",
+      "eje_longitudinal_id": "cc50a321-021c-4a26-9d41-d5751f20e51f",
       "desfase_longitudinal_m": 0.0,
       "origen_longitudinal_m": 0.0,
       "niveles": [
@@ -670,6 +610,11 @@
           "nombre": "N1",
           "cota_m": 3.0,
           "cota_origen_m": 3.0
+        },
+        {
+          "nombre": "N2",
+          "cota_m": 6.0,
+          "cota_origen_m": 6.0
         }
       ],
       "columnas_por_nivel": [
@@ -677,14 +622,21 @@
           "nivel": "PB",
           "cota_m": 0.0,
           "eje_ids": [
-            "0b5e0074-036d-4681-90ac-42d8fa4e624f",
-            "6f900e0a-3a47-40f6-801f-5b00fc85c298",
-            "e4e911d6-b0a0-4dbb-b164-e638e0f9ab06"
+            "cc50a321-021c-4a26-9d41-d5751f20e51f",
+            "fc428781-2c84-4fa4-8afb-1d80279caf53"
+          ]
+        },
+        {
+          "nivel": "N1",
+          "cota_m": 3.0,
+          "eje_ids": [
+            "cc50a321-021c-4a26-9d41-d5751f20e51f",
+            "fc428781-2c84-4fa4-8afb-1d80279caf53"
           ]
         }
       ]
     },
-    "posicion_planta_m": 10.0,
+    "posicion_planta_m": 8.0,
     "niveles_geometria": [
       {
         "nombre": "PB",
@@ -695,6 +647,11 @@
         "nombre": "N1",
         "cota_m": 3.0,
         "cota_origen_m": 3.0
+      },
+      {
+        "nombre": "N2",
+        "cota_m": 6.0,
+        "cota_origen_m": 6.0
       }
     ]
   }

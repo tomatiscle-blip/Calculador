@@ -809,8 +809,8 @@ class PaginaCargas(QWidget):
         self.etiqueta.setWordWrap(True)
         self.viento_activo = QCheckBox("Aplicar viento horizontal general al pórtico")
         self.direccion_viento = QComboBox()
-        self.direccion_viento.addItem("Viento sobre ejes X (frente en Y)", "x")
-        self.direccion_viento.addItem("Viento sobre ejes Y (frente en X)", "y")
+        self.direccion_viento.addItem("Viento en dirección X (fuerza paralela a X)", "x")
+        self.direccion_viento.addItem("Viento en dirección Y (fuerza paralela a Y)", "y")
         catalogo_viento = rutas.leer_json(rutas.DATOS_GLOBAL / "viento_cirsoc_102_25.json", {}) or {}
         self.catalogo_viento = catalogo_viento.get("ciudades", {})
         self.ciudad_viento = QComboBox()
@@ -827,11 +827,13 @@ class PaginaCargas(QWidget):
         )
         self.nota_viento_ref.setWordWrap(True)
         # Viento manual por pórtico (auto-marca se hace al cargar, no al cambiar combo)
-        # self.direccion_viento.currentIndexChanged.connect(self._auto_marcar_viento_por_direccion)
+        self.direccion_viento.currentIndexChanged.connect(self._al_cambiar_direccion_viento)
 
         # Viento manual por pórtico
         self.etiqueta_viento_porticos = QLabel("Viento por pórtico (manual): marca los pórticos que reciben viento y su ancho tributario.")
         self.etiqueta_viento_porticos.setWordWrap(True)
+        self.resumen_viento = QLabel("")
+        self.resumen_viento.setWordWrap(True)
         self.tabla_viento_porticos = QTableWidget(0, 3)
         self.tabla_viento_porticos.setHorizontalHeaderLabels(("Pórtico", "Aplicar viento", "Ancho tributario (m)"))
         self.tabla_viento_porticos.verticalHeader().setVisible(False)
@@ -909,6 +911,7 @@ class PaginaCargas(QWidget):
         caja_elementos.addLayout(fila_referencia_viento)
         caja_elementos.addWidget(self.nota_viento_ref)
         caja_elementos.addWidget(self.etiqueta_viento_porticos)
+        caja_elementos.addWidget(self.resumen_viento)
         caja_elementos.addWidget(self.tabla_viento_porticos)
         caja_elementos.addWidget(self.boton_guardar_viento_porticos, 0, Qt.AlignmentFlag.AlignLeft)
 
@@ -1689,7 +1692,7 @@ class PaginaCargas(QWidget):
         datos = cargas.datos_cargas()
         datos["id_proyecto"] = self._id_proyecto(datos)
         viento = datos.setdefault("viento", {})
-        viento["activo"] = int(self.viento_activo.isChecked())
+        viento["activo"] = int(bool(viento.get("porticos_activos")) or self.viento_activo.isChecked())
         direccion = self.direccion_viento.currentData()
         viento["direccion_viento"] = direccion
         # Anchos tributarios automáticos por pórtico afectado: mitad de la
@@ -1785,10 +1788,30 @@ class PaginaCargas(QWidget):
                 continue
             nombre = item.text()
             portico = estructura.get(nombre, {})
-            es_afectado = (_cargas.direccion_portico(portico) == direccion)
+            es_afectado = (_cargas.direccion_portico(portico) != direccion)
             cb = self.tabla_viento_porticos.cellWidget(fila, 1)
             if cb is not None:
                 cb.setChecked(es_afectado)
+
+    def _al_cambiar_direccion_viento(self, _indice: int) -> None:
+        self._auto_marcar_viento_por_direccion()
+        try:
+            if callable(self.al_guardar):
+                self.al_guardar()
+        except Exception:
+            pass
+        try:
+            direccion = self.direccion_viento.currentData()
+            if direccion not in ("x", "y"):
+                return
+            self.resumen_viento.setText(
+                f"Viento global: {str(direccion).upper()}  ·  "
+                f"Pórticos afectados: (auto)  ·  "
+                f"Carga aplicada al modelo: FX local"
+            )
+        except Exception:
+            pass
+
 
     def _cargar_viento_porticos(self) -> None:
         from calc import rutas
@@ -1813,6 +1836,19 @@ class PaginaCargas(QWidget):
             spin.setValue(float(anchos.get(nombre, viento.get("ancho_tributario_m", 0.0)) or 0.0))
             self.tabla_viento_porticos.setCellWidget(fila, 2, spin)
         self._auto_marcar_viento_por_direccion()
+        try:
+            _viento = datos.get("viento", {}) or {}
+            _dir = str(_viento.get("direccion_viento", "x")).lower()
+            _activos = _viento.get("porticos_activos")
+            _ancho = _viento.get("ancho_tributario_m", 0.0)
+            _texto = (
+                f"Viento global: {_dir.upper()}  ·  "
+                f"Pórticos afectados: {', '.join(_activos) if _activos else 'todos los activos'}  ·  "
+                f"Ancho tributario: {_ancho} m  ·  Carga aplicada al modelo: FX local"
+            )
+            self.resumen_viento.setText(_texto)
+        except Exception:
+            pass
 
     def _guardar_viento_porticos(self) -> None:
         from calc import rutas
@@ -1830,9 +1866,26 @@ class PaginaCargas(QWidget):
                 anchos[nombre] = float(spin.value())
         viento["porticos_activos"] = porticos_activos if porticos_activos else None
         viento["anchos_por_portico"] = anchos
+        valores = [v for v in anchos.values() if v > 0]
+        viento["ancho_tributario_m"] = round(sum(valores) / len(valores), 3) if valores else 0.0
         # Modo manual: desactivar direccion automatica
         viento["activo"] = 1 if porticos_activos else 0
         rutas.guardar_json(rutas.CARGAS, datos)
+        try:
+            if callable(self.al_guardar):
+                self.al_guardar()
+        except Exception:
+            pass
+        try:
+            _dir = str(viento.get("direccion_viento", "x")).lower()
+            _ancho = viento.get("ancho_tributario_m", 0.0)
+            self.resumen_viento.setText(
+                f"Viento global: {_dir.upper()}  ·  "
+                f"Pórticos afectados: {', '.join(porticos_activos) if porticos_activos else 'ninguno'}  ·  "
+                f"Ancho tributario: {_ancho} m  ·  Carga aplicada al modelo: FX local"
+            )
+        except Exception:
+            pass
         QMessageBox.information(self, "Viento", "Viento por pórtico guardado.")
 
 

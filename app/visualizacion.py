@@ -322,6 +322,8 @@ class VistaPortico(QWidget):
         self.viento_lineal_kN_m = 0.0
         self.viento_nodos: list[dict] = []
         self.capas_carga = 0
+        self.viento_global_dir = "x"
+        self.viento_aplicado = False
         self.niveles: list[dict] = []
         self.colores: dict = {}
 
@@ -384,6 +386,21 @@ class VistaPortico(QWidget):
 
     def actualizar(self, nombre: str) -> None:
         self.nombre = nombre
+        self.viento_global_dir = "x"
+        self.viento_aplicado = False
+        try:
+            from calc import rutas
+            _proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
+            _viento = _proyecto.get("viento", {}) or {}
+            self.viento_global_dir = str(_viento.get("direccion_viento", "x")).strip().lower()
+            if self.viento_global_dir not in ("x", "y"):
+                self.viento_global_dir = "x"
+            _porticos_activos = _viento.get("porticos_activos", None)
+            _activo = bool(_viento.get("activo"))
+            if _activo and (_porticos_activos is None or (isinstance(_porticos_activos, list) and self.nombre in _porticos_activos)):
+                self.viento_aplicado = True
+        except Exception:
+            pass
         estructura = rutas.cargar_estructura().get(nombre, {}) if nombre else {}
         es_muro = isinstance(estructura, dict) and str(estructura.get("tipo", "")).lower() == "muro"
         if nombre and es_muro:
@@ -481,45 +498,62 @@ class VistaPortico(QWidget):
             for cargas_tramo in self.cargas.values()
         ), default=0)
         self.setMinimumHeight(max(250, 190 + self.capas_carga * 24))
-        proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
-        configuracion_viento = proyecto.get("viento", {}) or {}
-        self.direccion_viento = str(configuracion_viento.get("direccion_viento", "x")).strip().lower()
-        if self.direccion_viento not in ("x", "y"):
-            self.direccion_viento = "x"
-        self.anchos_viento_por_portico = configuracion_viento.get("anchos_por_portico", {}) or {}
-        activo = bool(configuracion_viento.get("activo"))
-        if activo:
+        # Datos de viento para dibujar la flecha en el visor de pórtico.
+        self.viento_lineal_kN_m = 0.0
+        self.viento_nodos = []
+        self.ancho_viento_m = 0.0
+        self.viento_global_dir = "x"
+        self.viento_aplicado = False
+        if self.nombre and self.tipo != "muro":
             try:
-                ancho_override = None
-                if self.nombre in self.anchos_viento_por_portico and self.anchos_viento_por_portico[self.nombre]:
-                    ancho_override = float(self.anchos_viento_por_portico[self.nombre])
-                elif self.anchos_viento_por_portico:
-                    vals = [float(v) for v in self.anchos_viento_por_portico.values() if v]
-                    if vals:
-                        ancho_override = sum(vals) / len(vals)
-                if not ancho_override or ancho_override <= 0:
-                    ancho_override = float(configuracion_viento.get("ancho_tributario_m", 0.0))
-                if not ancho_override or ancho_override <= 0:
-                    ancho_override = 1.0  # fallback para que se vea
-                items_viento = cargas.items_viento_general(proyecto, materiales.cargar(), ancho_override=ancho_override)
-                self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
-                self.ancho_viento_m = ancho_override
-                columnas_por_piso = {}
-                # skip old block
-
-                for columnas in columnas_por_piso.values():
-                    if not columnas:
-                        continue
-                    altura = float(columnas[0].get("altura_m", 0.0))
-                    fuerza_nudo = self.viento_lineal_kN_m * altura / len(columnas)
-                    for columna in columnas:
-                        self.viento_nodos.append({
-                            "x": float(columna["x"]),
-                            "y": float(columna.get("nivel", 0.0)) + float(columna.get("altura_m", 0.0)),
-                            "valor_kN": fuerza_nudo,
-                        })
-            except Exception as exc:
-                self.aviso = f"No se pudo representar el viento: {exc}"
+                from calc import rutas, cargas as _cargas, materiales
+                proyecto = rutas.leer_json(rutas.CARGAS, {}) or {}
+                configuracion_viento = proyecto.get("viento", {}) or {}
+                self.viento_global_dir = str(configuracion_viento.get("direccion_viento", "x")).strip().lower()
+                if self.viento_global_dir not in ("x", "y"):
+                    self.viento_global_dir = "x"
+                self.direccion_viento = self.viento_global_dir
+                porticos_activos = configuracion_viento.get("porticos_activos", None)
+                activo = bool(configuracion_viento.get("activo"))
+                if activo and (porticos_activos is None or (isinstance(porticos_activos, list) and self.nombre in porticos_activos)):
+                    self.viento_aplicado = True
+                    anchos = configuracion_viento.get("anchos_por_portico", {}) or {}
+                    self.anchos_viento_por_portico = anchos
+                    ancho_override = None
+                    if self.nombre in anchos and anchos[self.nombre]:
+                        ancho_override = float(anchos[self.nombre])
+                    elif anchos:
+                        vals = [float(v) for v in anchos.values() if v]
+                        if vals:
+                            ancho_override = sum(vals) / len(vals)
+                    if not ancho_override or ancho_override <= 0:
+                        ancho_override = float(configuracion_viento.get("ancho_tributario_m", 0.0))
+                    if not ancho_override or ancho_override <= 0:
+                        ancho_override = 1.0
+                    items_viento = _cargas.items_viento_general(proyecto, materiales.cargar(), ancho_override=ancho_override)
+                    self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
+                    self.ancho_viento_m = ancho_override
+                    columnas_por_piso = {}
+                    for _cid, _col in self.columnas.items():
+                        if not isinstance(_col, dict):
+                            continue
+                        _clave = round(float(_col.get("nivel", 0.0)), 4)
+                        columnas_por_piso.setdefault(_clave, []).append(_col)
+                    for _columnas in columnas_por_piso.values():
+                        if not _columnas:
+                            continue
+                        _altura = float(_columnas[0].get("altura_m", 0.0) or 0.0)
+                        if _altura <= 0:
+                            continue
+                        _fuerza = self.viento_lineal_kN_m * _altura / len(_columnas)
+                        for _col in _columnas:
+                            self.viento_nodos.append({
+                                "x": float(_col.get("x", 0.0)),
+                                "y": float(_col.get("nivel", 0.0)) + float(_col.get("altura_m", 0.0)),
+                                "valor_kN": _fuerza,
+                            })
+            except Exception:
+                pass
         ids = sorted({c.get("carga_id", "") for grupo in self.cargas.values() for c in grupo})
         self.colores = {cid: QColor(self.PALETA[i % len(self.PALETA)]) for i, cid in enumerate(ids)}
         lineas = []
@@ -936,45 +970,37 @@ class VistaPortico(QWidget):
             x_texto = max(4.0, min((base.x() + final.x() - ancho_texto) / 2, ancho - ancho_texto - 4))
             painter.drawText(QPointF(x_texto, y_linea - 4), etiqueta)
 
-        # El viento se indica una vez fuera del marco; el motor conserva su
-        # distribución interna en los nudos superiores. La flecha apunta en el
-        # sentido de la dirección del viento (X = horizontal, Y = vertical).
-        if self.viento_nodos:
-            x_marco = min(float(c.get("x", 0.0)) for c in self.columnas.values())
-            y_base = min(float(c.get("nivel", 0.0)) for c in self.columnas.values())
-            y_cima = max(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values())
-            centro = punto(x_marco, (y_base + y_cima) / 2)
+        # El viento en el modelo plano 2D siempre se aplica como FX local
+        # (carga lateral horizontal), independientemente de direccion_viento.
+        # La flecha se dibuja horizontal para reflejar la carga realmente
+        # enviada a PyNite. La dirección global se informa en el texto.
+        if self.viento_nodos or self.viento_lineal_kN_m > 0:
+            x_marco = min(float(c.get("x", 0.0)) for c in self.columnas.values()) if self.columnas else 0.0
+            y_base = min(float(c.get("nivel", 0.0)) for c in self.columnas.values()) if self.columnas else 0.0
+            y_cima = max(float(c.get("nivel", 0.0)) + float(c.get("altura_m", 0.0)) for c in self.columnas.values()) if self.columnas else 0.0
+            centro_y = (y_base + y_cima) / 2 if self.columnas else 0.0
             color_viento = QColor("#d97706")
-            if self.direccion_viento == "y":
-                # Flecha vertical: viento sobre ejes Y (pórticos planos X al frente).
-                x_flecha = centro.x()
-                y1 = centro.y() + 8
-                y0 = y1 + 32
-                painter.setPen(QPen(color_viento, 2.5))
-                painter.drawLine(QPointF(x_flecha, y0), QPointF(x_flecha, y1))
-                painter.setBrush(color_viento)
-                painter.drawPolygon(QPolygonF([
-                    QPointF(x_flecha, y1),
-                    QPointF(x_flecha - 4, y1 - 6),
-                    QPointF(x_flecha + 4, y1 - 6),
-                ]))
-                painter.setPen(QColor("#9a3412"))
-                total = sum(nudo["valor_kN"] for nudo in self.viento_nodos)
-                painter.drawText(QPointF(x_flecha - 26, y0 - 7), f"W = {total:.2f} kN · dir. Y · toda la estructura")
-            else:
-                # Flecha horizontal: viento sobre ejes X (pórticos planos Y al frente).
-                y_flecha = centro.y()
-                x1 = centro.x() - 8
-                x0 = x1 - 32
-                painter.setPen(QPen(color_viento, 2.5))
-                painter.drawLine(QPointF(x0, y_flecha), QPointF(x1, y_flecha))
-                painter.setBrush(color_viento)
-                painter.drawPolygon(QPolygonF([
-                    QPointF(x1, y_flecha), QPointF(x1 - 6, y_flecha - 4), QPointF(x1 - 6, y_flecha + 4)
-                ]))
-                painter.setPen(QColor("#9a3412"))
-                total = sum(nudo["valor_kN"] for nudo in self.viento_nodos)
-                painter.drawText(QPointF(x0 - 12, y_flecha - 7), f"W = {total:.2f} kN · dir. X · toda la estructura")
+            centro_px = punto(x_marco, centro_y)
+            y_flecha = centro_px.y()
+            x_fin = centro_px.x() - 8
+            x_ini = x_fin - 32
+            painter.setPen(QPen(color_viento, 2.5))
+            painter.setBrush(color_viento)
+            painter.drawLine(QPointF(x_ini, y_flecha), QPointF(x_fin, y_flecha))
+            painter.drawPolygon(QPolygonF([
+                QPointF(x_fin, y_flecha), QPointF(x_fin - 6, y_flecha - 4), QPointF(x_fin - 6, y_flecha + 4)
+            ]))
+            painter.setPen(QColor("#9a3412"))
+            total = sum(nudo["valor_kN"] for nudo in self.viento_nodos) if self.viento_nodos else self.viento_lineal_kN_m
+            estado = "SI" if self.viento_aplicado else "NO"
+            painter.drawText(
+                QPointF(x_ini - 12, y_flecha - 7) if x_ini - 12 > 0 else QPointF(x_fin + 5, y_flecha - 7),
+                f"W = {total:.2f} kN · Viento global: {self.viento_global_dir.upper()} · Aplicado: {estado} · Dir. local: FX",
+            )
+        elif self.aviso == "":
+            painter.setPen(QPen(QColor("#94a3b8"), 1.5))
+            painter.drawText(QPointF(10, 20), "Viento: no aplica a este pórtico")
+
 
         if self.aviso:
             painter.setPen(QColor("#b91c1c"))
@@ -1078,6 +1104,7 @@ class VistaPlantaPorticos(QWidget):
         self.muros_seleccionados = set()
         self.portico_activo = ""
         self.nivel_activo = None  # cota Z del nivel filtrado; None = todos
+        self.porticos_viento_activos = []
         self.zoom_factor = 1.0  # multiplicador de escala para zoom con rueda
         # Paneo por arrastre: desplazamiento de la vista en píxeles.
         self.desplazamiento_x = 0.0
@@ -1175,7 +1202,8 @@ class VistaPlantaPorticos(QWidget):
         self.update()
 
     def set_datos_viento(self, viento_nodos: list[dict], direccion: str,
-                         lineal_kN_m: float, ancho_m: float) -> None:
+                         lineal_kN_m: float, ancho_m: float,
+                         porticos_activos: list[str] | None = None) -> None:
         """Recibe los datos de viento del proyecto para dibujar la flecha en planta."""
         self.viento_nodos = viento_nodos or []
         self.direccion_viento = str(direccion or "x").strip().lower()
@@ -1183,6 +1211,7 @@ class VistaPlantaPorticos(QWidget):
             self.direccion_viento = "x"
         self.viento_lineal_kN_m = float(lineal_kN_m or 0.0)
         self.ancho_viento_m = float(ancho_m or 0.0)
+        self.porticos_viento_activos = list(porticos_activos or [])
         self.update()
 
     # ------------------------------------------------------------------
@@ -2593,7 +2622,7 @@ class VistaPlantaPorticos(QWidget):
                 painter.setPen(QColor("#9a3412"))
                 painter.drawText(
                     QPointF(x_fin - 78, y_fin + largo + 12),
-                    f"Viento → dir. Y  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN)",
+                    f"Viento → dir. Y  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN · Afectados: {', '.join(self.porticos_viento_activos) if self.porticos_viento_activos else 'todos'})",
                 )
             else:
                 # Flecha horizontal: viento sobre ejes X (pórticos planos Y al frente).
@@ -2605,7 +2634,7 @@ class VistaPlantaPorticos(QWidget):
                 painter.setPen(QColor("#9a3412"))
                 painter.drawText(
                     QPointF(x_fin + 10, y_fin - 4),
-                    f"Viento → dir. X  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN)",
+                    f"Viento → dir. X  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN · Afectados: {', '.join(self.porticos_viento_activos) if self.porticos_viento_activos else 'todos'})",
                 )
         else:
             # Indicador explícito cuando el viento NO aplica en este pórtico/nivel.

@@ -577,13 +577,18 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         columnas = _col_raw or {}
     datos_carga_proyecto = cargas.datos_cargas() if nombre else {}
     viento_config = datos_carga_proyecto.get("viento", {})
+    anchos_por_portico = viento_config.get("anchos_por_portico", {}) or {}
     w_general = 0.0
-    # Viento global: se aplica a porticos paralelos a la direccion del viento.
     if viento_config.get("activo"):
-        direccion = str(viento_config.get("direccion_viento", "x")).strip().lower()
-        if direccion == cargas.direccion_portico(portico):
-            anchos_por_portico = viento_config.get("anchos_por_portico", {}) or {}
+        porticos_activos = viento_config.get("porticos_activos", None)
+        direccion_viento = str(viento_config.get("direccion_viento", "x")).strip().lower()
+        direccion_portico = str((portico.get("referencia_planta") or {}).get("direccion", "x")).strip().lower()
+        if porticos_activos is not None and nombre not in (porticos_activos or []):
+            w_general = 0.0
+        else:
             ancho = anchos_por_portico.get(nombre, viento_config.get("ancho_tributario_m", 0.0))
+            if not ancho or ancho <= 0:
+                ancho = viento_config.get("ancho_tributario_m", 0.0)
             items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar(), ancho_override=ancho)
             w_general = sum(float(item["valor"]) for item in items_viento)
     mapa["viento_general_kN_m"] = w_general
@@ -837,9 +842,10 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         ids = ", ".join(sorted(nudos_sin_apoyo))
         avisos.append("Columnas superiores sin viga inferior: " + ids)
 
-    direccion_portico_actual = cargas.direccion_portico(portico)
-    eje_carga = "FX" if direccion_portico_actual == "x" else "FY"
-
+    # El viento es siempre una carga lateral horizontal en el modelo plano 2D
+    # (X local = horizontal del pórtico). La orientación global (direccion_portico)
+    # solo se usa en preprocesamiento para construir la geometría; no decide
+    # la dirección de aplicación de la carga en el solver.
 
     # --- Viento (caso W): fuerza horizontal en la punta de cada columna ----
     for viga_id, viga in portico.get("vigas", {}).items():
@@ -865,7 +871,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                 continue
             n_punta = _nodo(_x_local(col), col.get("nivel", 0.0) + col["altura_m"])
             if n_punta in m.nodes:
-                m.add_node_load(n_punta, eje_carga, por_col, case="W")
+                m.add_node_load(n_punta, "FX", por_col, case="W")
 
     # --- Combinaciones -----------------------------------------------------
     for nombre, (fD, fL, fW, fP) in combinaciones().items():
