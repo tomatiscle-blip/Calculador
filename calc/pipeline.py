@@ -59,6 +59,23 @@ def _marca_cargas(_portico: str = "") -> tuple[bool, str]:
     if not elementos or not activos:
         return False, "Definí al menos una carga activa en la pestaña Cargas"
     detalle = f"{activos} carga(s) activa(s), {aplicaciones} aplicación(es)"
+    # desglose por tipo de elemento
+    por_tipo: dict[str, int] = {}
+    for e in elementos.values():
+        if not e.get("activo", True):
+            continue
+        tipo = str(e.get("tipo", "?"))
+        por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
+    if por_tipo:
+        detalle += " · " + ", ".join(f"{t}: {n}" for t, n in sorted(por_tipo.items()))
+    # viento usado
+    viento = datos.get("viento") or {}
+    if viento.get("activo"):
+        afectados = viento.get("porticos_activos") or []
+        ref = (viento.get("referencia_cirsoc_102_25") or {}).get("ubicacion", {}) or {}
+        ciudad = ref.get("ciudad", "")
+        V = (viento.get("referencia_cirsoc_102_25") or {}).get("V_basica_ms")
+        detalle += f" · viento: {ciudad} V={V} m/s, pórticos: {', '.join(afectados) if afectados else 'ninguno'}"
     if txts:
         ultimo = max(txts, key=lambda archivo: archivo.stat().st_mtime)
         detalle += f" \u00b7 informe: {ultimo.name}"
@@ -271,7 +288,15 @@ def _marca_vigas_globales(_portico: str = "") -> tuple[bool, str]:
     datos = rutas.leer_json(archivo)
     if not datos:
         return False, "falta salidas/vigas/resultados_vigas_globales.json"
-    return True, f"{len(datos)} vigas globales"
+    porticos = {str(d.get("portico")) for d in datos}
+    solicitudes = {p.stem for p in rutas.listar(rutas.SAL_SOLICITACIONES, "*.json")}
+    detalle = f"{len(datos)} tramos · {len(porticos)} pórtico(s)"
+    if solicitudes:
+        detalle += f" de {len(solicitudes)} con solicitaciones"
+    excel = rutas.SAL_VIGAS / "resultados_vigas_globales.xlsx"
+    if excel.exists():
+        detalle += " + Excel"
+    return True, detalle
 def _marca_bases_globales(_portico: str = "") -> tuple[bool, str]:
     archivo = rutas.SAL_BASES / "resultados_bases_globales.json"
     datos = rutas.leer_json(archivo)
@@ -296,9 +321,17 @@ def _marca_losas(_portico: str = "") -> tuple[bool, str]:
 
 
 def _marca_terreno(_portico: str = "") -> tuple[bool, str]:
-    if rutas.TERRENO.exists():
-        return True, "datos/terreno.json cargado"
-    return False, "falta datos/terreno.json (a desarrollar)"
+    datos = rutas.leer_json(rutas.TERRENO, {}) or {}
+    if not datos:
+        return False, "falta datos/terreno.json (cargalo en la subpestaña Terreno de Pórticos)"
+    q = datos.get("q_adm_kPa")
+    prof = datos.get("profundidad_fundacion_m")
+    detalle = "datos/terreno.json cargado"
+    if q is not None:
+        detalle += f" · q_adm = {float(q):.1f} kPa"
+    if prof is not None:
+        detalle += f" · prof. = {float(prof):.2f} m"
+    return True, detalle
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +343,7 @@ ETAPAS: tuple[Etapa, ...] = (
         clave="cargas",
         nombre="1. Análisis de cargas",
         descripcion="Peso propio, sobrecargas, viento y combinaciones CIRSOC.",
-        script="00_Analisis_cargas.py",
+        script="Legacy/00_Analisis_cargas.py",
         entradas=(rutas.MATERIALES, rutas.CARGAS),
         salidas=(rutas.SAL_ANALISIS_CARGAS,),
         marca=_marca_cargas,
@@ -323,9 +356,9 @@ ETAPAS: tuple[Etapa, ...] = (
         script=None,
         entradas=(),
         salidas=(rutas.TERRENO,),
-        implementada=False,
+        implementada=True,
         marca=_marca_terreno,
-        nota="A desarrollar: hoy q_adm y profundidad se piden a mano en P05.",
+        nota="Los datos de fundación se cargan en la subpestaña 'Terreno' de Pórticos (q_adm y profundidad).",
     ),
     Etapa(
         clave="geometria",
@@ -342,7 +375,7 @@ ETAPAS: tuple[Etapa, ...] = (
         clave="portico",
         nombre="4. Solicitaciones del pórtico",
         descripcion="Resuelve las cargas aplicadas y genera solicitaciones por combinación.",
-        script="calc.portico",
+        script="calc/portico.py",
         entradas=(rutas.ESTRUCTURA, rutas.CARGAS, rutas.MATERIALES),
         salidas=(rutas.SAL_SOLICITACIONES / "{portico}.json",),
         depende_de=("geometria",),
@@ -352,7 +385,7 @@ ETAPAS: tuple[Etapa, ...] = (
     ),
     Etapa(
         clave="vigas",
-        nombre="5. Vigas de hormigón",
+        nombre="5. Vigas (por pórtico)",
         descripcion="Flexión, corte, flecha, fisuración y planilla de armado.",
         script="P02_Viga_portico.py",
         entradas=(
@@ -366,17 +399,8 @@ ETAPAS: tuple[Etapa, ...] = (
         marca=_marca_vigas,
     ),
     Etapa(
-        clave="vigas_excel",
-        nombre="6. Planilla de vigas (Excel)",
-        descripcion="Junta los resultados de vigas en un Excel por pórtico.",
-        script="P03_Viga_portico_guardar_excel.py",
-        entradas=(rutas.ruta_salida("vigas", "resultados_*_vigas.json"),),
-        salidas=(rutas.SAL_VIGAS / "Planilla_Vigas_Portico.xlsx",),
-        depende_de=("vigas",),
-    ),
-    Etapa(
         clave="columnas",
-        nombre="7. Columnas",
+        nombre="6. Columnas (por pórtico)",
         descripcion="Esbeltez, cuantías y diagramas de interacción.",
         script="Legacy/P04_Columnas_portico.py",
         entradas=(
@@ -394,7 +418,7 @@ ETAPAS: tuple[Etapa, ...] = (
     ),
     Etapa(
         clave="bases",
-        nombre="8. Bases (zapatas)",
+        nombre="7. Bases (por pórtico)",
         descripcion="Dimensionado, tensiones del suelo, punzonado y armadura.",
         script="Legacy/P05_Bases_portico.py",
         entradas=(
@@ -413,35 +437,34 @@ ETAPAS: tuple[Etapa, ...] = (
         nota="Usa q_adm y profundidad de fundación guardados en datos/terreno.json.",
     ),
     Etapa(
-        clave="columnas_globales",
-        nombre="9. Columnas globales (legacy)",
-        descripcion="Etapa obsoleta: reemplazada por columnas_globales_completo.",
-        script="calc/columnas_globales.py",
-        entradas=(rutas.SAL_COLUMNAS / "resultados_*_columnas.json",),
-        salidas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
-        depende_de=("columnas", "vigas"),
-        interactiva=False,
-        implementada=False,
-        marca=_marca_columnas_globales,
-        nota="Obsoleta. Usar la etapa columnas_globales_completo.",
-    ),
-    Etapa(
         clave="vigas_globales",
-        nombre="9b. Vigas globales",
+        nombre="8. Vigas globales",
         descripcion="Consolidado de solicitaciones M/V por tramo de pórtico.",
         script="calc/vigas_globales.py",
         entradas=(rutas.SAL_SOLICITACIONES / "*.json",),
-        salidas=(rutas.SAL_VIGAS / "resultados_vigas_globales.json",),
-        depende_de=("vigas", "columnas_globales"),
+        salidas=(rutas.SAL_VIGAS / "resultados_vigas_globales.json",
+                rutas.SAL_VIGAS / "resultados_vigas_globales.xlsx"),
+        depende_de=("vigas", "portico"),
         interactiva=False,
         marca=_marca_vigas_globales,
-        nota="Acumula por tramo de pórtico; no deduplica elementos compartidos.",
+    ),
+    Etapa(
+        clave="columnas_globales_completo",
+        nombre="9. Columnas globales",
+        descripcion="Persistencia + unificacion + verificacion biaxial + planilla final de columnas globales.",
+        script="calc/columnas_globales_completo.py",
+        entradas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
+        salidas=(rutas.SAL_COLUMNAS / "planilla_columnas_globales_final.csv",),
+        depende_de=("columnas", "portico"),
+        interactiva=False,
+        implementada=True,
+        marca=_marca_columnas_globales,
     ),
     Etapa(
         clave="bases_globales",
         nombre="10. Bases globales",
         descripcion="Dimensionado consolidado de bases compartidas por varios porticos.",
-        script=None,
+        script="calc/bases_globales.py",
         entradas=(rutas.SAL_BASES / "resultados_*_bases.json",),
         salidas=(rutas.SAL_BASES / "resultados_bases_globales.json",),
         depende_de=("bases", "columnas_globales"),
@@ -450,8 +473,19 @@ ETAPAS: tuple[Etapa, ...] = (
         nota="Bases siempre globales: acumula por BASE-XXX.",
     ),
     Etapa(
+        clave="vigas_fundacion",
+        nombre="11. Vigas de fundación",
+        descripcion="Vigas de arriostramiento entre bases globales.",
+        script="calc/vigas_fundacion.py",
+        entradas=(rutas.SAL_BASES / "resultados_bases_globales.json",),
+        salidas=(rutas.SAL_BASES / "resultados_vigas_fundacion.json",),
+        depende_de=("bases_globales",),
+        interactiva=False,
+        marca=None,
+    ),
+    Etapa(
         clave="planos",
-        nombre="9. Plano lateral (DXF)",
+        nombre="11. Plano lateral (DXF)",
         descripcion="Plano de armaduras de vigas, columnas y bases.",
         script="P06_Portico_dxf.py",
         entradas=(
@@ -468,7 +502,7 @@ ETAPAS: tuple[Etapa, ...] = (
     ),
     Etapa(
         clave="losas",
-        nombre="10. Losas",
+        nombre="12. Losas",
         descripcion="Dimensionamiento de alivianadas y análisis inicial de macizas.",
         script="L00_Losas_alivianadas.py",
         entradas=(rutas.MATERIALES, rutas.VIGUETAS),
@@ -477,17 +511,6 @@ ETAPAS: tuple[Etapa, ...] = (
         marca=_marca_losas,
         nota=("Alivianadas: cálculo de viguetas. Macizas: solicitaciones elásticas para "
               "un paño unidireccional simplemente apoyado. Casetonadas y continuidad: pendientes."),
-    ),
-    Etapa(
-        clave="columnas_globales_completo",
-        nombre="Columnas globales (completo)",
-        descripcion="Persistencia + unificacion + verificacion biaxial + planilla final de columnas globales.",
-        script="calc/columnas_globales_completo.py",
-        entradas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
-        salidas=(rutas.SAL_COLUMNAS / "planilla_columnas_globales_final.csv",),
-        depende_de=("columnas_globales",),
-        interactiva=False,
-        implementada=True,
     ),
 )
 
@@ -522,9 +545,7 @@ def _marca_excel(_portico: str = "") -> tuple[bool, str]:
 
 
 # Marcas que no se pueden declarar dentro de ETAPAS (se definen después)
-MARCAS_ESPECIALES: dict[str, Callable[..., tuple[bool, str]]] = {
-    "vigas_excel": _marca_excel,
-}
+MARCAS_ESPECIALES: dict[str, Callable[..., tuple[bool, str]]] = {}
 
 
 def _resolver(coleccion, portico: str) -> tuple[Path, ...]:

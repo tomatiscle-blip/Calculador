@@ -698,10 +698,9 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
 
 
 def guardar_informe(analisis: AnalisisCargas, texto: str | None = None) -> Path:
-    """Guarda el informe en salidas/analisis_cargas, con el nombre y la fecha de siempre."""
+    """Guarda el informe en salidas/analisis_cargas, sobrescribiendo el anterior."""
     rutas.SAL_ANALISIS_CARGAS.mkdir(parents=True, exist_ok=True)
-    fecha_hora = datetime.now().strftime("%d-%m-%Y_%H%M")
-    archivo = rutas.SAL_ANALISIS_CARGAS / f"{analisis.nombre.replace(' ', '_')}_{fecha_hora}.txt"
+    archivo = rutas.SAL_ANALISIS_CARGAS / f"{analisis.nombre.replace(' ', '_')}.txt"
     return rutas.guardar_texto(archivo, texto if texto is not None else informe_completo(analisis))
 
 

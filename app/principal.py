@@ -62,7 +62,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QWidget,
 )
 
-from calc import cargas, columnas, bases, pipeline, rutas, vigas_globales  # noqa: E402
+from calc import cargas, columnas, bases, pipeline, rutas, vigas_globales, vigas_fundacion  # noqa: E402
 from app.cargas_proyecto import PaginaCargas  # noqa: E402
 from app.muros_proyecto import PaginaMuros  # noqa: E402
 from app.diseno_columnas_bases import datos_bases as pedir_datos_bases  # noqa: E402
@@ -761,10 +761,11 @@ class VentanaPrincipal(QMainWindow):
         pestanias = QTabWidget()
         pestanias.setDocumentMode(True)
         pestanias.addTab(self._pagina_inicio(), "Inicio")
+        pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
         pestanias.addTab(self.pagina_cargas, "Cargas")
+        pestanias.addTab(self._pagina_terreno(), "Terreno")
         pestanias.addTab(self._pagina_porticos(), "Pórticos")
         pestanias.addTab(self._pagina_estructura_global(), "Estructura global")
-        pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
 
 
         pestanias.addTab(self._pagina_losas(), "5 · Losas")
@@ -943,16 +944,204 @@ class VentanaPrincipal(QMainWindow):
         boton = QPushButton("Calcular bases globales")
         boton.clicked.connect(self._calcular_bases_globales)
         caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
-        self.tabla_bases_globales = QTableWidget(0, 8)
+        self.tabla_bases_globales = QTableWidget(0, 12)
         self.tabla_bases_globales.setHorizontalHeaderLabels(
-            ("ID", "Mx", "My", "M", "Fx", "Fy", "Pórticos", "Estado")
+            ("ID", "Mx", "My", "M", "Fx", "Fy", "Bx", "By", "pmax", "pmin", "Pórticos", "Estado")
         )
         caja.addWidget(self.tabla_bases_globales, 1)
+        self._cargar_bases_globales()
         return pagina
+
+    def _al_cambiar_subpestania_estructura(self, indice: int) -> None:
+        if indice == 2:
+            self._cargar_bases_globales()
+
+    def _cargar_bases_globales(self) -> None:
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
+            self.tabla_bases_globales.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
+        except Exception as exc:
+            QMessageBox.warning(self, "Bases globales", str(exc))
+
+    def _pagina_vigas_fundacion(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        etiqueta = QLabel("Vigas de fundación entre bases globales.")
+        etiqueta.setWordWrap(True)
+        caja.addWidget(etiqueta)
+        boton = QPushButton("Calcular vigas de fundación")
+        boton.clicked.connect(self._calcular_vigas_fundacion)
+        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        self.tabla_vigas_fundacion = QTableWidget(0, 7)
+        self.tabla_vigas_fundacion.setHorizontalHeaderLabels(
+            ("ID", "Bases", "Longitud", "Ancho", "Altura", "Armadura", "Estado")
+        )
+        caja.addWidget(self.tabla_vigas_fundacion, 1)
+        self._cargar_vigas_fundacion()
+        return pagina
+
+    def _cargar_vigas_fundacion(self) -> None:
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_vigas_fundacion.json", []) or []
+            self.tabla_vigas_fundacion.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_vigas_fundacion.rowCount()
+                self.tabla_vigas_fundacion.insertRow(fila)
+                self.tabla_vigas_fundacion.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_vigas_fundacion.setItem(fila, 1, QTableWidgetItem(", ".join(r.get("bases", []))))
+                self.tabla_vigas_fundacion.setItem(fila, 2, QTableWidgetItem(str(r.get("longitud_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 3, QTableWidgetItem(str(r.get("ancho_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 4, QTableWidgetItem(str(r.get("altura_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 5, QTableWidgetItem(str(r.get("armadura"))))
+                self.tabla_vigas_fundacion.setItem(fila, 6, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Vigas de fundación", str(exc))
+
+    def _calcular_vigas_fundacion(self) -> None:
+        try:
+            vigas_fundacion.calcular()
+            self._cargar_vigas_fundacion()
+        except Exception as exc:
+            QMessageBox.warning(self, "Vigas de fundación", str(exc))
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
+            self.tabla_bases_globales.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
+        except Exception as exc:
+            QMessageBox.warning(self, "Bases globales", str(exc))
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        etiqueta = QLabel("Vigas de fundación entre bases globales.")
+        etiqueta.setWordWrap(True)
+        caja.addWidget(etiqueta)
+        boton = QPushButton("Calcular vigas de fundación")
+        boton.clicked.connect(self._calcular_vigas_fundacion)
+        caja.addWidget(boton, 0, Qt.AlignmentFlag.AlignLeft)
+        self.tabla_vigas_fundacion = QTableWidget(0, 7)
+        self.tabla_vigas_fundacion.setHorizontalHeaderLabels(
+            ("ID", "Bases", "Longitud", "Ancho", "Altura", "Armadura", "Estado")
+        )
+        caja.addWidget(self.tabla_vigas_fundacion, 1)
+        self._cargar_vigas_fundacion()
+        return pagina
+
+    def _cargar_vigas_fundacion(self) -> None:
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_vigas_fundacion.json", []) or []
+            self.tabla_vigas_fundacion.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_vigas_fundacion.rowCount()
+                self.tabla_vigas_fundacion.insertRow(fila)
+                self.tabla_vigas_fundacion.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_vigas_fundacion.setItem(fila, 1, QTableWidgetItem(", ".join(r.get("bases", []))))
+                self.tabla_vigas_fundacion.setItem(fila, 2, QTableWidgetItem(str(r.get("longitud_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 3, QTableWidgetItem(str(r.get("ancho_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 4, QTableWidgetItem(str(r.get("altura_m"))))
+                self.tabla_vigas_fundacion.setItem(fila, 5, QTableWidgetItem(str(r.get("armadura"))))
+                self.tabla_vigas_fundacion.setItem(fila, 6, QTableWidgetItem(str(r.get("estado"))))
+        except Exception as exc:
+            QMessageBox.warning(self, "Vigas de fundación", str(exc))
+
+    def _calcular_vigas_fundacion(self) -> None:
+        try:
+            resultados = vigas_fundacion.calcular()
+            self._cargar_vigas_fundacion()
+        except Exception as exc:
+            QMessageBox.warning(self, "Vigas de fundación", str(exc))
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
+            self.tabla_bases_globales.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
+        except Exception as exc:
+            QMessageBox.warning(self, "Bases globales", str(exc))
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
+            self.tabla_bases_globales.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
+        except Exception as exc:
+            QMessageBox.warning(self, "Bases globales", str(exc))
+        try:
+            datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
+            self.tabla_bases_globales.setRowCount(0)
+            for r in datos:
+                fila = self.tabla_bases_globales.rowCount()
+                self.tabla_bases_globales.insertRow(fila)
+                self.tabla_bases_globales.setItem(fila, 0, QTableWidgetItem(str(r.get("id"))))
+                self.tabla_bases_globales.setItem(fila, 1, QTableWidgetItem(str(r.get("Mx"))))
+                self.tabla_bases_globales.setItem(fila, 2, QTableWidgetItem(str(r.get("My"))))
+                self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
+                self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
+                self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
+        except Exception:
+            pass
 
     def _calcular_bases_globales(self) -> None:
         try:
-            resultados = bases.calcular_global()
+            bases.calcular_global()
+            resultados = bases.dimensionar_global()
             self.tabla_bases_globales.setRowCount(0)
             for r in resultados:
                 fila = self.tabla_bases_globales.rowCount()
@@ -963,8 +1152,12 @@ class VentanaPrincipal(QMainWindow):
                 self.tabla_bases_globales.setItem(fila, 3, QTableWidgetItem(str(r.get("M"))))
                 self.tabla_bases_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("Fx"))))
                 self.tabla_bases_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("Fy"))))
-                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(", ".join(r.get("porticos", []))))
-                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("estado"))))
+                self.tabla_bases_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("Bx"))))
+                self.tabla_bases_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("By"))))
+                self.tabla_bases_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("pmax_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("pmin_kPa"))))
+                self.tabla_bases_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_bases_globales.setItem(fila, 11, QTableWidgetItem("OK" if r.get("ok") else "Revisar"))
         except Exception as exc:
             QMessageBox.warning(self, "Bases globales", str(exc))
 
@@ -976,6 +1169,8 @@ class VentanaPrincipal(QMainWindow):
         subpestanias.addTab(self._pagina_columnas_globales(), "Columnas globales")
         subpestanias.addTab(self._pagina_vigas_globales(), "Vigas globales")
         subpestanias.addTab(self._pagina_bases_globales(), "Bases globales")
+        subpestanias.addTab(self._pagina_vigas_fundacion(), "Vigas de fundación")
+        subpestanias.currentChanged.connect(self._al_cambiar_subpestania_estructura)
         caja.addWidget(subpestanias)
         return contenedor
 
@@ -1219,7 +1414,6 @@ class VentanaPrincipal(QMainWindow):
         subpestanias.addTab(self._pagina_vigas(), "Vigas")
         subpestanias.addTab(self._pagina_columnas(), "Columnas")
         subpestanias.addTab(self._pagina_bases(), "Bases")
-        subpestanias.addTab(self._pagina_terreno(), "Terreno")
         subpestanias.addTab(self._pagina_parametros_motor(), "Parámetros")
         caja_porticos.addWidget(subpestanias)
         return contenedor_porticos

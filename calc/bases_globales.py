@@ -14,7 +14,9 @@ except ImportError:
 
 def main() -> None:
     resultados = bases.calcular_global()
+    dim = bases.dimensionar_global()
     print(f"Bases globales calculadas: {len(resultados)}")
+    print(f"Bases dimensionadas: {len(dim)}")
 
 
 if __name__ == "__main__":

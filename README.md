@@ -1,3 +1,25 @@
+## Actualización: Vigas de fundación y optimización acoplada (Octubre 2026)
+
+### Nuevo módulo `calc/vigas_fundacion.py`
+- Genera vigas de arriostramiento vinculando bases que comparten un mismo pórtico (topología real).
+- Calcula la longitud real en planta a partir de coordenadas X/Y de `estructura.json`.
+- Dimensiona la sección transversal automáticamente (h = L/10, mínimo 0.30 m) y la armadura longitudinal según la luz.
+- Exporta `salidas/bases/resultados_vigas_fundacion.json`.
+
+### Flujo de cálculo acoplado (optimización de fundaciones)
+- `calc/bases.py` incorpora `optimizar_fundaciones()`, que orquesta:
+  1. Dimensionado biaxial inicial de zapatas.
+  2. Generación de la red de vigas de fundación.
+  3. Redistribución iterativa de momentos (hasta 10 iteraciones, transferencia hasta 80%) desde bases que requieren diseño especial hacia bases vecinas conectadas.
+  4. Re-dimensionado de zapatas con momentos ajustados.
+- Resultado: descompresión de bases perimetrales/esquinas, pasando de `ok: false` a `ok: true` con dimensiones optimizadas.
+- El JSON final incluye desglose: `_momento_inicial_*`, `_momento_transferido_*`, `_momento_final_*`.
+
+### Interfaz gráfica
+- Nueva subpestaña **"Vigas de fundación"** dentro de **Estructura global**, con tabla de resultados por tramo (ID, bases, longitud, ancho, altura, armadura, estado) y botón de cálculo.
+- Etapa agregada al pipeline: **"Vigas de fundación"** (depende de bases globales).
+
+
 # Calculador — Estructuras
 
 Programa de cálculo de estructuras de hormigón para obras chicas (uno o dos pisos):

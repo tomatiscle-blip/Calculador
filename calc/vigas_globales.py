@@ -70,6 +70,22 @@ def calcular_global() -> list[dict]:
     salida = rutas.SAL_VIGAS / "resultados_vigas_globales.json"
     rutas.SAL_VIGAS.mkdir(parents=True, exist_ok=True)
     rutas.guardar_json(salida, resultados)
+
+    # Exportar también a Excel consolidado
+    try:
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Vigas globales"
+        columnas = ["id", "portico", "nivel", "viga", "tipo", "M", "V", "M_izq", "M_der", "M_campo", "V_izq", "V_der", "estado"]
+        ws.append(columnas)
+        for r in resultados:
+            ws.append([r.get(c) for c in columnas])
+        excel = rutas.SAL_VIGAS / "resultados_vigas_globales.xlsx"
+        wb.save(excel)
+    except Exception:
+        pass
+
     return resultados
 
 
