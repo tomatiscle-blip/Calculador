@@ -13,9 +13,8 @@ Reemplaza a anaStruct (el viejo P01). Se validó que Pynite reproduce a anaStruc
 en <0,1 % con los pórticos ya calculados (tools/comparar_motores.py), y esta
 versión POR COMBINACIÓN dio idéntica a lo guardado en datos/estructura.json.
 
-Para que los números coincidan se usan las MISMAS rigideces relativas que usaba
-anaStruct (EA=15000, EI=5000): las fuerzas internas de un pórtico elástico no
-dependen de E, solo del cociente entre la rigidez axial y la de flexión.
+El modelo usa Ec del hormigón y propiedades geométricas por barra. Las
+solicitaciones dependen ahora de las rigideces relativas de las secciones.
 
 Convención de signos (la de Pynite): M en kN·m, V y N en kN. En las columnas
 M_inf es el momento en la base y M_sup en la punta; en las vigas M_izq/M_der son
@@ -38,21 +37,12 @@ from pathlib import Path
 
 from Pynite import FEModel3D
 
-from . import cargas, materiales, rutas
+from . import cargas, configuracion_obra, materiales, rutas
 
-# ---------------------------------------------------------------------------
-# Rigidez (los MISMOS valores con que se validó Pynite contra anaStruct)
-# ---------------------------------------------------------------------------
-E_MOD = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("E_MOD", 1.0)) or 1.0
-G_MOD = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("G_MOD", 1.0)) or 1.0
-EA = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("EA", 15000.0))
-EI = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("EI", 5000.0))
-A_SEC = EA / E_MOD
-I_SEC = EI / E_MOD
-J_SEC = EI / E_MOD
-POISSON = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("POISSON", 0.3))
-PESO_ESPECIFICO_HORMIGON_KN_M3 = float((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("PESO_ESPECIFICO_HORMIGON_KN_M3", 25.0))
-VERSION_MOTOR = str((rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}).get("VERSION_MOTOR", "CIRSOC 201/2024"))
+# G=0,40Ec equivale a nu=0,25 para un material elastico isotropico.
+POISSON = 0.25
+PESO_ESPECIFICO_HORMIGON_KN_M3 = configuracion_obra.peso_especifico_hormigon()
+VERSION_MOTOR = str(configuracion_obra.cargar().get("VERSION_MOTOR", "CIRSOC 201-25"))
 
 
 def combinaciones() -> dict[str, tuple[float, float, float, float]]:
@@ -67,6 +57,8 @@ def combinaciones() -> dict[str, tuple[float, float, float, float]]:
     tabla: dict[str, tuple[float, float, float, float]] = {"servicio": (1.0, 1.0, 0.0, 1.0)}
     for nombre, (fD, fL, fW) in cargas.FACTORES_COMBINACIONES.items():
         tabla[nombre] = (fD, fL, fW, 1.0)
+        if fW:
+            tabla[f"{nombre} (W reverso)"] = (fD, fL, -fW, 1.0)
     return tabla
 
 
@@ -89,10 +81,19 @@ def _piso_de_viga(viga_id: str) -> int | None:
     return None
 
 
+def _ancho_viga_predeterminado_cm() -> float:
+    """Ancho de arranque común entre el solver y el dimensionador P02."""
+    try:
+        valor = float(configuracion_obra.cargar().get("VIGA_ANCHO_PREDIM_CM", 20.0))
+    except (TypeError, ValueError):
+        valor = 20.0
+    return valor if valor > 0 else 20.0
+
+
 def _peso_propio_viga_kN_m(viga: dict) -> tuple[float, float, bool]:
     """Devuelve q propio, peralte usado y si el peralte se predimensionó."""
     try:
-        ancho_cm = float(viga["b_cm"])
+        ancho_cm = float(viga.get("b_cm") or _ancho_viga_predeterminado_cm())
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("falta un ancho b_cm válido para calcular su peso propio") from exc
     if ancho_cm <= 0:
@@ -456,10 +457,12 @@ def _cargas_asignadas(nombre_portico: str) -> tuple[dict[str, list[dict]], list[
                 if biblioteca is None:
                     biblioteca = materiales.cargar()
                 items = cargas.items_de_elemento(f"{fuente.get('id')} · {nombre}", elemento, biblioteca)
-                if items:
-                    valor_lineal = float(items[0].get("valor", 0.0))
-                    influencia = float(apoyo.get("influencia_m", 0.0))
-                    valor_kN = valor_lineal * influencia
+                valor_lineal = sum(
+                    float(item.get("valor", 0.0))
+                    for item in items if item.get("tipo") == "D"
+                )
+                influencia = float(apoyo.get("influencia_m", 0.0))
+                valor_kN = valor_lineal * influencia
             except Exception:
                 pass
             resultado.setdefault(tramo_id, []).append({
@@ -556,14 +559,74 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
     original, para que las transferencias y cargas interiores no cambien la API
     de solicitaciones.
     """
-    aplicaciones, avisos = _cargas_asignadas(nombre)
+    return _construir_con_rigidez(portico, nombre, lateral=False)
+
+
+def _construir_con_rigidez(portico: dict, nombre: str, lateral: bool = False):
+    """Construye un modelo con propiedades físicas y rigideces efectivas CIRSOC."""
+    fc = configuracion_obra.fc_predeterminado()
+    ec_datos = configuracion_obra.modulo_elasticidad_hormigon()
+    ec_mpa = ec_datos["Ec_MPa"]
+    # Pynite trabaja aquí con kN y m: 1 MPa = 1000 kN/m².
+    ec = ec_mpa * 1000.0
+    nu = POISSON
+    gc = 0.4 * ec
     m = FEModel3D()
-    m.add_material("mat", E_MOD, G_MOD, POISSON, 0.0)
-    m.add_section("sec", A_SEC, I_SEC, I_SEC, J_SEC)
+    m.add_material("mat", ec, gc, nu, 0.0)
+    aplicaciones, avisos = _cargas_asignadas(nombre)
+    parametros = configuracion_obra.cargar()
+    lado_x_def = float(parametros.get("COLUMNA_LADO_X_CM", 25.0)) / 100.0
+    lado_y_def = float(parametros.get("COLUMNA_LADO_Y_CM", 40.0)) / 100.0
+    diametro_def = float(parametros.get("COLUMNA_DIAMETRO_CM", 30.0)) / 100.0
+    factor_col = 0.5 if lateral else 0.70
+    factor_viga = 0.5 if lateral else 0.35
+    secciones = {}
+
+    def agregar_seccion(nombre_sec, area, iy, iz, factor):
+        clave = str(nombre_sec)
+        if clave in secciones:
+            return secciones[clave]
+        iy_eff, iz_eff = max(iy * factor, 1e-12), max(iz * factor, 1e-12)
+        j = max(iy + iz, 1e-12)
+        m.add_section(clave, area, iy_eff, iz_eff, j)
+        secciones[clave] = {
+            "nombre": clave, "A_m2": area, "Iy_bruta_m4": iy,
+            "Iz_bruta_m4": iz, "factor_I": factor,
+            "Iy_efectiva_m4": iy_eff, "Iz_efectiva_m4": iz_eff,
+        }
+        return clave
+
+    direccion_plano = str((portico.get("referencia_planta", {}) or {}).get("direccion", "x")).lower()
+
+    def geometria_columna(col):
+        forma = str(col.get("forma_seccion", "rectangular")).lower()
+        if forma in ("circular", "circular con sunchos"):
+            d = float(col.get("diametro_cm") or diametro_def * 100.0) / 100.0
+            area = 3.141592653589793 * d**2 / 4.0
+            inercia = 3.141592653589793 * d**4 / 64.0
+            return forma, area, inercia, inercia, {"diametro_cm": d * 100.0}
+        sx = float(col.get("lado_x_cm") or col.get("b_cm") or lado_x_def * 100) / 100.0
+        sy = float(col.get("lado_y_cm") or col.get("h_cm") or lado_y_def * 100) / 100.0
+        if sx <= 0 or sy <= 0:
+            raise ValueError(f"Sección rectangular inválida en columna {col.get('id', '?')}.")
+        lado_longitudinal = sx if direccion_plano == "x" else sy
+        lado_transversal = sy if direccion_plano == "x" else sx
+        inercia_en_plano = lado_transversal * lado_longitudinal**3 / 12.0
+        return "rectangular", sx * sy, inercia_en_plano, inercia_en_plano, {
+            "lado_x_cm": sx * 100.0, "lado_y_cm": sy * 100.0,
+        }
 
     mapa: dict[str, dict] = {
         "columnas": {}, "vigas": {}, "voladizos": {}, "segmentos": {},
         "nudos_columna_inferior": set(), "nudos_viga": set(), "apoyos": [],
+    }
+    mapa["propiedades_materiales"] = {
+        "material": "Hormigón armado", "fc_MPa": fc, "Ec_MPa": ec_mpa,
+        "formula_Ec": ec_datos["formula"], "articulo_Ec": ec_datos["articulo"],
+        "G_MPa": 0.4 * ec_mpa,
+        "tipo_analisis": "lateral" if lateral else "gravedad",
+        "criterio_inercia": "0,50 Ig para todos los elementos (6.6.3.1.2)" if lateral else "columnas 0,70 Ig; vigas 0,35 Ig (Tabla 6.6.3.1.1(a))",
+        "secciones": [],
     }
     # Solo se informan como aplicadas las cargas de miembros que se pudieron
     # crear en el modelo. Una asignación a un tramo sin apoyos no debe aparecer
@@ -577,26 +640,16 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         columnas = _col_raw or {}
     datos_carga_proyecto = cargas.datos_cargas() if nombre else {}
     viento_config = datos_carga_proyecto.get("viento", {})
-    anchos_por_portico = viento_config.get("anchos_por_portico", {}) or {}
-    w_general = 0.0
-    if viento_config.get("activo"):
-        porticos_activos = viento_config.get("porticos_activos", None)
-        direccion_viento = str(viento_config.get("direccion_viento", "x")).strip().lower()
-        direccion_portico = str((portico.get("referencia_planta") or {}).get("direccion", "x")).strip().lower()
-        if porticos_activos is not None and nombre not in (porticos_activos or []):
-            w_general = 0.0
-        else:
-            ancho = anchos_por_portico.get(nombre, viento_config.get("ancho_tributario_m", 0.0))
-            if not ancho or ancho <= 0:
-                ancho = viento_config.get("ancho_tributario_m", 0.0)
-            items_viento = cargas.items_viento_general(datos_carga_proyecto, materiales.cargar(), ancho_override=ancho)
-            w_general = sum(float(item["valor"]) for item in items_viento)
+    estructura_completa = rutas.cargar_estructura()
+    resumen_viento = cargas.resumen_viento_portico(
+        datos_carga_proyecto, estructura_completa, nombre, materiales.cargar()
+    ) if nombre else {"aplicado": False, "carga_lineal_kN_m": 0.0, "pisos": []}
+    w_general = float(resumen_viento.get("carga_lineal_kN_m", 0.0) or 0.0)
+    mapa["viento_aplicado"] = resumen_viento
     mapa["viento_general_kN_m"] = w_general
-    # Ancho tributario efectivo para este pórtico (manual o promedio)
-    if nombre in anchos_por_portico and anchos_por_portico[nombre]:
-        mapa["ancho_viento_m"] = float(anchos_por_portico[nombre])
-    else:
-        mapa["ancho_viento_m"] = float(viento_config.get("ancho_tributario_m", 0.0) or 0.0)
+    mapa["ancho_viento_m"] = float(resumen_viento.get("ancho_tributario_m", 0.0) or 0.0)
+    if viento_config.get("activo") and nombre and not resumen_viento.get("aplicado"):
+        avisos.append(f"Viento horizontal omitido: {resumen_viento.get('motivo', 'configuración incompleta')}.")
 
     def _x_local(col):
         ref = portico.get("referencia_planta", {}) or {}
@@ -623,7 +676,42 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
             m.add_node(nt, x, y0 + h, 0.0)
         m.def_support(nb, False, False, True, True, True, False)
         m.def_support(nt, False, False, True, True, True, False)
-        m.add_member(f"C-{cid}", nb, nt, "mat", "sec")
+        forma, area, iy, iz, dimensiones = geometria_columna(col)
+        sec = agregar_seccion(f"secC{len(secciones) + 1}", area, iy, iz, factor_col)
+        mapa["propiedades_materiales"]["secciones"].append({
+            "elemento": cid, "tipo": forma, **dimensiones,
+            **secciones[sec],
+        })
+        miembro_columna = f"C-{cid}"
+        m.add_member(miembro_columna, nb, nt, "mat", sec)
+        # El peso propio de la columna no está incluido en las cargas de vigas
+        # ni en las cargas superficiales del proyecto. FY es vertical global
+        # en este modelo plano (Y es la altura).
+        peso_propio_columna_kN_m = area * PESO_ESPECIFICO_HORMIGON_KN_M3
+        if peso_propio_columna_kN_m > 0:
+            m.add_member_dist_load(
+                miembro_columna, "FY", -peso_propio_columna_kN_m,
+                -peso_propio_columna_kN_m, case="D",
+            )
+            if forma in ("circular", "circular con sunchos"):
+                detalle_seccion = f"Ø{dimensiones['diametro_cm']:g} cm"
+            else:
+                detalle_seccion = (
+                    f"{dimensiones['lado_x_cm']:g}×{dimensiones['lado_y_cm']:g} cm"
+                )
+            mapa["cargas_aplicadas"].append({
+                "aplicacion_id": f"peso-propio:{miembro_columna}",
+                "carga_id": f"peso-propio:{cid}",
+                "descripcion": f"Peso propio columna {cid} · {detalle_seccion}",
+                "tipo": "D",
+                "valor_kN_m": peso_propio_columna_kN_m,
+                "x_inicio_m": float(y0),
+                "x_fin_m": float(y0 + h),
+                "ancho_tributario_m": None,
+                "modo_cargas_previas": "sumar",
+                "signo": -1.0,
+                "tramo_id": miembro_columna,
+            })
         mapa["columnas"][cid] = f"C-{cid}"
         if y0 > 1e-6:
             mapa["nudos_columna_inferior"].add(nb)
@@ -659,6 +747,22 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         except ValueError as exc:
             peso_propio_kN_m = None
             avisos.append(f"{viga_id}: {exc}; no se incorpora el peso propio.")
+            peralte_cm = max(
+                (float(t.get("longitud_m", 0.0)) * 100.0 / 12.5 for t in viga.get("tramos", [])),
+                default=30.0,
+            )
+            peralte_predimensionado = True
+        ancho_cm = float(viga.get("b_cm") or _ancho_viga_predeterminado_cm())
+        b_m, h_m = ancho_cm / 100.0, float(peralte_cm) / 100.0
+        area_v = b_m * h_m
+        iy_v, iz_v = h_m * b_m**3 / 12.0, b_m * h_m**3 / 12.0
+        sec_v = agregar_seccion(f"secV{len(secciones) + 1}", area_v, iy_v, iz_v, factor_viga)
+        mapa["propiedades_materiales"]["secciones"].append({
+            "elemento": viga_id, "tipo": "rectangular", "ancho_cm": ancho_cm,
+            "peralte_cm": float(peralte_cm), "peralte_predimensionado": peralte_predimensionado,
+            "ancho_predimensionado": not bool(viga.get("b_cm")),
+            **secciones[sec_v],
+        })
         piso = _piso_de_viga(viga_id)
         cols = sorted(
             (c for c in columnas.values()
@@ -749,7 +853,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                 (estacion_i, nodo_i), (estacion_j, nodo_j)
             ) in enumerate(zip(nodos_camino, nodos_camino[1:]), 1):
                 miembro_id = f"V-{tramo_id}__s{indice_segmento}"
-                m.add_member(miembro_id, nodo_i, nodo_j, "mat", "sec")
+                m.add_member(miembro_id, nodo_i, nodo_j, "mat", sec_v)
                 miembro_ids.append(miembro_id)
                 mapa["segmentos"].setdefault(tramo_id, []).append({
                     "miembro_id": miembro_id,
@@ -810,7 +914,7 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
                     "carga_id": f"peso-propio:{viga_id}",
                     "descripcion": (
                         f"Peso propio {viga_id} · "
-                        f"{float(viga['b_cm']):g}×{peralte_cm:g} cm"
+                        f"{ancho_cm:g}×{peralte_cm:g} cm"
                         + (" · h predimensionado L/12,5" if peralte_predimensionado else "")
                     ),
                     "tipo": "D",
@@ -842,10 +946,8 @@ def construir(portico: dict, nombre: str = "") -> tuple[FEModel3D, dict, list[st
         ids = ", ".join(sorted(nudos_sin_apoyo))
         avisos.append("Columnas superiores sin viga inferior: " + ids)
 
-    # El viento es siempre una carga lateral horizontal en el modelo plano 2D
-    # (X local = horizontal del pórtico). La orientación global (direccion_portico)
-    # solo se usa en preprocesamiento para construir la geometría; no decide
-    # la dirección de aplicación de la carga en el solver.
+    # La fuerza horizontal global solo entra en el portico cuyo eje del plano
+    # coincide con el eje global del viento. En ese modelo 2D ambos son FX local.
 
     # --- Viento (caso W): fuerza horizontal en la punta de cada columna ----
     for viga_id, viga in portico.get("vigas", {}).items():
@@ -990,16 +1092,31 @@ def calcular(portico: dict, nombre: str = "") -> dict:
     máximos en módulo (la que usarán los dimensionadores). No guarda nada: eso
     lo hace `guardar`.
     """
-    m, mapa, avisos = construir(portico, nombre)
-    m.analyze()
-
     combos = list(combinaciones())
+    m_gravedad, mapa, avisos = _construir_con_rigidez(portico, nombre, lateral=False)
+    m_gravedad.analyze()
+    viento_legacy = "viento" not in (cargas.datos_cargas() if nombre else {}) and any(
+        abs(float(tramo.get("cargas", {}).get("W_total", 0.0) or 0.0)) > 1e-9
+        for viga in (portico.get("vigas", {}) or {}).values()
+        for tramo in viga.get("tramos", [])
+    )
+    hay_viento = (
+        abs(float(mapa.get("viento_general_kN_m", 0.0) or 0.0)) > 1e-9
+        or viento_legacy
+    )
+    m_lateral = None
+    mapa_lateral = None
+    if hay_viento:
+        m_lateral, mapa_lateral, avisos_laterales = _construir_con_rigidez(portico, nombre, lateral=True)
+        m_lateral.analyze()
+        avisos.extend(a for a in avisos_laterales if a not in avisos)
     solicitaciones: dict[str, dict] = {}
     envolvente = _envolvente_vacia(mapa)
     diagrama_gobernante = None
     maximo_momento_global = -1.0
 
     for combo in combos:
+        modelo = m_lateral if combinaciones()[combo][2] and m_lateral is not None else m_gravedad
         bloque: dict[str, dict] = {
             "columnas": {}, "vigas": {}, "voladizos": {}, "bases": {}, "desplazamientos": {},
         }
@@ -1018,7 +1135,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
                 return float(col.get("x",0.0))
 
         for cid, miembro_id in mapa["columnas"].items():
-            mem = m.members[miembro_id]
+            mem = modelo.members[miembro_id]
             _col_raw = portico.get("columnas", {})
             if isinstance(_col_raw, list):
                 col = (rutas.cargar_estructura().get("columnas", {}) or {}).get(cid, {})
@@ -1030,14 +1147,14 @@ def calcular(portico: dict, nombre: str = "") -> dict:
                 "M_inf": float(mem.moment("Mz", 0.0, combo)),
                 "M_sup": float(mem.moment("Mz", mem.L(), combo)),
                 "N": float(mem.axial(0.0, combo)),
-                "deriva": float(m.nodes[n_punta].DX[combo]) / h,
+                "deriva": float(modelo.nodes[n_punta].DX[combo]) / h,
             }
             bloque["columnas"][cid] = datos
             _acumular(envolvente["columnas"], cid, datos)
 
         for grupo in ("vigas", "voladizos"):
             for clave, miembro_ids in mapa[grupo].items():
-                datos = _resultados_segmentos(m, miembro_ids, combo)
+                datos = _resultados_segmentos(modelo, miembro_ids, combo)
                 bloque[grupo][clave] = datos
                 _acumular(envolvente[grupo], clave, datos)
 
@@ -1049,9 +1166,9 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             _bi = list((_br or {}).items())
         for base_id, base in _bi:
             nodo = _nodo(_x_local(base), 0.0)
-            if nodo not in m.nodes:
+            if nodo not in modelo.nodes:
                 continue
-            n = m.nodes[nodo]
+            n = modelo.nodes[nodo]
             datos = {
                 "Fx": float(n.RxnFX.get(combo, 0.0)),
                 "Fy": float(n.RxnFY.get(combo, 0.0)),
@@ -1060,7 +1177,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             bloque["bases"][base_id] = datos
             _acumular(envolvente["bases"], base_id, datos)
 
-        for nodo_id, nodo in m.nodes.items():
+        for nodo_id, nodo in modelo.nodes.items():
             bloque["desplazamientos"][nodo_id] = {
                 "DX": float(nodo.DX[combo]),
                 "DY": float(nodo.DY[combo]),
@@ -1068,7 +1185,7 @@ def calcular(portico: dict, nombre: str = "") -> dict:
             }
 
         solicitaciones[combo] = bloque
-        diagrama = _diagrama_momento(m, mapa, combo)
+        diagrama = _diagrama_momento(modelo, mapa, combo)
         if diagrama["max_abs_kNm"] > maximo_momento_global:
             diagrama_gobernante = diagrama
             maximo_momento_global = diagrama["max_abs_kNm"]
@@ -1076,11 +1193,17 @@ def calcular(portico: dict, nombre: str = "") -> dict:
     return {
         "portico": nombre,
         "generado": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "rigidez": {"EA": EA, "EI": EI},
+        "rigidez": {"Ec_MPa": configuracion_obra.modulo_elasticidad_hormigon_mpa()},
+        "propiedades_materiales": {
+            "reglamento": VERSION_MOTOR,
+            "gravedad": mapa.get("propiedades_materiales", {}),
+            "lateral": (mapa_lateral.get("propiedades_materiales", {}) if mapa_lateral else None),
+        },
         "combinaciones": combos,
         "avisos": avisos,
         "cargas_aplicadas": mapa.get("cargas_aplicadas", []),
         "viento_general_kN_m": mapa.get("viento_general_kN_m", 0.0),
+        "viento_aplicado": mapa.get("viento_aplicado", {}),
         "solicitaciones": solicitaciones,
         "envolvente": envolvente,
         "diagrama_momentos": diagrama_gobernante,
@@ -1094,9 +1217,36 @@ def informe(resultado: dict) -> str:
     lineas = [
         f"SOLICITACIONES DEL PÓRTICO: {resultado['portico']}",
         "=" * 74,
-        f"Motor Pynite (pórtico plano) · rigidez EA={EA:g} EI={EI:g} · {resultado['generado']}",
+        f"Motor Pynite (pórtico plano) · secciones físicas y Ec CIRSOC · {resultado['generado']}",
         "Unidades: M [kN·m], N y V [kN], deriva [m/m]. Signos según Pynite.",
     ]
+    propiedades = resultado.get("propiedades_materiales", {}) or {}
+    gravedad = propiedades.get("gravedad", {}) or {}
+    if gravedad:
+        lineas.extend([
+            "",
+            "MATERIAL Y RIGIDEZ DEL MODELO:",
+            f"  Reglamento activo: {propiedades.get('reglamento', VERSION_MOTOR)}",
+            f"  Hormigón H{gravedad.get('fc_MPa')} · Ec={gravedad.get('Ec_MPa', 0):.0f} MPa · "
+            f"{gravedad.get('formula_Ec', '')} · {gravedad.get('articulo_Ec', '')}",
+            f"  Gravedad: {gravedad.get('criterio_inercia', '')}; G=0,40 Ec (ν=0,25 asumido para el solver).",
+        ])
+        lateral = propiedades.get("lateral") or {}
+        if lateral:
+            lineas.append(f"  Cargas laterales: {lateral.get('criterio_inercia', '')}.")
+        lineas.append("  Las dimensiones de secciones sin detalle ingresado son predimensionados iniciales del modelo.")
+        for sec in gravedad.get("secciones", []):
+            if sec.get("tipo") == "circular":
+                geometria = f"Ø{sec.get('diametro_cm', 0):g} cm"
+            else:
+                geometria = (
+                    f"{sec.get('lado_x_cm', sec.get('ancho_cm', 0)):g}×"
+                    f"{sec.get('lado_y_cm', sec.get('peralte_cm', 0)):g} cm"
+                )
+            lineas.append(
+                f"    {sec.get('elemento')}: {geometria}; A={sec.get('A_m2', 0):.5f} m²; "
+                f"factor I={sec.get('factor_I', 0):.2f}."
+            )
     for aviso in resultado["avisos"]:
         lineas.append(f"[AVISO] {aviso}")
 
@@ -1114,6 +1264,29 @@ def informe(resultado: dict) -> str:
                 linea += f"; b trib.={carga['ancho_tributario_m']:.2f} m"
             lineas.append(linea)
         lineas.append("Las cargas puntuales guardadas previamente en P00 se conservaron.")
+
+    viento = resultado.get("viento_aplicado", {}) or {}
+    if viento.get("activo"):
+        lineas.extend([
+            "",
+            "VIENTO HORIZONTAL DEL PROYECTO:",
+            f"  Estado: {'APLICADO' if viento.get('aplicado') else 'NO APLICA A ESTE PÓRTICO'}",
+            f"  Viento global: {str(viento.get('direccion_global', '?')).upper()} · orientación longitudinal: {str(viento.get('direccion_portico', '?')).upper()} · ubicado sobre línea {str(viento.get('eje_ubicacion', '?')).upper()}={float(viento.get('posicion_ubicacion_m', 0.0)):.2f} m · solver: FX local",
+            f"  {viento.get('ciudad', '')} · V básica={float(viento.get('V_basica_ms', 0.0)):.2f} m/s · b tributario={float(viento.get('ancho_tributario_m', 0.0)):.2f} m",
+            f"  Carga lineal={float(viento.get('carga_lineal_kN_m', 0.0)):.3f} kN/m · presión modelada={float(viento.get('presion_modelada_kN_m2', 0.0)):.3f} kN/m²",
+            f"  Método simplificado: {viento.get('metodo', '')}",
+        ])
+        if viento.get("motivo"):
+            lineas.append(f"  Motivo: {viento['motivo']}")
+        for piso in viento.get("pisos", []):
+            lineas.append(
+                f"  Nivel {float(piso.get('nivel_m', 0.0)):.2f} m: H={float(piso.get('altura_m', 0.0)):.2f} m, "
+                f"F={float(piso.get('fuerza_total_kN', 0.0)):.2f} kN, "
+                f"{piso.get('cantidad_columnas', 0)} columnas, "
+                f"{float(piso.get('fuerza_por_columna_kN', 0.0)):.2f} kN/columna"
+            )
+        if viento.get("aplicado"):
+            lineas.append("Se resuelven combinaciones con W en ambos sentidos (+W y W reverso).")
 
     tabla = resultado["solicitaciones"]
     for combo in resultado["combinaciones"]:
@@ -1206,10 +1379,11 @@ def huella_entrada(nombre_portico: str) -> str:
         estructura[nombre_portico],
         rutas.leer_json(rutas.CARGAS, {}) or {},
         rutas.leer_json(rutas.MATERIALES, {}) or {},
+        configuracion_obra.cargar(),
     )
 
 
-def _huella_entradas(datos_portico: dict, cargas: dict, materiales: dict) -> str:
+def _huella_entradas(datos_portico: dict, cargas: dict, materiales: dict, parametros_obra: dict) -> str:
     datos_portico = deepcopy(datos_portico)
     for viga in datos_portico.get("vigas", {}).values():
         # b y h determinan el peso propio; los demás datos son de dimensionado.
@@ -1221,6 +1395,7 @@ def _huella_entradas(datos_portico: dict, cargas: dict, materiales: dict) -> str
         "portico": datos_portico,
         "cargas": cargas,
         "materiales": materiales,
+        "parametros_obra": parametros_obra,
     }
     contenido = json.dumps(
         entradas, sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -1255,6 +1430,10 @@ def estado_texto() -> str:
 
 
 def _main(argv: list[str]) -> int:
+    # Consolas Windows con cp1252 no representan todos los símbolos del
+    # informe; evitar que una codificación de salida corte el recálculo.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     opciones = [a for a in argv if a.startswith("-")]
     nombres = [a for a in argv if not a.startswith("-")]
 

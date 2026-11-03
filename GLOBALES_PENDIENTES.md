@@ -50,12 +50,13 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 - Bloque 4: cablear UI (`app/principal.py`) a `calcular_global()`.  (ya cableado; falta dimensionado real)
 - Repetir para bases (`calc/bases.py` inexistente) con datos de terreno únicos.
 
-## Viento y ancho activo en planta (futuro)
-- Definir dirección de viento por proyecto y porticos afectados (según orientación).
-- Calcular ancho activo por eje a partir de la planta y ejes.
-- Aplicar cargas de viento solo a pórticos con el sentido correspondiente.
-- Si una columna recibe excesivo momento por viento, evaluar agregar pórtico transversal para compensar.
-- Integrar con columnas globales para consolidar solicitaciones de viento.
+## Viento global X/Y en porticos planos
+- La direccion del viento se define por obra en ejes globales X o Y.
+- El viento horizontal solo se aplica a porticos cuyo plano sea paralelo al eje global elegido; el solver 2D lo recibe como FX local.
+- La seleccion automatica marca porticos alineados; se pueden desactivar individualmente.
+- Se generan combinaciones para ambos sentidos del viento.
+- Los anchos tributarios automaticos se calculan entre porticos paralelos de la misma orientacion.
+- Limitacion vigente: presion simplificada, sin Kz, Kzt, Kd ni Ke de CIRSOC 102-25.
 
 ## Actualización: UI y planilla local (Octubre 2026)
 - Pestaña "Columnas globales" habilitada cuando todos los porticos que comparten la columna estan resueltos.
@@ -146,10 +147,9 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 - Las columnas centrales cuyo nivel no coincide exactamente con la cota de la viga (redondeo) o cuyo x cae fuera del rango por tolerancia quedan fuera, por lo que el diagrama no muestra el quiebre en ese apoyo.
 - Pendiente: revisar tolerancia y la fuente de `columnas` del pórtico (IDs globales vs. datos locales) para confirmar que las columnas intermedias estén incluidas.
 
-### Validación
-- El ancho tributario automático como mitad de separaciones entre pórticos vecinos es válido para pórticos con el mismo plano de aplicación.
-- La dirección del viento se define a nivel de obra (X o Y); solo reciben carga los pórticos cuya normal coincide con esa dirección.
-- Pórticos paralelos a la dirección de viento no reciben carga directa en ese sentido.
+### Validacion
+- El ancho tributario automatico como mitad de separaciones entre porticos vecinos es valido para porticos con el mismo plano de aplicacion.
+- La direccion global del viento X/Y se define por obra; solo los porticos paralelos al eje reciben carga dentro del modelo 2D.
 
 ### Implementado (base)
 - `calc/cargas.py`: `porticos_afectados_por_viento(estructura, direccion_viento)` y `anchos_tributarios_viento(estructura, direccion_viento)`.
@@ -158,11 +158,12 @@ Permitir que columnas/bases globales se dimensionen con solicitaciones consolida
 - Guardar `direccion_viento` en `datos/cargas.json`.
 - Aplicar automáticamente los anchos a los pórticos afectados desde la UI de cargas/viento.
 - Considerar bordes de obra y pórticos irregulares (distancia real, no módulo uniforme).
-## Pendiente (Octubre 2026): viento clásico por pórtico
-- Activación manual: checkbox "Aplicar viento" por pórtico en la pestaña de cargas.
-- Ancho tributario: siempre manual (no calcular automáticamente desde ejes), para evitar cálculos excesivos.
-- El viento se aplica solo a los pórticos marcados, independientemente de la dirección automática.
-- Quitar o ignorar la regla automática por dirección (porticos_afectados_por_viento) cuando se use el modo manual.
+## Viento clasico por portico (actualizado)
+- Activacion manual por portico y ancho tributario editable.
+- Solo se pueden marcar porticos paralelos al eje global seleccionado.
+- La velocidad basica de ciudad/categoria de riesgo guardada por obra alimenta el calculo.
+- Los informes muestran aplicacion por portico y fuerzas equivalentes por piso.
+- La presion todavia usa una formulacion simplificada y no incluye todos los factores de CIRSOC 102-25.
 
 ## Bug reportado (Octubre 2026): diagrama de momentos en pórticos con apoyos intermedios — RESUELTO
 - Causa: en `calc/portico.py` ~línea 710, al agregar columnas como nudos de la viga se comparaba `nivel` (cota inferior) con `y_viga` (cota superior = nivel+altura), por lo que ninguna columna interior coincidía y quedaba fuera del diagrama.

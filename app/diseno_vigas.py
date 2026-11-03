@@ -1,6 +1,8 @@
-"""Entrada gráfica de secciones y ejecución de P02 sobre el motor actual."""
+"""Selección del criterio de flecha y ejecución de P02 sobre el motor actual."""
 
 from __future__ import annotations
+
+import math
 
 from PySide6.QtWidgets import (
     QComboBox,
@@ -8,12 +10,41 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QVBoxLayout,
 )
 
-from calc import diseno_vigas, rutas
+from calc import configuracion_obra, diseno_vigas, pipeline, rutas
+
+
+def _fallas_flecha(salida) -> dict[str, float]:
+    """Devuelve la mayor razón delta/límite de flecha por viga que no cumple."""
+    datos = rutas.leer_json(salida, {}) or {}
+    por_viga: dict[str, float] = {}
+    for fila in datos.get("flecha", []) or []:
+        if fila.get("cumple") is not False:
+            continue
+        viga_id = fila.get("viga")
+        if not viga_id:
+            continue
+        try:
+            delta = float(fila.get("delta_mm", 0.0) or 0.0)
+            limite = float(fila.get("limite_mm", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            continue
+        if delta > 0 and limite > 0:
+            por_viga[viga_id] = max(por_viga.get(viga_id, 1.0), delta / limite)
+    return por_viga
+
+
+def _altura_inicial_cm(viga: dict) -> float:
+    if viga.get("h_cm") is not None:
+        try:
+            return float(viga["h_cm"])
+        except (TypeError, ValueError):
+            pass
+    luz = max((float(t.get("longitud_m", 0.0)) for t in viga.get("tramos", [])), default=0.0)
+    return float(round(luz * 100.0 / 12.5)) if luz > 0 else 30.0
 
 
 def dimensionar_desde_app(parent, portico: str):
@@ -25,15 +56,15 @@ def dimensionar_desde_app(parent, portico: str):
         return None
 
     dialogo = QDialog(parent)
-    dialogo.setWindowTitle(f"Datos de diseño de vigas · {portico}")
-    dialogo.resize(420, 420)
+    dialogo.setWindowTitle(f"Verificación de flecha de vigas · {portico}")
+    dialogo.resize(480, 360)
     dialogo.setStyleSheet(
-        "QLineEdit, QComboBox {"
+        "QComboBox {"
         " color: #202124; background-color: #ffffff;"
         " border: 1px solid #8a8f98; border-radius: 4px; padding: 5px;"
         " selection-color: #202124; selection-background-color: #cfe3ff;"
         "}"
-        "QLineEdit:focus, QComboBox:focus { border: 1px solid #2563eb; }"
+        "QComboBox:focus { border: 1px solid #2563eb; }"
         "QComboBox QAbstractItemView {"
         " color: #202124; background-color: #ffffff;"
         " selection-color: #202124; selection-background-color: #cfe3ff;"
@@ -41,44 +72,43 @@ def dimensionar_desde_app(parent, portico: str):
     )
     caja = QVBoxLayout(dialogo)
     caja.addWidget(QLabel(
-        "Elegí el criterio de flecha inmediata y ajustá las secciones. "
-        "Si no cumple, probá aumentar h y volver a dimensionar. La flecha de larga duración todavía no se verifica."
+        "La sección se toma del predimensionado de la obra o de la viga. Revisá el criterio de flecha inmediata."
     ))
     formulario = QFormLayout()
     tipo_flecha = QComboBox()
     tipo_flecha.addItem("Viga de entrepiso · inmediata por sobrecarga de uso · δ ≤ ℓ/360", "piso")
     tipo_flecha.addItem("Viga de cubierta plana · inmediata por carga variable · δ ≤ ℓ/180", "cubierta")
     formulario.addRow("Flecha inmediata:", tipo_flecha)
+    caja.addLayout(formulario)
     caja.addWidget(QLabel(
-        "Para elementos no estructurales apoyados o unidos a la viga, CIRSOC distingue luego la flecha posterior a su colocación: "
-        "ℓ/480 si son sensibles al daño y ℓ/240 si no lo son. Ese cálculo de larga duración todavía no está disponible."
+        "Secciones que usará P02 (solo lectura):"
     ))
-    caja.addWidget(QLabel("Este cálculo corresponde a vigas; no usarlo para dimensionar losas."))
-    caja.addLayout(formulario)
-    formulario = QFormLayout()
-    controles = {}
+    parametros = configuracion_obra.cargar()
+    b_default = float(parametros.get("VIGA_ANCHO_PREDIM_CM", 20.0) or 20.0)
+    fc_obra = configuracion_obra.fc_predeterminado()
     for viga_id, viga in vigas.items():
-        ancho = QLineEdit("" if viga.get("b_cm") is None else str(viga["b_cm"]))
-        ancho.setPlaceholderText("b en cm")
-        altura = QLineEdit("" if viga.get("h_cm") is None else str(viga["h_cm"]))
-        altura.setPlaceholderText("vacío = predimensionado automático")
-        fc = QComboBox()
-        fc.addItem("Elegir…", None)
-        for valor in (20, 25, 30):
-            fc.addItem(f"H{valor}", valor)
-        seleccionado = fc.findData(viga.get("fc_MPa"))
-        if seleccionado >= 0:
-            fc.setCurrentIndex(seleccionado)
-        fila = QVBoxLayout()
-        fila.addWidget(QLabel("Ancho b (cm)"))
-        fila.addWidget(ancho)
-        fila.addWidget(QLabel("Peralte h (cm; vacío para automático)"))
-        fila.addWidget(altura)
-        fila.addWidget(QLabel("Hormigón"))
-        fila.addWidget(fc)
-        formulario.addRow(f"{viga_id}:", fila)
-        controles[viga_id] = (ancho, altura, fc)
-    caja.addLayout(formulario)
+        b_cm = float(viga.get("b_cm") or b_default)
+        fc_viga = int(viga.get("fc_MPa") or fc_obra)
+        h_cm = viga.get("h_cm")
+        if h_cm is None:
+            luz = max((float(t.get("longitud_m", 0.0)) for t in viga.get("tramos", [])), default=0.0)
+            h_cm = round(luz * 100.0 / 12.5) if luz > 0 else 0.0
+            origen_h = "automático · luz mayor / 12,5"
+        else:
+            h_cm = float(h_cm)
+            origen_h = (
+                "ajustado automáticamente por flecha"
+                if viga.get("h_ajustado_por_flecha") else "guardado en la viga"
+            )
+        origen_b = "guardado en la viga" if viga.get("b_cm") else "predimensionado de obra"
+        caja.addWidget(QLabel(
+            f"{viga_id}: b={b_cm:g} cm ({origen_b}), h={h_cm:g} cm ({origen_h}), hormigón H{fc_viga}."
+        ))
+    caja.addWidget(QLabel(
+        "CIRSOC también limita la flecha posterior a colocar elementos no estructurales: ℓ/480 "
+        "si pueden dañarse y ℓ/240 si no son sensibles. Esa verificación de larga duración aún no está implementada."
+    ))
+    caja.addWidget(QLabel("Este cálculo corresponde a vigas; no dimensiona losas."))
     botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
     botones.accepted.connect(dialogo.accept)
     botones.rejected.connect(dialogo.reject)
@@ -86,53 +116,70 @@ def dimensionar_desde_app(parent, portico: str):
     if dialogo.exec() != QDialog.DialogCode.Accepted:
         return None
 
-    secciones = {}
-    for viga_id, (ancho, altura, fc) in controles.items():
-        try:
-            b_cm = float(ancho.text().replace(",", "."))
-        except ValueError:
-            QMessageBox.warning(parent, "Ancho inválido", f"Ingresá un ancho b válido para {viga_id}.")
-            return None
-        fc_mpa = fc.currentData()
-        if b_cm <= 0 or fc_mpa not in (20, 25, 30):
-            QMessageBox.warning(parent, "Faltan datos", f"Completá b y seleccioná H20, H25 o H30 para {viga_id}.")
-            return None
-        try:
-            h_cm = float(altura.text().replace(",", ".")) if altura.text().strip() else None
-        except ValueError:
-            QMessageBox.warning(parent, "Peralte inválido", f"Ingresá un h válido para {viga_id} o dejalo vacío.")
-            return None
-        if h_cm is not None and h_cm <= 0:
-            QMessageBox.warning(parent, "Peralte inválido", f"El peralte h debe ser mayor que cero para {viga_id}.")
-            return None
-        secciones[viga_id] = {"b_cm": b_cm, "fc_MPa": fc_mpa}
-        if h_cm is not None:
-            secciones[viga_id]["h_cm"] = h_cm
-
-    secciones_modificadas = False
-    for viga_id, seccion in secciones.items():
-        for clave in ("b_cm", "fc_MPa"):
-            if vigas[viga_id].get(clave) != seccion[clave]:
-                vigas[viga_id][clave] = seccion[clave]
-                secciones_modificadas = True
-        if "h_cm" in seccion:
-            if vigas[viga_id].get("h_cm") != seccion["h_cm"]:
-                vigas[viga_id]["h_cm"] = seccion["h_cm"]
-                secciones_modificadas = True
-
     try:
-        if secciones_modificadas:
-            rutas.guardar_json(rutas.ESTRUCTURA, estructura)
-        salida, avisos = diseno_vigas.dimensionar(portico, secciones, tipo_flecha.currentData())
+        h_iniciales: dict[str, float] = {}
+        avisos = []
+        salida = None
+        max_intentos = 12
+        for intento in range(max_intentos + 1):
+            calculo_motor = pipeline.ejecutar("portico", portico)
+            if not calculo_motor.get("ok"):
+                raise RuntimeError(
+                    "No se pudieron actualizar las solicitaciones con las secciones predimensionadas. "
+                    + str(calculo_motor.get("error") or calculo_motor.get("salida") or "")
+                )
+            salida, avisos = diseno_vigas.dimensionar(
+                portico, tipo_flecha=tipo_flecha.currentData()
+            )
+            fallas = _fallas_flecha(salida)
+            if not fallas:
+                break
+            if intento >= max_intentos:
+                avisos.append(
+                    f"La flecha sigue fuera del límite después de {max_intentos} ajustes automáticos de altura. "
+                    "Revisá cargas y sección antes de adoptar el diseño."
+                )
+                break
+
+            ajustes = {}
+            for viga_id, razon in fallas.items():
+                viga = vigas.get(viga_id)
+                if not viga:
+                    continue
+                altura_actual = _altura_inicial_cm(viga)
+                h_objetivo = altura_actual * razon ** (1.0 / 3.0) * 1.04
+                altura_nueva = math.ceil(h_objetivo / 2.0) * 2.0
+                if altura_nueva <= altura_actual:
+                    altura_nueva = altura_actual + 2.0
+                if altura_nueva > 120.0:
+                    continue
+                h_iniciales.setdefault(viga_id, altura_actual)
+                ajustes[viga_id] = altura_nueva
+            if not ajustes:
+                avisos.append(
+                    "No se pudo aumentar automáticamente la altura de las vigas que no verificaron flecha."
+                )
+                break
+            for viga_id, altura in ajustes.items():
+                vigas[viga_id]["h_cm"] = altura
+                vigas[viga_id]["h_ajustado_por_flecha"] = True
+            rutas.guardar_estructura(estructura)
+        if salida is None:
+            raise RuntimeError("P02 no generó resultados de vigas.")
     except Exception as exc:
         QMessageBox.critical(parent, "No se pudo dimensionar", str(exc))
         return None
+    resumen_ajustes = []
+    for viga_id, altura_inicial in h_iniciales.items():
+        altura_final = float(vigas[viga_id].get("h_cm", altura_inicial))
+        resumen_ajustes.append(f"{viga_id}: h {altura_inicial:g} → {altura_final:g} cm")
     QMessageBox.information(
         parent,
         "Dimensionado de vigas",
         f"P02 terminó y guardó sus resultados en:\n{salida}\n\n"
-        "Si la flecha inmediata no cumple, probá aumentar h y volver a dimensionar. Se actualizan flexión y armado. "
+        "Se recalculó el pórtico con el predimensionado. Si la flecha inmediata no verificó, se aumentó h y se repitió el análisis/dimensionado automáticamente. "
         "La flecha de larga duración y el efecto de cargas puntuales siguen pendientes."
+        + ("\n\nAlturas ajustadas por flecha:\n• " + "\n• ".join(resumen_ajustes) if resumen_ajustes else "")
         + ("\n\nA revisar:\n• " + "\n• ".join(avisos) if avisos else ""),
     )
     return salida, avisos

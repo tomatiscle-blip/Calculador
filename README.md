@@ -1,3 +1,15 @@
+## Actualización: configuración común de obra (Noviembre 2026)
+
+- La pestaña **Configuración de obra** reúne material/resistencias predeterminadas y datos de terreno/fundaciones; `parametros_motor.json` ahora es propio de cada obra.
+- Hormigón armado queda como material disponible, con H20/H25/H30 y ADN 420 precargables. El hormigón usa 25 kN/m³ por defecto; la resistencia de proyecto alimenta el dimensionado inicial de vigas y columnas.
+- El análisis de pórticos usa Ec automático para H20/H25/H30, según densidad y las fórmulas de CIRSOC 201-25, 19.2.2.1(a)/(b). El informe muestra fórmula, valor, edición y factores de inercia usados.
+- El solver incluye el peso propio de vigas y columnas como carga permanente D, con el peso específico configurado en la obra. En columnas circulares usa área e inercia circular para el modelo 2D.
+- Para combinaciones gravitatorias se usan 0,70 Ig en columnas y 0,35 Ig en vigas; en combinaciones con viento, 0,50 Ig en todos los elementos. Las áreas axiales son geométricas. Las secciones sin dimensiones explícitas son predimensionados iniciales: rectángulo 25×40 cm, círculo Ø30 cm y ancho de viga configurable (20 cm por defecto); h se estima como luz mayor/12,5. En P02 solo se elige el criterio de flecha inmediata; si falla, h aumenta automáticamente y se repiten análisis y diseño hasta cumplir o alcanzar 12 iteraciones.
+- Al crear un pórtico se consulta si tiene columnas circulares y cuáles; diámetro y lados rectangulares iniciales se guardan por columna global. Las dimensiones posteriores de diseño todavía deben revisarse contra las secciones adoptadas en obra.
+- El predimensionado de columnas globales muestra lados X/Y orientados según los momentos y permite elegir una forma inicial rectangular o circular. La verificación biaxial global actual usa diagramas rectangulares y momentos máximos de envolvente por eje; para una columna circular equivale a aproximarla como cuadrada y no verifica simultaneidad de Mx/My. El tamaño sigue siendo preliminar. Las bases admiten lados iniciales X/Y; si se dejan en cero, se parte de una base cuadrada y el predimensionado conserva esa proporción al ampliar.
+- Terreno guarda recomendaciones de q_adm por tipo de fundación y profundidad. El cálculo actual de bases de pórticos usa la recomendación activa para zapatas aisladas; las recomendaciones para zapatas continuas quedan registradas para muros, cuyo dimensionado aún no está implementado. El balasto, la napa y el perfil se guardan como referencia y todavía no intervienen en el cálculo actual.
+- **Alcance:** el solver Pynite usa Ec y secciones geométricas con los factores de rigidez indicados. El análisis sigue siendo lineal y 2D por pórtico; no resuelve interacción biaxial dentro de ese análisis ni verifica por sí mismo todas las condiciones de servicio o de segundo orden. Tampoco agrega verificaciones de asentamiento, flexión o punzonado de zapatas.
+
 ## Actualización: Vigas de fundación y optimización acoplada (Octubre 2026)
 
 ### Nuevo módulo `calc/vigas_fundacion.py`
@@ -170,7 +182,11 @@ borrar el elemento del catálogo, o eliminar el elemento completo junto con sus 
 Las aplicaciones nuevas se suman por defecto a las cargas distribuidas previas de P00.
 Los muros pueden aplicarse como carga lineal sobre un tramo o perpendicularmente entre
 dos pórticos adyacentes: se ingresan sus dos barras receptoras y posiciones, y el motor
-modela el paño simplemente apoyado y aplica en cada una la reacción puntual `q·L/2`.
+modela el paño simplemente apoyado sobre la losa y aplica en cada pórtico la reacción
+puntual `q·L/2`. La planta filtra esta aplicación por el nivel de las vigas receptoras,
+muestra la doble flecha sobre el paño y rotula los dos puntos de reacción.
+La configuración guardada del viento muestra sus pórticos destinatarios; al restaurarla
+no vuelve a seleccionar automáticamente todos los pórticos de esa dirección.
 Para este modo y para el ancho tributario automático de losas/cubiertas, asociá los pórticos
 a sus ejes transversales desde **Asociar pórticos a ejes…**; no se pueden asociar dos pórticos
 paralelos al mismo plano. Sus coordenadas acumuladas definen las separaciones. El ancho tributario
@@ -208,12 +224,14 @@ un script y la losa lo repite por su cuenta (ver el punto 4).
   motor. La prueba manual del Pórtico 1 generó la planilla TXT y
   `resultados_Portico 1_vigas.json`.
 - **Flujo en la app:** arriba se selecciona el pórtico; Inicio resuelve solicitaciones;
-  la pestaña **2 · Vigas** pide ancho `b` y hormigón `fc` para cada viga y llama a P02.
-  Esos dos datos quedan guardados en `datos/estructura.json`; la altura se predimensiona
-  con el criterio existente de P02, y fy/recubrimiento mantienen sus valores por defecto.
+  la pestaña **2 · Vigas** muestra la sección predimensionada y solicita solo el criterio
+  de flecha inmediata. El ancho se toma de Configuración de obra (salvo que la viga ya
+  tenga uno guardado), el hormigón de la obra y la altura de la geometría o de L/12,5.
 - **Límite de la flecha:** P02 calcula esa comprobación con carga uniforme equivalente.
   La app informa si el tramo tiene cargas parciales; las cargas puntuales tampoco entran
   en esa estimación. Los esfuerzos de diseño se toman de las combinaciones del motor.
+  La flecha posterior a colocar elementos no estructurales (ℓ/480 o ℓ/240) todavía no
+  se calcula; requiere modelar duración de cargas y secuencia de colocación.
 - **Contraste de campos corregido** en el diálogo de diseño de vigas para que el texto sea
   legible con el tema de Windows.
 - **Pendiente de esta etapa:** edición posterior de la geometría multinivel desde la app,
@@ -629,17 +647,22 @@ Orden recomendado (sin UI):
 2. `python calc/columnas_persistencia.py` -> genera dimensionado_{GID}.json
 3. `python calc/columnas_unificacion.py` -> genera unificado_{GID}.json + planilla_columnas_globales.csv
 4. `python calc/columnas_biaxial_global.py` -> genera resultado_final_{GID}.json
-5. `python calc/columnas_planilla_final.py` -> genera planilla_columnas_globales_final.csv
+5. `python calc/columnas_planilla_final.py` -> genera planilla maestra `planilla_columnas_globales_final.csv`, una fila por columna física, con sección orientada a X/Y globales y armaduras. Los momentos quedan en la planilla de solicitaciones y el detalle de capacidad biaxial en sus resultados; la planilla maestra solo indica si corresponde flexión biaxial y su estado.
 
 
 ### Columnas globales — completo (Oct 2026)
 - UI: boton "Calcular columnas globales (completo)" en Estructura global -> Columnas globales, con tabla de planilla final.
+- La orientación local de cada pórtico se transforma a lados X/Y globales antes de unificar las columnas. La planilla maestra incluye columnas físicas pendientes de dimensionado y advierte secciones u orientaciones que requieren revisión.
 - Pipeline: etapa "columnas_globales_completo" (orquesta Fases 1->2->4->planilla).
 - Orquestador: `python calc/columnas_globales_completo.py`.
 
 
 ### Viento manual por portico (Oct 2026)
 - UI: tabla "Viento por portico (manual)" en pestana Cargas con checkbox y ancho tributario.
-- Calculo: viento se aplica a todos los porticos si esta activo, con ancho por portico o global.
+- Calculo: viento global X/Y solo se aplica a porticos con su plano paralelo al mismo eje; el solver 2D lo recibe como FX local y genera combinaciones para ambos sentidos.
 - Visor: muestra viento con intensidad > 0 si esta configurado.
-- Fix: presion_viento faltante, FX/FY segun direccion del portico.
+- La velocidad basica y ciudad elegidas por obra alimentan el viento horizontal.
+- La planta indica el eje global y los porticos afectados; el esquema individual indica ambos sentidos de FX local.
+- La planta muestra la referencia cartesiana X/Y; la tabla de viento distingue la orientacion longitudinal del portico y la linea transversal donde se ubica.
+- Los informes incluyen ancho tributario y fuerza equivalente por piso y columna.
+- Limitacion: la presion sigue simplificada; no incluye Kz, Kzt, Kd ni Ke de CIRSOC 102-25.

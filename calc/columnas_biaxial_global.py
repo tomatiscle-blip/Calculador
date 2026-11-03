@@ -91,15 +91,15 @@ def ejecutar() -> list[dict]:
         dim_file = SAL / ("dimensionado_" + gid + ".json")
         dim = rutas.leer_json(dim_file, {}) or {}
         dims = dim.get("dimensionados", {}) or {}
-        tipo_seccion = "I"
-        recubrimiento = 4.0
+        tipo_seccion = u.get("tipo_seccion", "I") or "I"
+        recubrimiento = float(u.get("recubrimiento_cm", 4.0) or 4.0)
         if dims:
             d0 = list(dims.values())[0]
-            tipo_seccion = d0.get("tipo_seccion", "I") or "I"
-            recubrimiento = float(d0.get("recubrimiento_cm", 4.0) or 4.0)
+            tipo_seccion = tipo_seccion or d0.get("tipo_seccion", "I") or "I"
+            recubrimiento = recubrimiento or float(d0.get("recubrimiento_cm", 4.0) or 4.0)
 
-        b = float(u.get("b_cm", 0) or 0)
-        h = float(u.get("h_cm", 0) or 0)
+        lado_x = float(u.get("lado_x_cm", 0) or 0)
+        lado_y = float(u.get("lado_y_cm", 0) or 0)
         fck = float(u.get("fck_MPa", 0) or 0)
         ast = float(u.get("Ast_cm2", 0) or 0)
         n_val = float(u.get("N_kN", 0) or 0)
@@ -107,7 +107,22 @@ def ejecutar() -> list[dict]:
         my = float(u.get("My_kNm", 0) or 0)
         biaxial = bool(u.get("biaxial", False))
 
-        gamma = (h - 2 * recubrimiento) / h if h > 0 else 0.8
+        if not u.get("orientacion_global_valida") or not lado_x or not lado_y or not ast or not fck:
+            resultado = {
+                "columna_global": gid,
+                "tipo": "pendiente",
+                "biaxial": biaxial,
+                "verificacion": "PENDIENTE: falta dimensionado u orientación global",
+                "N_kN": n_val,
+                "Mx_kNm": mx,
+                "My_kNm": my,
+            }
+            rutas.guardar_json(SAL / ("resultado_final_" + gid + ".json"), resultado)
+            resultados.append(resultado)
+            continue
+
+        b_mx, h_mx = lado_x, lado_y
+        b_my, h_my = lado_y, lado_x
 
         if not biaxial:
             resultado = {
@@ -118,15 +133,17 @@ def ejecutar() -> list[dict]:
                 "N_kN": n_val,
                 "Mx_kNm": mx,
                 "My_kNm": my,
-                "b_cm": b,
-                "h_cm": h,
+                "lado_x_cm": lado_x,
+                "lado_y_cm": lado_y,
                 "fck_MPa": fck,
                 "Ast_cm2": ast,
             }
         else:
-            pnx = _pn_uniaxial(tipo_seccion, fck, gamma, b, h, ast, mx)
-            pny = _pn_uniaxial(tipo_seccion, fck, gamma, b, h, ast, my)
-            p0 = columnas_biaxial.calcular_p0(fck, 420.0, b, h, ast)
+            gamma_x = (h_mx - 2 * recubrimiento) / h_mx if h_mx > 0 else 0.8
+            gamma_y = (h_my - 2 * recubrimiento) / h_my if h_my > 0 else 0.8
+            pnx = _pn_uniaxial(tipo_seccion, fck, gamma_x, b_mx, h_mx, ast, mx)
+            pny = _pn_uniaxial(tipo_seccion, fck, gamma_y, b_my, h_my, ast, my)
+            p0 = columnas_biaxial.calcular_p0(fck, 420.0, lado_x, lado_y, ast)
             verif = columnas_biaxial.verificar_biaxial(n_val, pnx, pny, p0)
             resultado = {
                 "columna_global": gid,
@@ -135,11 +152,12 @@ def ejecutar() -> list[dict]:
                 "N_kN": n_val,
                 "Mx_kNm": mx,
                 "My_kNm": my,
-                "b_cm": b,
-                "h_cm": h,
+                "lado_x_cm": lado_x,
+                "lado_y_cm": lado_y,
                 "fck_MPa": fck,
                 "Ast_cm2": ast,
-                "gamma": gamma,
+                "gamma_mx": gamma_x,
+                "gamma_my": gamma_y,
                 "Pnx_kN": pnx,
                 "Pny_kN": pny,
                 "P0_kN": p0,

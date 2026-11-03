@@ -3,7 +3,7 @@ import os
 import math
 from pathlib import Path
 
-from . import rutas
+from . import configuracion_obra, rutas
 from . import columnas_biaxial
 
 # ============================================================
@@ -22,12 +22,8 @@ ALPHA = {
 
 
 def definir_fck(nombre_columna, Pu_kN):
-    """Define el fck de la columna. C0 = planta baja, C1/C2 = pisos superiores."""
-    if str(nombre_columna).startswith("C0"):
-        if Pu_kN > 600:
-            return 25
-        return 20
-    return 20
+    """Usa el hormigón predeterminado de la obra (editable en Configuración)."""
+    return configuracion_obra.fc_predeterminado()
 
 
 def predimensionar_seccion(Pu_kN, Mu_kNm, fck_MPa):
@@ -149,6 +145,27 @@ def calcular_global() -> list[dict]:
         # Bloque 2: predimensión de sección (unidireccional por Mu)
         fck = definir_fck(gid, n_val)
         b, h, e_cm = predimensionar_seccion(n_val, Mu, fck)
+        col_global = (estructura.get("columnas", {}) or {}).get(gid, {})
+        forma = str(col_global.get("forma_seccion", "rectangular")).lower()
+        if forma == "circular con sunchos":
+            forma = "circular"
+        lado_menor, lado_mayor = min(b, h), max(b, h)
+        if forma == "circular":
+            diametro = col_global.get("diametro_cm")
+            if diametro is None:
+                diametro, e_cm = predimensionar_suncho(n_val, Mu, fck)
+            diametro = float(diametro)
+            lado_x = lado_y = diametro
+            b = h = diametro
+        elif col_global.get("lado_x_cm") and col_global.get("lado_y_cm"):
+            lado_x = float(col_global["lado_x_cm"])
+            lado_y = float(col_global["lado_y_cm"])
+            b, h = lado_x, lado_y
+        elif abs(mx) >= abs(my):
+            # Mx se resiste con el brazo de palanca en Y.
+            lado_x, lado_y = lado_menor, lado_mayor
+        else:
+            lado_x, lado_y = lado_mayor, lado_menor
         biaxial = columnas_biaxial.combinar_momentos_globales(mx, my)
         resultados.append({
             "id": gid,
@@ -165,6 +182,10 @@ def calcular_global() -> list[dict]:
             "n_porticos": len(porticos_nombres),
             "biaxial": biaxial,
             "fck_MPa": fck,
+            "forma_seccion": forma,
+            "diametro_cm": lado_x if forma == "circular" else None,
+            "lado_x_cm": lado_x,
+            "lado_y_cm": lado_y,
             "b_cm": b,
             "h_cm": h,
             "excentricidad_cm": e_cm,

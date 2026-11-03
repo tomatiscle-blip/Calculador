@@ -1086,13 +1086,16 @@ def generar_planilla(
         })
 
         RESULTADOS["flecha"].append({
+            "viga": nombre_viga,
             "tramo": tramo_id,
             "tipo_tramo": "voladizo",
             "L_m": L_viga,
             "q_serv_kN_m": cargas["servicio"],
             "delta_mm": delta,
-            "lim_L180_mm": L/180,
-            "cumple_L180": delta <= L/180,
+            "limite_divisor": int(cargas.get("flecha_limite", 180)),
+            "limite_mm": L / int(cargas.get("flecha_limite", 180)),
+            "tipo_flecha": cargas.get("tipo_flecha", "piso"),
+            "cumple": delta <= L / int(cargas.get("flecha_limite", 180)),
             "Ie_cm4": Ie_emp * 1e8   # conversión directa a cm⁴
         })
 

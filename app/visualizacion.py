@@ -513,26 +513,15 @@ class VistaPortico(QWidget):
                 if self.viento_global_dir not in ("x", "y"):
                     self.viento_global_dir = "x"
                 self.direccion_viento = self.viento_global_dir
-                porticos_activos = configuracion_viento.get("porticos_activos", None)
-                activo = bool(configuracion_viento.get("activo"))
-                if activo and (porticos_activos is None or (isinstance(porticos_activos, list) and self.nombre in porticos_activos)):
-                    self.viento_aplicado = True
-                    anchos = configuracion_viento.get("anchos_por_portico", {}) or {}
-                    self.anchos_viento_por_portico = anchos
-                    ancho_override = None
-                    if self.nombre in anchos and anchos[self.nombre]:
-                        ancho_override = float(anchos[self.nombre])
-                    elif anchos:
-                        vals = [float(v) for v in anchos.values() if v]
-                        if vals:
-                            ancho_override = sum(vals) / len(vals)
-                    if not ancho_override or ancho_override <= 0:
-                        ancho_override = float(configuracion_viento.get("ancho_tributario_m", 0.0))
-                    if not ancho_override or ancho_override <= 0:
-                        ancho_override = 1.0
-                    items_viento = _cargas.items_viento_general(proyecto, materiales.cargar(), ancho_override=ancho_override)
-                    self.viento_lineal_kN_m = sum(float(item["valor"]) for item in items_viento)
-                    self.ancho_viento_m = ancho_override
+                estructura_total = rutas.cargar_estructura()
+                resumen_viento = _cargas.resumen_viento_portico(
+                    proyecto, estructura_total, self.nombre, materiales.cargar()
+                )
+                self.viento_aplicado = bool(resumen_viento.get("aplicado"))
+                self.ancho_viento_m = float(resumen_viento.get("ancho_tributario_m", 0.0) or 0.0)
+                self.viento_lineal_kN_m = float(resumen_viento.get("carga_lineal_kN_m", 0.0) or 0.0)
+                if self.viento_aplicado:
+                    self.anchos_viento_por_portico = configuracion_viento.get("anchos_por_portico", {}) or {}
                     columnas_por_piso = {}
                     for _cid, _col in self.columnas.items():
                         if not isinstance(_col, dict):
@@ -815,6 +804,20 @@ class VistaPortico(QWidget):
                 painter.drawPolygon(QPolygonF([a, b, c, d]))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
 
+                # Trama bajo el arranque del muro: referencia gráfica del
+                # apoyo en la base, sin representar un detalle constructivo.
+                x_ini_px, x_fin_px = min(a.x(), b.x()), max(a.x(), b.x())
+                y_base_px = a.y()
+                painter.setPen(QPen(QColor("#475569"), 1.0))
+                painter.drawLine(QPointF(x_ini_px, y_base_px + 2), QPointF(x_fin_px, y_base_px + 2))
+                x_marca = x_ini_px
+                while x_marca <= x_fin_px:
+                    painter.drawLine(
+                        QPointF(x_marca, y_base_px + 2),
+                        QPointF(x_marca - 6, y_base_px + 8),
+                    )
+                    x_marca += 10
+
                 # etiqueta rica; se apila en niveles para que no se superponga
                 etiqueta = (
                     f"{nombre} · L={longitud:.2f} m · e={espesor:.2f} m · "
@@ -842,6 +845,25 @@ class VistaPortico(QWidget):
             painter.drawLine(punto(x, y0), punto(x, y1))
             painter.setBrush(QColor("#334155"))
             painter.drawEllipse(punto(x, y0), 3.5, 3.5)
+
+        # Trama bajo cada arranque de columna para marcar el apoyo fijo en el
+        # esquema de elevación del pórtico.
+        if self.columnas:
+            y_arranque = min(float(c.get("nivel", 0.0)) for c in self.columnas.values())
+            painter.setPen(QPen(QColor("#475569"), 1.0))
+            for columna in self.columnas.values():
+                if abs(float(columna.get("nivel", 0.0)) - y_arranque) > 1e-6:
+                    continue
+                apoyo = punto(float(columna.get("x", 0.0)), y_arranque)
+                painter.drawLine(
+                    QPointF(apoyo.x() - 7, apoyo.y() + 3),
+                    QPointF(apoyo.x() + 7, apoyo.y() + 3),
+                )
+                for desplazamiento in (-5, 0, 5):
+                    painter.drawLine(
+                        QPointF(apoyo.x() + desplazamiento, apoyo.y() + 3),
+                        QPointF(apoyo.x() + desplazamiento - 5, apoyo.y() + 8),
+                    )
 
         font = QFont()
         font.setPointSize(8)
@@ -990,12 +1012,15 @@ class VistaPortico(QWidget):
             painter.drawPolygon(QPolygonF([
                 QPointF(x_fin, y_flecha), QPointF(x_fin - 6, y_flecha - 4), QPointF(x_fin - 6, y_flecha + 4)
             ]))
+            painter.drawPolygon(QPolygonF([
+                QPointF(x_ini, y_flecha), QPointF(x_ini + 6, y_flecha - 4), QPointF(x_ini + 6, y_flecha + 4)
+            ]))
             painter.setPen(QColor("#9a3412"))
             total = sum(nudo["valor_kN"] for nudo in self.viento_nodos) if self.viento_nodos else self.viento_lineal_kN_m
             estado = "SI" if self.viento_aplicado else "NO"
             painter.drawText(
                 QPointF(x_ini - 12, y_flecha - 7) if x_ini - 12 > 0 else QPointF(x_fin + 5, y_flecha - 7),
-                f"W = {total:.2f} kN · Viento global: {self.viento_global_dir.upper()} · Aplicado: {estado} · Dir. local: FX",
+                f"±W = {total:.2f} kN · Viento global: {self.viento_global_dir.upper()} · Aplicado: {estado} · Dir. local: FX",
             )
         elif self.aviso == "":
             painter.setPen(QPen(QColor("#94a3b8"), 1.5))
@@ -1078,9 +1103,9 @@ class VistaPlantaPorticos(QWidget):
     # --- Paleta visual de la planta ---------------------------------------
     # Cada familia de elementos tiene color y símbolo propios para que se
     # distingan de un vistazo (y coincidan con la leyenda).
-    COLOR_EJE = "#cbd5e1"            # grilla de ejes: referencia, punteada
+    COLOR_EJE = "#e2e8f0"            # grilla de ejes: referencia muy tenue
     COLOR_EJE_BURBUJA = "#ffffff"    # fondo de la burbuja de identificación
-    COLOR_EJE_BORDE = "#475569"      # borde de la burbuja de eje
+    COLOR_EJE_BORDE = "#94a3b8"      # borde suave de la burbuja de eje
     COLOR_PORTICO = "#64748b"        # pórtico inactivo
     COLOR_PORTICO_ACTIVO = "#1e3a8a"  # pórtico activo
     COLOR_VIGA = "#b45309"           # viga del nivel visible
@@ -1100,6 +1125,7 @@ class VistaPlantaPorticos(QWidget):
         self.niveles = []
         self.estructura = {}
         self.losas = {}
+        self.elementos_carga = {}
         self.aplicaciones: list[dict] = []  # flechas de muro perpendicular (cargas.json)
         self.muros_seleccionados = set()
         self.portico_activo = ""
@@ -1116,6 +1142,7 @@ class VistaPlantaPorticos(QWidget):
         self.direccion_viento: str = "x"
         self.viento_lineal_kN_m: float = 0.0
         self.ancho_viento_m: float = 0.0
+        self.viento_configurado = False
 
     # ------------------------------------------------------------------
     # Vista: zoom, paneo y reencuadre
@@ -1169,8 +1196,9 @@ class VistaPlantaPorticos(QWidget):
 
     def set_losas(self, elementos_carga):
         """Recibe los elementos de cargas.json; filtra los tipo losa/cubierta."""
+        self.elementos_carga = elementos_carga or {}
         self.losas = {
-            k: v for k, v in (elementos_carga or {}).items()
+            k: v for k, v in self.elementos_carga.items()
             if isinstance(v, dict) and str(v.get("tipo", "")).lower() in ("losa", "cubierta")
         }
         self.update()
@@ -1184,12 +1212,42 @@ class VistaPlantaPorticos(QWidget):
         resuelve al vuelo en ``_escena`` para dibujar la flecha entre los
         puntos de apoyo.
         """
-        self.aplicaciones = [
-            a for a in (aplicaciones or [])
-            if isinstance(a, dict)
-            and a.get("tipo_aplicacion") == "muro_perpendicular"
-            and a.get("activa", True)
-        ]
+        por_id = {
+            elemento.get("id"): (nombre, elemento)
+            for nombre, elemento in self.elementos_carga.items()
+            if isinstance(elemento, dict) and elemento.get("id")
+        }
+        try:
+            biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
+        except (OSError, ValueError):
+            biblioteca = {}
+        self.aplicaciones = []
+        for aplicacion in (aplicaciones or []):
+            if (
+                not isinstance(aplicacion, dict)
+                or aplicacion.get("tipo_aplicacion") != "muro_perpendicular"
+                or not aplicacion.get("activa", True)
+            ):
+                continue
+            copia = dict(aplicacion)
+            fuente = por_id.get(aplicacion.get("carga_id"))
+            reacciones_kN = []
+            if fuente and fuente[1].get("activo", True):
+                try:
+                    nombre, elemento = fuente
+                    items = cargas.items_de_elemento(nombre, elemento, biblioteca)
+                    q_D = sum(
+                        float(item.get("valor", 0.0))
+                        for item in items if item.get("tipo") == "D"
+                    )
+                    reacciones_kN = [
+                        q_D * float(reaccion.get("influencia_m", 0.0))
+                        for reaccion in (aplicacion.get("reacciones") or [])
+                    ]
+                except (KeyError, TypeError, ValueError):
+                    reacciones_kN = []
+            copia["reacciones_visual_kN"] = reacciones_kN
+            self.aplicaciones.append(copia)
         self.update()
 
     def set_nivel_activo(self, cota):
@@ -1203,7 +1261,8 @@ class VistaPlantaPorticos(QWidget):
 
     def set_datos_viento(self, viento_nodos: list[dict], direccion: str,
                          lineal_kN_m: float, ancho_m: float,
-                         porticos_activos: list[str] | None = None) -> None:
+                         porticos_activos: list[str] | None = None,
+                         configurado: bool = False) -> None:
         """Recibe los datos de viento del proyecto para dibujar la flecha en planta."""
         self.viento_nodos = viento_nodos or []
         self.direccion_viento = str(direccion or "x").strip().lower()
@@ -1212,6 +1271,7 @@ class VistaPlantaPorticos(QWidget):
         self.viento_lineal_kN_m = float(lineal_kN_m or 0.0)
         self.ancho_viento_m = float(ancho_m or 0.0)
         self.porticos_viento_activos = list(porticos_activos or [])
+        self.viento_configurado = bool(configurado)
         self.update()
 
     # ------------------------------------------------------------------
@@ -1525,6 +1585,11 @@ class VistaPlantaPorticos(QWidget):
                 ancho, alto = alto, ancho
             painter.save()
             painter.setFont(fuente)
+            painter.setPen(Qt.PenStyle.NoPen)
+            fondo_rotulo = QColor("#ffffff")
+            fondo_rotulo.setAlpha(185)
+            painter.setBrush(fondo_rotulo)
+            painter.drawRoundedRect(rect.adjusted(-3, -1, 3, 1), 3, 3)
             painter.setPen(QPen(QColor(rot["color"]), 1))
             painter.translate(rect.center().x(), rect.center().y())
             if rot["giro"]:
@@ -1640,6 +1705,20 @@ class VistaPlantaPorticos(QWidget):
         # comparten el mismo punto global son la misma base física (aunque
         # tengan base_id distintos). Se unifican por identidad geométrica.
         bases_globales: dict[tuple[float, float], list[dict]] = {}
+        dimensiones_bases: dict[str, tuple[float, float]] = {}
+        try:
+            resultados_bases = rutas.leer_json(
+                rutas.SAL_BASES / "resultados_bases_globales.json", []
+            ) or []
+            for resultado_base in resultados_bases:
+                if not isinstance(resultado_base, dict):
+                    continue
+                lado_x = self._numero(resultado_base.get("Bx"))
+                lado_y = self._numero(resultado_base.get("By"))
+                if lado_x and lado_y and lado_x > 0 and lado_y > 0:
+                    dimensiones_bases[str(resultado_base.get("id", ""))] = (lado_x, lado_y)
+        except (OSError, TypeError, ValueError):
+            dimensiones_bases = {}
         cota_base = self._cota_base()
         # Niveles ordenados por cota: el nivel superior al visible tiene su
         # viga como techo punteado de este nivel.
@@ -1673,11 +1752,21 @@ class VistaPlantaPorticos(QWidget):
         for nombre, datos in self.estructura.items():
             if not isinstance(datos, dict):
                 continue
+            es_muro = str(datos.get("tipo", "")).lower() == "muro"
+            referencia = datos.get("referencia_planta") or {}
+            # estructura.json también contiene catálogos globales llamados
+            # "columnas" y "bases". No son elementos de planta; si se tratan
+            # como pórticos sin geometría aparecen rotulados sobre el origen.
+            es_portico = (
+                isinstance(referencia, dict)
+                and str(referencia.get("direccion", "")).lower() in ("x", "y")
+            ) or any(clave in datos for clave in ("columnas", "vigas"))
+            if not es_muro and not es_portico:
+                continue
             geom = self._geometria(datos)
             if geom is None:
                 continue
             direccion, posicion, _ = geom
-            es_muro = str(datos.get("tipo", "")).lower() == "muro"
 
             if es_muro:
                 # ---------------- muros ----------------
@@ -1713,13 +1802,15 @@ class VistaPlantaPorticos(QWidget):
                     rotulos.append(self._rotulo(
                         x=(min(x0, x1) + max(x0, x1)) / 2,
                         y=posicion,
-                        texto=f"{nombre} · eje {eje_nombre}",
-                        direccion=direccion,
+                        texto=f"{nombre} - sobre {eje_nombre}",
+                        # En planta el texto permanece horizontal aunque el
+                        # muro avance sobre Y: así no queda cortado al girar.
+                        direccion="x",
                         color="#b91c1c",
-                        prioridad=2,
-                        desplazamiento=12.0,
-                        # Solo se rotula el muro activo.
-                        flotante=str(nombre) != str(self.portico_activo),
+                        prioridad=0,
+                        desplazamiento=20.0,
+                        # Se rotula el nombre propio del muro en su eje de ubicaci?n.
+                        flotante=False,
                     ))
                     conteo["muros"] += 1
                 elif en_nivel:
@@ -1885,8 +1976,20 @@ class VistaPlantaPorticos(QWidget):
                     x = self._numero(base.get("x"))
                     if x is None:
                         continue
-                    punto = self._punto(geom, x)
+                    x_global = self._numero(base.get("X"))
+                    y_global = self._numero(base.get("Y"))
+                    punto = (
+                        (x_global, y_global)
+                        if x_global is not None and y_global is not None
+                        else self._punto(geom, x)
+                    )
                     puntos.append(punto)
+                    dimensiones = dimensiones_bases.get(str(bid))
+                    if dimensiones:
+                        puntos.extend([
+                            (punto[0] - dimensiones[0] / 2, punto[1] - dimensiones[1] / 2),
+                            (punto[0] + dimensiones[0] / 2, punto[1] + dimensiones[1] / 2),
+                        ])
                     bases.append((str(bid), punto))
                     # Identidad global única de la base: punto global redondeado.
                     clave = (round(punto[0], 3), round(punto[1], 3))
@@ -1894,6 +1997,7 @@ class VistaPlantaPorticos(QWidget):
                         "bid": str(bid),
                         "punto": punto,
                         "portico": str(nombre),
+                        "dimensiones": dimensiones_bases.get(str(bid)),
                     })
 
             porticos.append({
@@ -1906,19 +2010,18 @@ class VistaPlantaPorticos(QWidget):
                 "vigas": vigas,
                 "bases": bases,
             })
-            # Rótulo con el eje de inserción: dice sobre qué eje corre.
-            detalle_eje = f" · {eje_nombre}" if eje_nombre else ""
+            # Rótulo independiente de la selección: nombre y línea de ubicación.
             rotulos.append(self._rotulo(
-                x=(eje_p0[0] + eje_p1[0]) / 2,
-                y=(eje_p0[1] + eje_p1[1]) / 2,
-                texto=f"{nombre}{detalle_eje}",
+                # Anclarlo a un tercio del eje, entre columnas habituales,
+                # para no montarlo sobre la columna central o una terminal.
+                x=eje_p0[0] + 0.35 * (eje_p1[0] - eje_p0[0]),
+                y=eje_p0[1] + 0.35 * (eje_p1[1] - eje_p0[1]),
+                texto=f"{nombre} - sobre {eje_nombre}" if eje_nombre else str(nombre),
                 direccion=direccion,
                 color="#1d4ed8" if str(nombre) == str(self.portico_activo) else "#475569",
                 prioridad=0,
                 desplazamiento=14.0,
-                # Solo se rotula el pórtico activo: los demás nombres son
-                # rótulos técnicos que ensucian el plano.
-                flotante=str(nombre) != str(self.portico_activo),
+                flotante=False,
             ))
 
         # Columnas únicas por coordenada global: las columnas en cruces de ejes
@@ -1942,21 +2045,8 @@ class VistaPlantaPorticos(QWidget):
 
         # Rótulos de columnas: van al sistema de rótulos (con evasión de
         # solapamiento) para que dos columnas vecinas no se tapen.
-        # Para no saturar la planta se rotula solo lo relevante: si hay un
-        # pórtico activo se rotulan sus columnas; si no hay ninguno (vista
-        # general de la obra) se rotulan únicamente cuando son pocas.
-        if self.portico_activo:
-            columnas_rotuladas = [
-                c for c in columnas_unicas
-                if any(str(pn) == str(self.portico_activo) for pn in c["porticos"])
-            ]
-        elif len(columnas_unicas) <= 10:
-            columnas_rotuladas = list(columnas_unicas)
-        else:
-            columnas_rotuladas = []
+        columnas_rotuladas = list(columnas_unicas) if len(columnas_unicas) <= 10 else []
 
-        # Rótulos de columnas: van al sistema de rótulos (con evasión de
-        # solapamiento) para que dos columnas vecinas no se tapen.
         for col in columnas_rotuladas:
             punto = col["punto"]
             ejes_txt = ", ".join(col["ejes"]) if col["ejes"] else ""
@@ -1973,7 +2063,7 @@ class VistaPlantaPorticos(QWidget):
                 prioridad=2,
                 desplazamiento=13.0,
                 # Solo se rotulan las columnas del pórtico activo.
-                flotante=not es_activa,
+                flotante=False,
             ))
         # Bases únicas por coordenada global: bases que comparten el mismo
         # punto físico (aunque tengan base_id distintos) se dibujan una vez.
@@ -1989,6 +2079,9 @@ class VistaPlantaPorticos(QWidget):
                 "punto": punto,
                 "porticos": [e["portico"] for e in entradas],
                 "bases": bids,
+                "dimensiones": next(
+                    (e["dimensiones"] for e in entradas if e.get("dimensiones")), None
+                ),
             })
         conteo["bases"] = len(bases_unicas)
 
@@ -2002,22 +2095,25 @@ class VistaPlantaPorticos(QWidget):
         for base in bases_unicas:
             punto = base["punto"]
             clave = (round(punto[0], 3), round(punto[1], 3))
-            if clave in puntos_columna:
-                continue
             if not self.portico_activo and len(bases_unicas) > 10:
                 # Vista general con muchas bases: no se rotula ninguna para
                 # no tapar los nombres de pórticos y muros.
                 break
+            dimensiones = base.get("dimensiones")
+            if dimensiones:
+                ancla_x = punto[0] - dimensiones[0] / 2
+                ancla_y = punto[1] + dimensiones[1] / 2
+            else:
+                ancla_x, ancla_y = punto[0] + 0.12, punto[1] + 0.12
             rotulos.append(self._rotulo(
-                x=punto[0],
-                y=punto[1],
+                x=ancla_x,
+                y=ancla_y,
                 texto=base["nombre"],
                 direccion="x",
                 color="#5b21b6",
-                prioridad=3,
-                desplazamiento=20.0,
-                # Rótulo técnico: no se dibuja sobre el plano.
-                flotante=True,
+                prioridad=3 if clave in puntos_columna else 2,
+                desplazamiento=0.0,
+                flotante=False,
             ))
 
         # ---------------- flechas de muro perpendicular entre pórticos ----------------
@@ -2032,6 +2128,8 @@ class VistaPlantaPorticos(QWidget):
             if len(reacciones) < 2:
                 continue
             puntos_apoyo: list[tuple[float, float]] = []
+            cotas_apoyo: list[float | None] = []
+            niveles_apoyo: list[str] = []
             direccion = None
             for reaccion in reacciones:
                 nombre_p = str(reaccion.get("portico", "")).strip()
@@ -2050,8 +2148,43 @@ class VistaPlantaPorticos(QWidget):
                     puntos_apoyo = []
                     break
                 puntos_apoyo.append(self._punto(geom, x_m))
+                nivel_nombre = str(reaccion.get("nivel_nombre", "")).strip()
+                cota = self._numero(reaccion.get("cota_m"))
+                if cota is None:
+                    for viga in (datos_p.get("vigas", {}) or {}).values():
+                        if any(
+                            str(tramo.get("id", "")) == str(reaccion.get("tramo_id", ""))
+                            for tramo in (viga.get("tramos", []) or [])
+                        ):
+                            cota = self._numero(viga.get("cota_m"))
+                            nivel_nombre = nivel_nombre or str(viga.get("nivel_nombre", "")).strip()
+                            break
+                if cota is None and nivel_nombre:
+                    nivel = next(
+                        (n for n in self.niveles
+                         if str(n.get("nombre", "")).strip() == nivel_nombre),
+                        None,
+                    )
+                    if nivel:
+                        cota = self._numero(nivel.get("cota_m"))
+                cotas_apoyo.append(cota)
+                niveles_apoyo.append(nivel_nombre)
             if len(puntos_apoyo) < 2:
                 continue
+            cotas_conocidas = [c for c in cotas_apoyo if c is not None]
+            if cotas_conocidas and any(
+                abs(c - cotas_conocidas[0]) > self.TOL for c in cotas_conocidas[1:]
+            ):
+                # Una carga lineal sobre una losa debe descargar en apoyos del
+                # mismo nivel; no representar una aplicación mal asociada.
+                continue
+            nivel_ref = next((n for n in niveles_apoyo if n), None)
+            cota_ref = cotas_conocidas[0] if cotas_conocidas else None
+            if self.nivel_activo is not None:
+                if cota_ref is None and not nivel_ref:
+                    continue
+                if not self._en_nivel(cota_ref, nivel_ref):
+                    continue
             cargas_muro.append({
                 "p1": puntos_apoyo[0],
                 "p2": puntos_apoyo[1],
@@ -2059,6 +2192,9 @@ class VistaPlantaPorticos(QWidget):
                 "influencia_m": self._numero(
                     aplicacion.get("separacion_m")
                 ) or 0.0,
+                "cota_m": cota_ref,
+                "nivel_nombre": nivel_ref,
+                "reacciones_kN": list(aplicacion.get("reacciones_visual_kN", [])),
             })
             puntos.extend(puntos_apoyo)
 
@@ -2104,6 +2240,7 @@ class VistaPlantaPorticos(QWidget):
                     "texto": texto,
                     "lado": lado,
                     "direccion_luz": direccion_luz,
+                    "rect": rect,
                 })
             detalle_apoyos = (
                 f" → {' + '.join(apoyos_txt)}" if apoyos_txt else ""
@@ -2166,7 +2303,8 @@ class VistaPlantaPorticos(QWidget):
         ymax += aire
         # Margenes para las burbujas de los ejes (van fuera del área de obra)
         # y para la leyenda y el pie de texto.
-        margen_x, margen_y = 78.0, 62.0
+        margen_x = 78.0
+        margen_y = 84.0 if self.viento_configurado else 62.0
         rango_x = max(xmax - xmin, 3.0)
         rango_y = max(ymax - ymin, 3.0)
         # Zoom acotado para que la planta ocupe mejor el área disponible.
@@ -2294,6 +2432,33 @@ class VistaPlantaPorticos(QWidget):
             painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine))
             painter.setBrush(QColor(color.red(), color.green(), color.blue(), 28))
             painter.drawRect(QRectF(QPointF(px(x0), py(y1)), QPointF(px(x1), py(y0))))
+            etiqueta_losa = f"{nombre} · {tipo_losa}"
+            caja_losa = QRectF(
+                min(px(x0), px(x1)) + 4,
+                min(py(y0), py(y1)) + 4,
+                max(0.0, abs(px(x1) - px(x0)) - 8),
+                max(0.0, abs(py(y1) - py(y0)) - 8),
+            )
+            if caja_losa.width() >= 58 and caja_losa.height() >= 22:
+                painter.save()
+                fuente_losa = QFont(painter.font())
+                fuente_losa.setPointSize(8)
+                painter.setFont(fuente_losa)
+                texto_losa = painter.fontMetrics().elidedText(
+                    etiqueta_losa, Qt.TextElideMode.ElideRight,
+                    max(0, int(caja_losa.width() - 8)),
+                )
+                banda_losa = QRectF(caja_losa.left(), caja_losa.top(), caja_losa.width(), 20)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(255, 255, 255, 205))
+                painter.drawRoundedRect(banda_losa, 3, 3)
+                painter.setPen(QColor("#065f46"))
+                painter.drawText(
+                    banda_losa.adjusted(4, 0, -4, 0),
+                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                    texto_losa,
+                )
+                painter.restore()
             # --- flecha doble tipo cota en el centro: sentido de carga de la losa ---
             datos_losa = self.losas.get(nombre, {})
             panel_datos = datos_losa.get("panel_ejes") or {}
@@ -2332,6 +2497,37 @@ class VistaPlantaPorticos(QWidget):
                     QPointF(cx - punt / 2, cy + largo - punt),
                     QPointF(cx + punt / 2, cy + largo - punt),
                 ]))
+
+        # Trama tenue en el lado interior de los bordes con apoyo verificado.
+        painter.setPen(QPen(QColor("#475569"), 1.0))
+        for apoyo in escena.get("apoyos_losa", []):
+            x0, y0, x1, y1 = apoyo["rect"]
+            direccion = apoyo["direccion_luz"]
+            lado = apoyo["lado"]
+            if direccion == "x":
+                borde_x = x0 if lado == "izq" else x1
+                profundidad = min(0.18, (x1 - x0) * 0.15)
+                interior_x = x0 + profundidad if lado == "izq" else x1 - profundidad
+                arriba, abajo = py(y1) + 4.0, py(y0) - 4.0
+                y_pixel = arriba
+                while y_pixel <= abajo:
+                    painter.drawLine(
+                        QPointF(px(borde_x), y_pixel),
+                        QPointF(px(interior_x), y_pixel - 5.0),
+                    )
+                    y_pixel += 12.0
+            else:
+                borde_y = y0 if lado == "izq" else y1
+                profundidad = min(0.18, (y1 - y0) * 0.15)
+                interior_y = y0 + profundidad if lado == "izq" else y1 - profundidad
+                izquierda, derecha = px(x0) + 4.0, px(x1) - 4.0
+                x_pixel = izquierda
+                while x_pixel <= derecha:
+                    painter.drawLine(
+                        QPointF(x_pixel, py(borde_y)),
+                        QPointF(x_pixel + 5.0, py(interior_y)),
+                    )
+                    x_pixel += 12.0
 
         # --- muros: banda roja con borde oscuro (se ve sobre la losa) ---
         for muro in escena["muros"]:
@@ -2441,13 +2637,59 @@ class VistaPlantaPorticos(QWidget):
         for base in escena.get("bases_unicas", []):
             punto = base["punto"]
             cx, cy = px(punto[0]), py(punto[1])
-            painter.setPen(QPen(QColor("#4c1d95"), 1.5))
-            painter.setBrush(QColor(self.COLOR_BASE))
-            painter.drawPolygon(QPolygonF([
-                QPointF(cx, cy + 6),
-                QPointF(cx - 7, cy + 18),
-                QPointF(cx + 7, cy + 18),
-            ]))
+            dimensiones = base.get("dimensiones")
+            if dimensiones:
+                ancho_px = max(2.0, float(dimensiones[0]) * _escala)
+                alto_px = max(2.0, float(dimensiones[1]) * _escala)
+                painter.setPen(QPen(QColor("#5b21b6"), 1.5, Qt.PenStyle.DashLine))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawRect(QRectF(cx - ancho_px / 2, cy - alto_px / 2, ancho_px, alto_px))
+            else:
+                painter.setPen(QPen(QColor("#4c1d95"), 1.5))
+                painter.setBrush(QColor(self.COLOR_BASE))
+                painter.drawPolygon(QPolygonF([
+                    QPointF(cx, cy + 6),
+                    QPointF(cx - 7, cy + 18),
+                    QPointF(cx + 7, cy + 18),
+                ]))
+
+        # Reacciones puntuales que la losa entrega a las vigas de los pórticos.
+        # La flecha doble muestra el muro/carga sobre el paño; estos dos nodos
+        # indican dónde continúa la carga hacia la estructura vertical.
+        painter.save()
+        fuente_reaccion = QFont(painter.font())
+        fuente_reaccion.setPointSize(8)
+        fuente_reaccion.setBold(True)
+        painter.setFont(fuente_reaccion)
+        for carga in escena.get("cargas_muro", []):
+            p1, p2 = carga["p1"], carga["p2"]
+            x1, y1 = px(p1[0]), py(p1[1])
+            x2, y2 = px(p2[0]), py(p2[1])
+            dx, dy = x2 - x1, y2 - y1
+            largo = math.hypot(dx, dy) or 1.0
+            ux, uy = dx / largo, dy / largo
+            reacciones = carga.get("reacciones_kN", [])
+            for indice, (cx, cy, hacia, valor) in enumerate((
+                (x1, y1, -1.0, reacciones[0] if len(reacciones) > 0 else None),
+                (x2, y2, 1.0, reacciones[1] if len(reacciones) > 1 else None),
+            ), start=1):
+                painter.setPen(QPen(QColor("#075985"), 2.0))
+                painter.setBrush(QColor("#e0f2fe"))
+                painter.drawEllipse(QPointF(cx, cy), 6.0, 6.0)
+                if valor is None:
+                    continue
+                etiqueta = f"R{indice}={float(valor):.2f} kN"
+                ancho_etiqueta = painter.fontMetrics().horizontalAdvance(etiqueta) + 8
+                alto_etiqueta = painter.fontMetrics().height() + 2
+                tx = cx + hacia * (ux * 10.0) - ancho_etiqueta / 2
+                ty = cy + hacia * (uy * 10.0) - alto_etiqueta / 2
+                caja_etiqueta = QRectF(tx, ty, ancho_etiqueta, alto_etiqueta)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(255, 255, 255, 225))
+                painter.drawRoundedRect(caja_etiqueta, 3.0, 3.0)
+                painter.setPen(QColor("#075985"))
+                painter.drawText(caja_etiqueta, Qt.AlignmentFlag.AlignCenter, etiqueta)
+        painter.restore()
 
         # --- proyecciones: lo que es de otro nivel va punteado y apagado ---
         trazo_proy = QPen(QColor("#94a3b8"), 1, Qt.PenStyle.DashLine)
@@ -2476,7 +2718,7 @@ class VistaPlantaPorticos(QWidget):
         # --- rótulos orientados según el eje, sin superposición ---
         self._pintar_rotulos(painter, escena["rotulos"], px, py)
 
-        # --- textos: nivel, leyenda y conteo de elementos del nivel ---
+        # --- textos: nivel visible y conteo de elementos ---
         conteo = escena["conteo"]
         if self.nivel_activo is not None:
             nombre_nivel = "?"
@@ -2488,105 +2730,8 @@ class VistaPlantaPorticos(QWidget):
             titulo = f"Nivel visible: {nombre_nivel} (cota {self.nivel_activo:.2f} m)"
         else:
             titulo = "Todos los niveles"
-        if self.portico_activo:
-            titulo += f"   ·   Pórtico activo: {self.portico_activo}"
         painter.setPen(QPen(QColor("#7c3aed"), 1))
-        painter.drawText(QPointF(margen, 22), titulo)
-
-        # --- leyenda visual: muestra de color + símbolo por tipo de elemento ---
-        tipos_presentes = sorted({t for t in escena["tipos_losa"].values()})
-        leyenda_tipos = " · ".join(t.title() for t in tipos_presentes) if tipos_presentes else "sin losas"
-
-        # La leyenda se dibuja como un panel en la esquina inferior derecha:
-        # las burbujas de ejes ocupan los márgenes superior e izquierdo, y el
-        # pie de texto ocupa la esquina inferior izquierda.
-        entradas_leyenda = [
-            (self.COLOR_COLUMNA, "cuadrado", "Columna activa (nodo de planta)"),
-            (self.COLOR_COLUMNA_INACTIVA, "cuadrado", "Columna de pórtico inactivo"),
-            (self.COLOR_VIGA, "linea", "Viga del nivel visible"),
-            (self.COLOR_BASE, "triangulo", "Base / cimiento"),
-            (self.COLOR_BASE, "triangulo", "Base compartida: bid (+N) = N bases/columnas"),
-            ("#059669", "cuadrado", f"Losa ({leyenda_tipos})"),
-            (self.COLOR_MURO, "linea", "Muro"),
-            (self.COLOR_APOYO, "circulo", "Apoyo de losa"),
-            ("#94a3b8", "linea", "Proyección de otro nivel (punteado)"),
-            (self.COLOR_PORTICO, "linea", "Eje de pórtico inactivo (punteado fino)"),
-            (self.COLOR_PORTICO_ACTIVO, "linea", "Eje de pórtico activo"),
-            (self.COLOR_EJE, "linea", "Ejes de la obra (punteado claro)"),
-        ]
-
-        _tam_leyenda = 9
-
-        def _muestra_leyenda(y, color, simbolo, texto, x_texto=margen + 20):
-            painter.save()
-            painter.setPen(QPen(QColor(color), 2))
-            painter.setBrush(QColor(QColor(color).red(), QColor(color).green(), QColor(color).blue(), 40))
-            if simbolo == "cuadrado":
-                painter.drawRect(QRectF(QPointF(x_texto - 20, y - 8), QPointF(x_texto - 6, y + 6)))
-            elif simbolo == "linea":
-                painter.drawLine(QPointF(x_texto - 18, y - 1), QPointF(x_texto - 8, y - 1))
-            elif simbolo == "triangulo":
-                painter.drawPolygon(QPolygonF([
-                    QPointF(x_texto - 13, y - 6),
-                    QPointF(x_texto - 18, y + 5),
-                    QPointF(x_texto - 8, y + 5),
-                ]))
-            elif simbolo == "circulo":
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-                painter.drawEllipse(QPointF(x_texto - 13, y - 1), 5, 5)
-                painter.setBrush(QColor(QColor(color).red(), QColor(color).green(), QColor(color).blue(), 40))
-            painter.setPen(QColor("#334155"))
-            painter.setFont(QFont(painter.font().family(), _tam_leyenda))
-            painter.drawText(QPointF(x_texto, y + 3), texto)
-            painter.restore()
-
-        # --- panel de leyenda (esquina inferior derecha) ---
-        # Se busca el tamaño de fuente más grande con el que la leyenda entre
-        # en el ancho disponible; si no entra de ninguna forma, se dibuja
-        # arriba a la derecha (zona libre de burbujas de ejes).
-        _ancho_disponible = self.width() - 2 * margen - 24.0
-        _fuente_leyenda = QFont(painter.font().family(), 9)
-        _metricas_leyenda = QFontMetricsF(_fuente_leyenda)
-        _ancho_leyenda = 0
-        for _color, _sim, _texto in entradas_leyenda:
-            _ancho_leyenda = max(_ancho_leyenda, _metricas_leyenda.horizontalAdvance(_texto))
-        for _tam in (9, 8, 7):
-            _fuente_leyenda = QFont(painter.font().family(), _tam)
-            _metricas_leyenda = QFontMetricsF(_fuente_leyenda)
-            _ancho_leyenda = 0
-            for _color, _sim, _texto in entradas_leyenda:
-                _ancho_leyenda = max(_ancho_leyenda, _metricas_leyenda.horizontalAdvance(_texto))
-            _tam_leyenda = _tam
-            if _ancho_leyenda + 46 <= _ancho_disponible:
-                break
-        fila = 15 if _tam_leyenda <= 7 else 16
-        _ancho_panel = _ancho_leyenda + 46
-        _alto_panel = fila * len(entradas_leyenda) + 26
-        if _ancho_panel <= _ancho_disponible:
-            # Abajo a la derecha, con margen respecto de los bordes.
-            _x_panel = self.width() - _ancho_panel - 12.0
-            _y_panel = max(self.height() - _alto_panel - 10.0, 40.0)
-        else:
-            # No entra en ancho: se dibuja arriba a la derecha, bajo el título.
-            _x_panel = max(self.width() - _ancho_panel - 12.0, margen)
-            _y_panel = 40.0
-
-        painter.save()
-        painter.setPen(QPen(QColor("#cbd5e1"), 1))
-        painter.setBrush(QColor(255, 255, 255, 235))
-        painter.drawRoundedRect(
-            QRectF(QPointF(_x_panel, _y_panel),
-                   QPointF(_x_panel + _ancho_panel, _y_panel + _alto_panel)),
-            6, 6,
-        )
-        painter.setPen(QPen(QColor("#475569"), 1))
-        painter.setFont(QFont(painter.font().family(), _tam, QFont.Weight.Bold))
-        painter.drawText(QPointF(_x_panel + 12, _y_panel + 14), "Leyenda:")
-        _y = _y_panel + 14 + fila
-        for _color, _sim, _texto in entradas_leyenda:
-            _muestra_leyenda(_y, _color, _sim, _texto, x_texto=_x_panel + 32)
-            _y += fila
-        painter.restore()
+        painter.drawText(QPointF(102.0, 22.0), titulo)
 
         painter.setPen(QPen(QColor("#334155"), 1))
         painter.drawText(
@@ -2604,44 +2749,62 @@ class VistaPlantaPorticos(QWidget):
         painter.drawText(QPointF(margen, self.height() - 12), nota)
 
         # --- flecha de dirección del viento en planta (esquina superior derecha) ---
-        if self.viento_lineal_kN_m > 0 or self.viento_nodos:
-            color_viento = QColor("#d97706")
-            painter.setPen(QPen(color_viento, 2.5))
-            painter.setBrush(color_viento)
-            x_fin = self.width() - 40.0
-            y_fin = 44.0
-            largo = 34.0
-            ancho = 14.0
-            if self.direccion_viento == "y":
-                # Flecha vertical: viento sobre ejes Y (pórticos planos X al frente).
-                painter.drawPolygon(QPolygonF([
-                    QPointF(x_fin, y_fin),
-                    QPointF(x_fin - ancho / 2, y_fin + largo),
-                    QPointF(x_fin + ancho / 2, y_fin + largo),
-                ]))
-                painter.setPen(QColor("#9a3412"))
-                painter.drawText(
-                    QPointF(x_fin - 78, y_fin + largo + 12),
-                    f"Viento → dir. Y  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN · Afectados: {', '.join(self.porticos_viento_activos) if self.porticos_viento_activos else 'todos'})",
-                )
-            else:
-                # Flecha horizontal: viento sobre ejes X (pórticos planos Y al frente).
-                painter.drawPolygon(QPolygonF([
-                    QPointF(x_fin - largo, y_fin),
-                    QPointF(x_fin, y_fin - ancho / 2),
-                    QPointF(x_fin, y_fin + ancho / 2),
-                ]))
-                painter.setPen(QColor("#9a3412"))
-                painter.drawText(
-                    QPointF(x_fin + 10, y_fin - 4),
-                    f"Viento → dir. X  ({self.viento_lineal_kN_m:.2f} kN/m · W total: {sum(n['valor_kN'] for n in self.viento_nodos):.2f} kN · Afectados: {', '.join(self.porticos_viento_activos) if self.porticos_viento_activos else 'todos'})",
-                )
-        else:
-            # Indicador explícito cuando el viento NO aplica en este pórtico/nivel.
-            painter.setPen(QPen(QColor("#94a3b8"), 1.5))
+        # Referencia cartesiana discreta en la esquina.
+        painter.setPen(QPen(QColor(148, 163, 184, 110), 1))
+        painter.setBrush(QColor(255, 255, 255, 115))
+        painter.drawRoundedRect(QRectF(14.0, 12.0, 60.0, 60.0), 6.0, 6.0)
+        origen_ejes = QPointF(37.0, 54.0)
+        painter.setPen(QPen(QColor(71, 85, 105, 135), 1.5))
+        painter.setBrush(QColor(71, 85, 105, 135))
+        painter.drawLine(origen_ejes, QPointF(57.0, 54.0))
+        painter.drawLine(origen_ejes, QPointF(37.0, 34.0))
+        painter.drawPolygon(QPolygonF([
+            QPointF(57.0, 54.0), QPointF(52.0, 51.0), QPointF(52.0, 57.0),
+        ]))
+        painter.drawPolygon(QPolygonF([
+            QPointF(37.0, 34.0), QPointF(34.0, 39.0), QPointF(40.0, 39.0),
+        ]))
+        painter.setPen(QColor(71, 85, 105, 155))
+        painter.drawText(QPointF(59.0, 58.0), "X")
+        painter.drawText(QPointF(34.0, 31.0), "Y")
+
+        # Texto del viento dentro del lienzo; el panel envuelve nombres largos.
+        panel_viento = QRectF(84.0, 28.0, max(80.0, self.width() - 146.0), 46.0)
+        painter.setPen(QPen(QColor(217, 119, 6, 100), 1))
+        painter.setBrush(QColor(255, 251, 235, 200))
+        painter.drawRoundedRect(panel_viento, 5.0, 5.0)
+        if self.viento_configurado:
+            afectados = ", ".join(self.porticos_viento_activos) if self.porticos_viento_activos else "ninguno"
+            total_viento = sum(float(n.get("valor_kN", 0.0)) for n in self.viento_nodos)
+            texto_viento = (
+                f"Viento global eje {self.direccion_viento.upper()} (ambos sentidos) | "
+                f"q={self.viento_lineal_kN_m:.2f} kN/m | W={total_viento:.2f} kN | "
+                f"Porticos: {afectados}"
+            )
+            painter.setPen(QColor("#7c2d12"))
             painter.drawText(
-                QPointF(self.width() - 150, 44),
-                "Viento: no aplica",
+                panel_viento.adjusted(8, 3, -40, -3),
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextWordWrap,
+                texto_viento,
+            )
+            color_viento = QColor("#d97706")
+            painter.setPen(QPen(color_viento, 2.0))
+            painter.setBrush(color_viento)
+            cx, cy = self.width() - 27.0, panel_viento.center().y()
+            if self.direccion_viento == "y":
+                painter.drawLine(QPointF(cx, cy - 11), QPointF(cx, cy + 11))
+                painter.drawPolygon(QPolygonF([QPointF(cx, cy - 11), QPointF(cx - 4, cy - 5), QPointF(cx + 4, cy - 5)]))
+                painter.drawPolygon(QPolygonF([QPointF(cx, cy + 11), QPointF(cx - 4, cy + 5), QPointF(cx + 4, cy + 5)]))
+            else:
+                painter.drawLine(QPointF(cx - 11, cy), QPointF(cx + 11, cy))
+                painter.drawPolygon(QPolygonF([QPointF(cx - 11, cy), QPointF(cx - 5, cy - 4), QPointF(cx - 5, cy + 4)]))
+                painter.drawPolygon(QPolygonF([QPointF(cx + 11, cy), QPointF(cx + 5, cy - 4), QPointF(cx + 5, cy + 4)]))
+        else:
+            painter.setPen(QColor("#64748b"))
+            painter.drawText(
+                panel_viento.adjusted(8, 3, -8, -3),
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                "Viento desactivado",
             )
 
         painter.end()

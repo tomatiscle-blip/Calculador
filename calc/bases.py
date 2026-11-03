@@ -134,9 +134,19 @@ def calcular(datos, portico="Portico 4"):
     return resultados
 def dimensionar_global(q_adm: float | None = None, Bx: float | None = None, By: float | None = None) -> list[dict]:
     """Lee resultados_bases_globales.json y aplica dimensionado biaxial a cada base."""
+    from . import configuracion_obra
     if q_adm is None:
         datos_terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
-        q_adm = float(datos_terreno.get("q_adm_kPa", 100.0) or 100.0)
+        valor_q = datos_terreno.get("q_adm_kPa")
+        if valor_q in (None, "", 0):
+            raise ValueError("Falta la presión admisible q_adm del estudio geotécnico.")
+        q_adm = float(valor_q)
+    parametros = configuracion_obra.cargar()
+    if Bx is None and By is None:
+        bx_guardado = parametros.get("BASE_BX_INICIAL_M")
+        by_guardado = parametros.get("BASE_BY_INICIAL_M")
+        if bx_guardado and by_guardado:
+            Bx, By = float(bx_guardado), float(by_guardado)
     datos = rutas.leer_json(rutas.SAL_BASES / "resultados_bases_globales.json", []) or []
     resultados = []
     for b in datos:

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QLabel,
+    QLineEdit,
     QVBoxLayout,
 )
 
@@ -40,10 +41,13 @@ def respuestas_columnas(parent, portico: str, columnas: dict) -> str | None:
     caja.addWidget(QLabel(explicacion_rango))
     formulario = QFormLayout()
     controles = {}
+    catalogo = rutas.cargar_estructura().get("columnas", {}) or {}
     for columna_id in columnas:
         tipo = QComboBox()
         tipo.addItem("Rectangular con estribos", "1")
         tipo.addItem("Circular con sunchos", "2")
+        forma_guardada = str(catalogo.get(columna_id, {}).get("forma_seccion", "rectangular")).lower()
+        tipo.setCurrentIndex(1 if forma_guardada in ("circular", "circular con sunchos") else 0)
         seccion = QComboBox()
         seccion.addItem("Barras en 2 caras", "1")
         seccion.addItem("Barras en 4 caras", "2")
@@ -94,11 +98,8 @@ def datos_bases(parent) -> dict | None:
     profundidad.setToolTip(
         "Distancia vertical desde el nivel del terreno hasta el fondo de la zapata."
     )
-    q_adm = QDoubleSpinBox()
-    q_adm.setRange(1.0, 10000.0)
-    q_adm.setDecimals(2)
-    q_adm.setSuffix(" kPa")
-    q_adm.setValue(float(guardados.get("q_adm_kPa", 0.87 * 98.1)))
+    q_adm = QLineEdit("" if guardados.get("q_adm_kPa") is None else str(guardados.get("q_adm_kPa")))
+    q_adm.setPlaceholderText("Valor del informe geotÃ©cnico, en kPa")
     q_adm.setToolTip(
         "Presión admisible del suelo indicada por el estudio geotécnico, en kPa."
     )
@@ -120,9 +121,17 @@ def datos_bases(parent) -> dict | None:
         return None
 
     datos = dict(guardados)
+    try:
+        q_adm_kpa = float(q_adm.text().strip().replace(",", "."))
+    except ValueError:
+        QMessageBox.warning(parent, "Falta q_adm", "IngresÃ¡ la presiÃ³n admisible del informe geotÃ©cnico.")
+        return None
+    if q_adm_kpa <= 0:
+        QMessageBox.warning(parent, "q_adm invÃ¡lido", "q_adm debe ser mayor que cero.")
+        return None
     datos.update({
         "profundidad_fundacion_m": profundidad.value(),
-        "q_adm_kPa": q_adm.value(),
+        "q_adm_kPa": q_adm_kpa,
     })
     rutas.guardar_json(rutas.TERRENO, datos)
     return datos

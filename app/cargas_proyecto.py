@@ -444,7 +444,7 @@ class EditorAplicaciones(QDialog):
         self.previsualizacion_muro.setWordWrap(True)
         formulario_perpendicular.addRow("Reacciones estimadas:", self.previsualizacion_muro)
 
-        for nombre in estructura:
+        for nombre in rutas.porticos(estructura):
             self.portico.addItem(nombre, nombre)
         if portico_inicial in estructura:
             self.portico.setCurrentIndex(self.portico.findData(portico_inicial))
@@ -538,10 +538,15 @@ class EditorAplicaciones(QDialog):
         return control
 
     def _pares_porticos(self, portico_referencia: str = "") -> list[tuple[str, str, float]]:
-        referencia = self.estructura.get(portico_referencia, {})
+        # estructura.json también contiene catálogos globales de columnas,
+        # nudos y bases. Solo las claves que representan pórticos participan
+        # en el ordenamiento; incluir los catálogos hacía desaparecer todos
+        # los pares desde que se incorporó la estructura global.
+        porticos = rutas.porticos(self.estructura)
+        referencia = porticos.get(portico_referencia, {})
         direccion = cargas.direccion_portico(referencia)
         posiciones = []
-        for nombre, datos in self.estructura.items():
+        for nombre, datos in porticos.items():
             if cargas.direccion_portico(datos) != direccion:
                 continue
             try:
@@ -550,7 +555,7 @@ class EditorAplicaciones(QDialog):
                 return []
         cantidad = sum(
             cargas.direccion_portico(datos) == direccion
-            for datos in self.estructura.values()
+            for datos in porticos.values()
         )
         if (
             len(posiciones) != cantidad
@@ -591,11 +596,19 @@ class EditorAplicaciones(QDialog):
                 selector.addItem(f"Muro completo ({longitud:.2f} m)", ("MURO_COMPLETO", longitud))
         else:
             for viga in portico.get("vigas", {}).values():
+                nivel_nombre = str(viga.get("nivel_nombre", "")).strip()
+                cota_m = viga.get("cota_m")
+                nivel_texto = f"{nivel_nombre} · " if nivel_nombre else ""
+                if cota_m is not None:
+                    nivel_texto += f"cota {float(cota_m):.2f} m · "
                 for tramo in viga.get("tramos", []):
                     tid = tramo.get("id")
                     longitud = float(tramo.get("longitud_m", 0))
                     if tid and longitud > 0:
-                        selector.addItem(f"{tid} ({longitud:.2f} m)", (tid, longitud))
+                        selector.addItem(
+                            f"{tid} · {nivel_texto}{longitud:.2f} m",
+                            (tid, longitud, cota_m, nivel_nombre),
+                        )
         selector.blockSignals(False)
 
     def _cargar_tramos(self, *_args) -> None:
@@ -608,7 +621,8 @@ class EditorAplicaciones(QDialog):
             self.tramo_a.clear()
             self.tramo_b.clear()
             self.previsualizacion_muro.setText(
-                "Definí primero las coordenadas acumuladas de los pórticos."
+                "No hay dos pórticos paralelos contiguos con separación válida. "
+                "Revisá su orientación y posición acumulada en planta."
             )
             return
         self._cargar_tramos_de(self.tramo_a, par[0])
@@ -687,6 +701,22 @@ class EditorAplicaciones(QDialog):
                     "Definí las posiciones de los pórticos y elegí un tramo receptor en cada uno.",
                 )
                 return
+            cota_a = apoyo_a[2] if len(apoyo_a) > 2 else None
+            cota_b = apoyo_b[2] if len(apoyo_b) > 2 else None
+            if cota_a is None or cota_b is None:
+                QMessageBox.warning(
+                    self, "Nivel de apoyo incompleto",
+                    "No pude identificar la cota de las dos vigas receptoras. "
+                    "Completá sus niveles antes de aplicar el muro perpendicular.",
+                )
+                return
+            if abs(float(cota_a) - float(cota_b)) > 1e-4:
+                QMessageBox.warning(
+                    self, "Los apoyos están en niveles distintos",
+                    "Elegí tramos de vigas que estén en la misma cota: el muro y la losa "
+                    "que lo recibe pertenecen a un solo nivel.",
+                )
+                return
             reacciones = []
             for portico, tramo, posicion in (
                 (par[0], apoyo_a, self.posicion_a.value()),
@@ -695,11 +725,14 @@ class EditorAplicaciones(QDialog):
                 reacciones.append({
                     "portico": portico, "tramo_id": tramo[0],
                     "x_m": posicion, "influencia_m": float(par[2]) / 2,
+                    "cota_m": float(tramo[2]),
+                    "nivel_nombre": str(tramo[3] or "") if len(tramo) > 3 else "",
                 })
             self.aplicaciones.append({
                 "id": self._id_aplicacion(), "carga_id": self.carga_id,
                 "tipo_aplicacion": "muro_perpendicular",
                 "reacciones": reacciones, "separacion_m": float(par[2]),
+                "cota_m": float(cota_a),
                 "modo_cargas_previas": "sumar", "activa": True,
             })
             self._refrescar_tabla()
@@ -805,6 +838,7 @@ class PaginaCargas(QWidget):
         super().__init__()
         self.al_guardar = al_guardar
         self.portico_actual = portico_actual or (lambda: "")
+        self._viento_modificado = False
         self.etiqueta = QLabel()
         self.etiqueta.setWordWrap(True)
         self.viento_activo = QCheckBox("Aplicar viento horizontal general al pórtico")
@@ -822,26 +856,27 @@ class PaginaCargas(QWidget):
             self.categoria_riesgo_viento.addItem(f"Categoría {categoria}", categoria)
         self.velocidad_viento_ref = QLabel()
         self.velocidad_viento_ref.setMinimumWidth(150)
-        self.nota_viento_ref = QLabel(
-            "Referencia guardada en el proyecto; el motor todavía calcula el viento con la configuración anterior."
-        )
+        self.nota_viento_ref = QLabel("La velocidad basica elegida se usa en la carga horizontal. La presion es una estimacion simplificada; faltan factores CIRSOC por exposicion, topografia y altura.")
         self.nota_viento_ref.setWordWrap(True)
         # Viento manual por pórtico (auto-marca se hace al cargar, no al cambiar combo)
         self.direccion_viento.currentIndexChanged.connect(self._al_cambiar_direccion_viento)
+        self.viento_activo.toggled.connect(self._al_toggle_viento_activo)
 
         # Viento manual por pórtico
-        self.etiqueta_viento_porticos = QLabel("Viento por pórtico (manual): marca los pórticos que reciben viento y su ancho tributario.")
+        self.etiqueta_viento_porticos = QLabel("Viento global X/Y: solo reciben viento los porticos con su plano paralelo al mismo eje. Ajusta el ancho tributario de cada uno.")
         self.etiqueta_viento_porticos.setWordWrap(True)
         self.resumen_viento = QLabel("")
         self.resumen_viento.setWordWrap(True)
-        self.tabla_viento_porticos = QTableWidget(0, 3)
-        self.tabla_viento_porticos.setHorizontalHeaderLabels(("Pórtico", "Aplicar viento", "Ancho tributario (m)"))
+        self.tabla_viento_porticos = QTableWidget(0, 4)
+        self.tabla_viento_porticos.setHorizontalHeaderLabels(("Pórtico", "Orientación / ubicación", "Aplicar viento", "Ancho tributario (m)"))
         self.tabla_viento_porticos.verticalHeader().setVisible(False)
         self.boton_guardar_viento_porticos = QPushButton("Guardar viento por pórtico")
         self.boton_guardar_viento_porticos.clicked.connect(self._guardar_viento_porticos)
 
         self.ciudad_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
         self.categoria_riesgo_viento.currentIndexChanged.connect(self._actualizar_velocidad_referencia)
+        self.ciudad_viento.currentIndexChanged.connect(self._marcar_viento_pendiente)
+        self.categoria_riesgo_viento.currentIndexChanged.connect(self._marcar_viento_pendiente)
         self.tabla = QTableWidget(0, 9)
         self.tabla.setHorizontalHeaderLabels(
             ("ID", "Descripción", "Aplicación", "Transferencia a apoyos", "Categoría",
@@ -983,8 +1018,6 @@ class PaginaCargas(QWidget):
         self.boton_aplicaciones.clicked.connect(self.editar_aplicaciones)
         self.boton_editar_composicion.clicked.connect(self.editar_composicion_aplicaciones)
         self.boton_quitar_aplicacion.clicked.connect(self.quitar_aplicacion_seleccionada)
-        self._cargar_viento_porticos()
-
         self.boton_informe.clicked.connect(self.generar_informe)
         self.boton_abrir.clicked.connect(self.abrir_informe)
         self.boton_disenar_losa.clicked.connect(self.disenar_losa_seleccionada)
@@ -1331,10 +1364,19 @@ class PaginaCargas(QWidget):
         return re.sub(r"[^a-z0-9]+", "_", obra).strip("_") or "obra"
 
     def recargar(self) -> None:
+        self._viento_modificado = False
         self.actualizar_portico()
         datos = cargas.datos_cargas()
         id_proyecto = self._id_proyecto(datos)
         viento = datos.get("viento", {})
+        # Restaurar el proyecto no debe ejecutar las acciones asociadas a un
+        # cambio del usuario: en particular, cambiar el combo durante la carga
+        # antes marcaba todos los pórticos de esa dirección y pisaba la
+        # selección que estaba guardada.
+        self.viento_activo.blockSignals(True)
+        self.direccion_viento.blockSignals(True)
+        self.ciudad_viento.blockSignals(True)
+        self.categoria_riesgo_viento.blockSignals(True)
         self.viento_activo.setChecked(bool(viento.get("activo", 0)))
         direccion_guardada = str(viento.get("direccion_viento", "x")).strip().lower()
         indice = self.direccion_viento.findData(direccion_guardada)
@@ -1345,7 +1387,12 @@ class PaginaCargas(QWidget):
         self.ciudad_viento.setCurrentIndex(max(indice_ciudad, 0))
         indice_categoria = self.categoria_riesgo_viento.findData(referencia.get("categoria_riesgo"))
         self.categoria_riesgo_viento.setCurrentIndex(max(indice_categoria, 0))
+        self.viento_activo.blockSignals(False)
+        self.direccion_viento.blockSignals(False)
+        self.ciudad_viento.blockSignals(False)
+        self.categoria_riesgo_viento.blockSignals(False)
         self._actualizar_velocidad_referencia()
+        self._cargar_viento_porticos()
         elementos = datos.get("elementos", {})
         aplicaciones = datos.get("aplicaciones", [])
         biblioteca = rutas.leer_json(rutas.MATERIALES, {}) or {}
@@ -1692,22 +1739,27 @@ class PaginaCargas(QWidget):
         datos = cargas.datos_cargas()
         datos["id_proyecto"] = self._id_proyecto(datos)
         viento = datos.setdefault("viento", {})
-        viento["activo"] = int(bool(viento.get("porticos_activos")) or self.viento_activo.isChecked())
         direccion = self.direccion_viento.currentData()
         viento["direccion_viento"] = direccion
-        # Anchos tributarios automáticos por pórtico afectado: mitad de la
-        # separación real a los pórticos vecinos en la dirección perpendicular
-        # (borde de obra = solo el vecino existente; irregular = distancia real).
+        estructura = rutas.cargar_estructura() or {}
+        seleccionados = []
+        for fila in range(self.tabla_viento_porticos.rowCount()):
+            item = self.tabla_viento_porticos.item(fila, 0)
+            checkbox = self.tabla_viento_porticos.cellWidget(fila, 2)
+            if item and checkbox and checkbox.isChecked():
+                nombre_portico = item.text()
+                if cargas.direccion_portico(estructura.get(nombre_portico, {})) == direccion:
+                    seleccionados.append(nombre_portico)
+        viento["porticos_activos"] = seleccionados
+        viento["activo"] = int(self.viento_activo.isChecked())
+        # Conservar los anchos editables de la tabla; calcular el promedio solo
+        # para compatibilidad con informes antiguos que usan un ancho global.
         anchos_por_portico = {}
-        if direccion in ("x", "y"):
-            estructura = rutas.cargar_estructura() or {}
-            try:
-                anchos = cargas.anchos_tributarios_viento(estructura, direccion)
-            except TypeError:
-                anchos = {}
-            for nombre, ancho in (anchos or {}).items():
-                if ancho is not None and ancho > 0:
-                    anchos_por_portico[str(nombre)] = round(float(ancho), 3)
+        for fila in range(self.tabla_viento_porticos.rowCount()):
+            item = self.tabla_viento_porticos.item(fila, 0)
+            spin = self.tabla_viento_porticos.cellWidget(fila, 3)
+            if item is not None and spin is not None and spin.value() > 0:
+                anchos_por_portico[item.text()] = round(float(spin.value()), 3)
         viento["anchos_por_portico"] = anchos_por_portico
         valores = [v for v in anchos_por_portico.values() if v > 0]
         viento["ancho_tributario_m"] = round(sum(valores) / len(valores), 3) if valores else 0.0
@@ -1746,6 +1798,7 @@ class PaginaCargas(QWidget):
                     activo.checkState() == Qt.CheckState.Checked
                 )
         rutas.guardar_json(rutas.CARGAS, datos)
+        self._actualizar_resumen_viento(guardado=True)
 
     def guardar(self) -> None:
         self._guardar_datos()
@@ -1775,6 +1828,57 @@ class PaginaCargas(QWidget):
         if self.al_guardar:
             self.al_guardar()
 
+    def _marcar_viento_pendiente(self, *_args) -> None:
+        self._viento_modificado = True
+        self._actualizar_resumen_viento()
+
+    def _actualizar_resumen_viento(self, guardado: bool = False) -> None:
+        if guardado:
+            self._viento_modificado = False
+        direccion = str(self.direccion_viento.currentData() or "x").upper()
+        activos = []
+        anchos = []
+        for fila in range(self.tabla_viento_porticos.rowCount()):
+            item = self.tabla_viento_porticos.item(fila, 0)
+            check = self.tabla_viento_porticos.cellWidget(fila, 2)
+            ancho = self.tabla_viento_porticos.cellWidget(fila, 3)
+            if item is not None and check is not None and check.isChecked():
+                activos.append(item.text())
+                if ancho is not None and ancho.value() > 0:
+                    anchos.append(float(ancho.value()))
+        habilitado = self.viento_activo.isChecked()
+        if self._viento_modificado:
+            estado = "CAMBIOS SIN GUARDAR"
+        else:
+            estado = "CONFIGURACIÓN GUARDADA"
+        aplicacion = ", ".join(activos) if activos else "ningún pórtico"
+        if not habilitado:
+            aplicacion = "desactivado"
+        elif not activos:
+            aplicacion = "activo, pero sin pórticos seleccionados"
+        ancho_txt = (
+            f" · anchos tributarios {', '.join(f'{v:.2f} m' for v in anchos)}"
+            if activos and anchos else ""
+        )
+        self.resumen_viento.setText(
+            f"{estado}: viento {'ACTIVO' if habilitado else 'DESACTIVADO'} · "
+            f"dirección global {direccion} · pórticos: {aplicacion}{ancho_txt}. "
+            "Se aplica al recalcular las solicitaciones."
+        )
+        color = "#b45309" if self._viento_modificado else "#166534"
+        self.resumen_viento.setStyleSheet(f"font-weight: 600; color: {color};")
+
+    def _al_toggle_viento_activo(self, activo: bool) -> None:
+        if activo:
+            marcado = any(
+                (self.tabla_viento_porticos.cellWidget(fila, 2) is not None
+                 and self.tabla_viento_porticos.cellWidget(fila, 2).isChecked())
+                for fila in range(self.tabla_viento_porticos.rowCount())
+            )
+            if not marcado:
+                self._auto_marcar_viento_por_direccion()
+        self._marcar_viento_pendiente()
+
     def _auto_marcar_viento_por_direccion(self) -> None:
         direccion = self.direccion_viento.currentData()
         if direccion not in ("x", "y"):
@@ -1788,13 +1892,15 @@ class PaginaCargas(QWidget):
                 continue
             nombre = item.text()
             portico = estructura.get(nombre, {})
-            es_afectado = (_cargas.direccion_portico(portico) != direccion)
-            cb = self.tabla_viento_porticos.cellWidget(fila, 1)
+            es_afectado = (_cargas.direccion_portico(portico) == direccion)
+            cb = self.tabla_viento_porticos.cellWidget(fila, 2)
             if cb is not None:
                 cb.setChecked(es_afectado)
+                cb.setEnabled(es_afectado)
 
     def _al_cambiar_direccion_viento(self, _indice: int) -> None:
         self._auto_marcar_viento_por_direccion()
+        self._marcar_viento_pendiente()
         try:
             if callable(self.al_guardar):
                 self.al_guardar()
@@ -1804,88 +1910,97 @@ class PaginaCargas(QWidget):
             direccion = self.direccion_viento.currentData()
             if direccion not in ("x", "y"):
                 return
-            self.resumen_viento.setText(
-                f"Viento global: {str(direccion).upper()}  ·  "
-                f"Pórticos afectados: (auto)  ·  "
-                f"Carga aplicada al modelo: FX local"
-            )
+            self._actualizar_resumen_viento()
         except Exception:
             pass
 
 
     def _cargar_viento_porticos(self) -> None:
         from calc import rutas
-        from app.ejes import cargar_ejes
         datos = rutas.leer_json(rutas.CARGAS, {}) or {}
         viento = datos.get("viento", {}) or {}
-        porticos_activos = viento.get("porticos_activos", [])
+        porticos_activos = viento.get("porticos_activos")
         anchos = viento.get("anchos_por_portico", {}) or {}
         estructura = rutas.cargar_estructura() or {}
+        try:
+            anchos_auto = cargas.anchos_tributarios_viento(
+                estructura, str(viento.get("direccion_viento", "x")).lower()
+            )
+        except (TypeError, ValueError):
+            anchos_auto = {}
         nombres = [n for n in estructura.keys() if isinstance(estructura.get(n), dict) and "referencia_planta" in (estructura.get(n) or {})]
         self.tabla_viento_porticos.setRowCount(0)
         for nombre in nombres:
             fila = self.tabla_viento_porticos.rowCount()
             self.tabla_viento_porticos.insertRow(fila)
             self.tabla_viento_porticos.setItem(fila, 0, QTableWidgetItem(nombre))
+            referencia = estructura[nombre].get("referencia_planta", {}) or {}
+            orientacion = str(referencia.get("direccion", "x")).strip().upper()
+            eje_ubicacion = "Y" if orientacion == "X" else "X"
+            posicion = float(estructura[nombre].get("posicion_planta_m", 0.0) or 0.0)
+            self.tabla_viento_porticos.setItem(
+                fila, 1,
+                QTableWidgetItem(f"Paralelo a {orientacion} · sobre línea {eje_ubicacion}={posicion:g} m"),
+            )
             cb = QCheckBox()
             cb.setChecked(nombre in (porticos_activos or []))
-            self.tabla_viento_porticos.setCellWidget(fila, 1, cb)
+            cb.toggled.connect(self._marcar_viento_pendiente)
+            self.tabla_viento_porticos.setCellWidget(fila, 2, cb)
             spin = QDoubleSpinBox()
             spin.setRange(0.0, 100.0)
             spin.setDecimals(2)
-            spin.setValue(float(anchos.get(nombre, viento.get("ancho_tributario_m", 0.0)) or 0.0))
-            self.tabla_viento_porticos.setCellWidget(fila, 2, spin)
-        self._auto_marcar_viento_por_direccion()
-        try:
-            _viento = datos.get("viento", {}) or {}
-            _dir = str(_viento.get("direccion_viento", "x")).lower()
-            _activos = _viento.get("porticos_activos")
-            _ancho = _viento.get("ancho_tributario_m", 0.0)
-            _texto = (
-                f"Viento global: {_dir.upper()}  ·  "
-                f"Pórticos afectados: {', '.join(_activos) if _activos else 'todos los activos'}  ·  "
-                f"Ancho tributario: {_ancho} m  ·  Carga aplicada al modelo: FX local"
+            ancho_inicial = anchos.get(
+                nombre, anchos_auto.get(nombre, viento.get("ancho_tributario_m", 0.0))
             )
-            self.resumen_viento.setText(_texto)
-        except Exception:
-            pass
+            spin.setValue(float(ancho_inicial or 0.0))
+            spin.valueChanged.connect(self._marcar_viento_pendiente)
+            self.tabla_viento_porticos.setCellWidget(fila, 3, spin)
+        if porticos_activos is None and viento.get("activo"):
+            self._auto_marcar_viento_por_direccion()
+        else:
+            from calc import cargas as _cargas
+            direccion = str(viento.get("direccion_viento", "x")).lower()
+            for fila in range(self.tabla_viento_porticos.rowCount()):
+                item = self.tabla_viento_porticos.item(fila, 0)
+                cb = self.tabla_viento_porticos.cellWidget(fila, 2)
+                if item is not None and cb is not None:
+                    coincide = _cargas.direccion_portico(estructura.get(item.text(), {})) == direccion
+                    cb.setEnabled(coincide)
+                    if not coincide:
+                        cb.setChecked(False)
+        self._actualizar_resumen_viento(guardado=True)
 
     def _guardar_viento_porticos(self) -> None:
         from calc import rutas
+        self._guardar_datos()
         datos = rutas.leer_json(rutas.CARGAS, {}) or {}
         viento = datos.setdefault("viento", {})
         porticos_activos = []
         anchos = {}
         for fila in range(self.tabla_viento_porticos.rowCount()):
             nombre = self.tabla_viento_porticos.item(fila, 0).text()
-            cb = self.tabla_viento_porticos.cellWidget(fila, 1)
-            spin = self.tabla_viento_porticos.cellWidget(fila, 2)
-            if cb is not None and cb.isChecked():
+            cb = self.tabla_viento_porticos.cellWidget(fila, 2)
+            spin = self.tabla_viento_porticos.cellWidget(fila, 3)
+            direccion = str(viento.get("direccion_viento", "x")).lower()
+            from calc import cargas as _cargas
+            portico_datos = rutas.cargar_estructura().get(nombre, {})
+            if cb is not None and cb.isChecked() and _cargas.direccion_portico(portico_datos) == direccion:
                 porticos_activos.append(nombre)
             if spin is not None:
                 anchos[nombre] = float(spin.value())
-        viento["porticos_activos"] = porticos_activos if porticos_activos else None
+        viento["porticos_activos"] = porticos_activos
         viento["anchos_por_portico"] = anchos
         valores = [v for v in anchos.values() if v > 0]
         viento["ancho_tributario_m"] = round(sum(valores) / len(valores), 3) if valores else 0.0
         # Modo manual: desactivar direccion automatica
-        viento["activo"] = 1 if porticos_activos else 0
+        viento["activo"] = int(self.viento_activo.isChecked())
         rutas.guardar_json(rutas.CARGAS, datos)
         try:
             if callable(self.al_guardar):
                 self.al_guardar()
         except Exception:
             pass
-        try:
-            _dir = str(viento.get("direccion_viento", "x")).lower()
-            _ancho = viento.get("ancho_tributario_m", 0.0)
-            self.resumen_viento.setText(
-                f"Viento global: {_dir.upper()}  ·  "
-                f"Pórticos afectados: {', '.join(porticos_activos) if porticos_activos else 'ninguno'}  ·  "
-                f"Ancho tributario: {_ancho} m  ·  Carga aplicada al modelo: FX local"
-            )
-        except Exception:
-            pass
+        self._actualizar_resumen_viento(guardado=True)
         QMessageBox.information(self, "Viento", "Viento por pórtico guardado.")
 
 

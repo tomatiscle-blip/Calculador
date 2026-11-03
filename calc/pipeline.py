@@ -327,10 +327,12 @@ def _marca_terreno(_portico: str = "") -> tuple[bool, str]:
     q = datos.get("q_adm_kPa")
     prof = datos.get("profundidad_fundacion_m")
     detalle = "datos/terreno.json cargado"
-    if q is not None:
+    if q not in (None, ""):
         detalle += f" · q_adm = {float(q):.1f} kPa"
     if prof is not None:
         detalle += f" · prof. = {float(prof):.2f} m"
+    if q in (None, ""):
+        return False, "falta q_adm del informe geotécnico"
     return True, detalle
 
 
@@ -358,7 +360,7 @@ ETAPAS: tuple[Etapa, ...] = (
         salidas=(rutas.TERRENO,),
         implementada=True,
         marca=_marca_terreno,
-        nota="Los datos de fundación se cargan en la subpestaña 'Terreno' de Pórticos (q_adm y profundidad).",
+        nota="Los datos generales de suelo y fundación se cargan en Configuración de obra.",
     ),
     Etapa(
         clave="geometria",
@@ -376,7 +378,7 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="4. Solicitaciones del pórtico",
         descripcion="Resuelve las cargas aplicadas y genera solicitaciones por combinación.",
         script="calc/portico.py",
-        entradas=(rutas.ESTRUCTURA, rutas.CARGAS, rutas.MATERIALES),
+        entradas=(rutas.ESTRUCTURA, rutas.CARGAS, rutas.MATERIALES, rutas.PARAMETROS_MOTOR),
         salidas=(rutas.SAL_SOLICITACIONES / "{portico}.json",),
         depende_de=("geometria",),
         interactiva=False,
@@ -390,6 +392,7 @@ ETAPAS: tuple[Etapa, ...] = (
         script="P02_Viga_portico.py",
         entradas=(
             rutas.ESTRUCTURA,
+            rutas.PARAMETROS_MOTOR,
             rutas.COEFICIENTES_KD,
             rutas.ruta_salida("solicitaciones", "{portico}.json"),
         ),
@@ -405,6 +408,7 @@ ETAPAS: tuple[Etapa, ...] = (
         script="Legacy/P04_Columnas_portico.py",
         entradas=(
             rutas.ESTRUCTURA,
+            rutas.PARAMETROS_MOTOR,
             rutas.DIAGRAMAS_INTERACCION,
             rutas.ruta_salida("solicitaciones", "{portico}.json"),
         ),
@@ -425,6 +429,7 @@ ETAPAS: tuple[Etapa, ...] = (
             rutas.ESTRUCTURA,
             rutas.PLANILLA_COLUMNAS,
             rutas.TERRENO,
+            rutas.PARAMETROS_MOTOR,
             rutas.ruta_salida("solicitaciones", "{portico}.json"),
         ),
         salidas=(
@@ -434,7 +439,7 @@ ETAPAS: tuple[Etapa, ...] = (
         depende_de=("columnas",),
         interactiva=True,
         marca=_marca_bases,
-        nota="Usa q_adm y profundidad de fundación guardados en datos/terreno.json.",
+        nota="Usa los datos geotécnicos guardados en Configuración de obra.",
     ),
     Etapa(
         clave="vigas_globales",
@@ -453,7 +458,7 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="9. Columnas globales",
         descripcion="Persistencia + unificacion + verificacion biaxial + planilla final de columnas globales.",
         script="calc/columnas_globales_completo.py",
-        entradas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json",),
+        entradas=(rutas.SAL_COLUMNAS / "resultados_columnas_globales.json", rutas.PARAMETROS_MOTOR),
         salidas=(rutas.SAL_COLUMNAS / "planilla_columnas_globales_final.csv",),
         depende_de=("columnas", "portico"),
         interactiva=False,
@@ -465,7 +470,7 @@ ETAPAS: tuple[Etapa, ...] = (
         nombre="10. Bases globales",
         descripcion="Dimensionado consolidado de bases compartidas por varios porticos.",
         script="calc/bases_globales.py",
-        entradas=(rutas.SAL_BASES / "resultados_*_bases.json",),
+        entradas=(rutas.SAL_BASES / "resultados_*_bases.json", rutas.TERRENO, rutas.PARAMETROS_MOTOR),
         salidas=(rutas.SAL_BASES / "resultados_bases_globales.json",),
         depende_de=("bases", "columnas_globales"),
         interactiva=False,
@@ -561,6 +566,15 @@ def _resolver(coleccion, portico: str) -> tuple[Path, ...]:
                 continue
             texto = texto.replace("{portico}", rutas.nombre_seguro(portico))
         ruta = Path(texto)
+        if ruta.name in {
+            "estructura.json", "cargas.json", "terreno.json", "losas.json",
+            "tipos_losa.json", "parametros_motor.json", "ejes.json", "niveles.json",
+        } and ruta.parent.name == "datos":
+            ruta = rutas.DATOS / ruta.name
+        elif "salidas" in ruta.parts:
+            indice_salidas = len(ruta.parts) - 1 - tuple(reversed(ruta.parts)).index("salidas")
+            relativo = Path(*ruta.parts[indice_salidas + 1:])
+            ruta = rutas.SALIDAS / relativo
         if "*" in ruta.name or "?" in ruta.name:
             if ruta.parent.exists():
                 coincidencias = sorted(ruta.parent.glob(ruta.name))
@@ -759,9 +773,16 @@ def ejecutar(
     if not script.exists():
         return {"ok": False, "codigo": None, "salida": "", "error": f"no se encontró {script.name}"}
 
-    comando = [sys.executable, str(script)]
-    if portico:
-        comando.append(portico)  # los scripts migrados podrán tomarlo como argumento
+    ejecutar_como_modulo = clave == "portico"
+    if ejecutar_como_modulo:
+        # calc.portico usa imports relativos; invocarlo por ruta directa rompe
+        # el contexto del paquete ("attempted relative import"). P02 necesita
+        # además que las solicitaciones recalculadas queden guardadas.
+        comando = [sys.executable, "-m", "calc.portico", portico, "--guardar"]
+    else:
+        comando = [sys.executable, str(script)]
+        if portico:
+            comando.append(portico)  # los scripts migrados podrán tomarlo como argumento
 
     # Los scripts viejos imprimen símbolos (γ, ·, →). Cuando su salida se captura,
     # Windows usa cp1252 y el programa se cae con UnicodeEncodeError; por eso se les
@@ -771,7 +792,7 @@ def ejecutar(
     try:
         proceso = subprocess.run(
             comando,
-            cwd=str(rutas.CARPETA_OBRA or rutas.RAIZ),
+            cwd=str(rutas.RAIZ if ejecutar_como_modulo else (rutas.CARPETA_OBRA or rutas.RAIZ)),
             env=entorno,
             input=respuestas,
             capture_output=True,

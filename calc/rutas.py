@@ -115,7 +115,7 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     global SAL_ANALISIS_CARGAS, SAL_VIGAS, SAL_COLUMNAS, SAL_BASES, SAL_DXF
     global SAL_LOSAS, SAL_REACCIONES, SAL_SOLICITACIONES, SOLICITACIONES_COLUMNAS, SOLICITACIONES_BASES, CARPETAS_SALIDA
     global ESTRUCTURA, CARGAS, TERRENO, TIPOS_LOSA, LOSAS, MOMENTS_INPUT
-    global PLANILLA_COLUMNAS, COMPUTO_LOSAS
+    global PLANILLA_COLUMNAS, COMPUTO_LOSAS, PARAMETROS_MOTOR
     CARPETA_OBRA = carpeta
     DATOS = carpeta / "datos" if carpeta else DATOS_GLOBAL
     SALIDAS = carpeta / "salidas" if carpeta else RAIZ / "salidas"
@@ -146,6 +146,7 @@ def _actualizar_rutas_obra(carpeta: Path | None) -> None:
     TERRENO = DATOS / "terreno.json"
     TIPOS_LOSA = DATOS / "tipos_losa.json"
     LOSAS = DATOS / "losas.json"
+    PARAMETROS_MOTOR = DATOS / "parametros_motor.json"
     MOMENTS_INPUT = DATOS / "moments_input.json"
     PLANILLA_COLUMNAS = SAL_COLUMNAS / "planilla_columnas.csv"
     COMPUTO_LOSAS = SAL_LOSAS / "computo_losas.csv"
@@ -170,7 +171,7 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
         directorio.mkdir(parents=True, exist_ok=True)
     if copiar_actual:
         origen_datos = DATOS
-        for archivo in ("losas.json", "terreno.json",
+        for archivo in ("losas.json", "terreno.json", "parametros_motor.json",
                         "tipos_losa.json", "ejes.json", "niveles.json"):
             origen = origen_datos / archivo
             if origen.is_file():
@@ -184,6 +185,11 @@ def crear_obra(nombre: str, copiar_actual: bool = False) -> Path:
             "elementos": {}, "aplicaciones": [],
         })
         guardar_json(carpeta / "datos" / "estructura.json", {})
+        guardar_json(carpeta / "datos" / "parametros_motor.json", {
+            "MATERIAL": "hormigon_armado", "FC_MPA": 25, "FY_MPA": 420,
+            "PESO_ESPECIFICO_HORMIGON_KN_M3": 25.0,
+            "VERSION_MOTOR": "CIRSOC 201-2024",
+        })
         # Ejes y niveles empiezan vacíos para la nueva obra
         guardar_json(carpeta / "datos" / "ejes.json", {"x": [], "y": []})
         guardar_json(carpeta / "datos" / "niveles.json", {"niveles": []})
@@ -207,6 +213,12 @@ def seleccionar_obra(carpeta: Path | str) -> Path:
         raise FileNotFoundError(f"No existe la carpeta de obra: {destino}")
     anterior = CARPETA_OBRA
     _actualizar_rutas_obra(destino)
+    if not PARAMETROS_MOTOR.exists():
+        guardar_json(PARAMETROS_MOTOR, {
+            "MATERIAL": "hormigon_armado", "FC_MPA": 25, "FY_MPA": 420,
+            "PESO_ESPECIFICO_HORMIGON_KN_M3": 25.0,
+            "VERSION_MOTOR": "CIRSOC 201-2024",
+        })
     if anterior != destino:
         # Cambió la obra: las cachés de estructura, listados y fechas ya no sirven.
         _invalidar_cache_estructura(ESTRUCTURA)

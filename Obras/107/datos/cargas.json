@@ -4,11 +4,11 @@
   "notas": "",
   "viento": {
     "activo": 1,
-    "ancho_tributario_m": 4.0,
-    "direccion_viento": "y",
+    "ancho_tributario_m": 1.5,
+    "direccion_viento": "x",
     "anchos_por_portico": {
-      "Pórtico 1": 4.0,
-      "Pórtico 2": 4.0
+      "Pórtico 1": 1.5,
+      "Pórtico 2": 1.5
     },
     "referencia_cirsoc_102_25": {
       "ubicacion": {
@@ -108,7 +108,7 @@
         "coordenada_libre_fin_m": 8.0
       }
     },
-    "Carga nueva": {
+    "Muro_01": {
       "tipo": "muro",
       "activo": true,
       "grupo": "Mamposteria",
@@ -129,6 +129,28 @@
       "x_fin_m": 3.0,
       "ancho_modo": null,
       "ancho_tributario_m": null,
+      "modo_cargas_previas": "sumar",
+      "activa": true
+    },
+    {
+      "id": "Aplicacion 0-2",
+      "carga_id": "Carga 0-2",
+      "tipo_aplicacion": "muro_perpendicular",
+      "reacciones": [
+        {
+          "portico": "Pórtico 1",
+          "tramo_id": "V0-1 T1",
+          "x_m": 1.5,
+          "influencia_m": 2.5
+        },
+        {
+          "portico": "Pórtico 2",
+          "tramo_id": "V0-2 T1",
+          "x_m": 1.5,
+          "influencia_m": 2.5
+        }
+      ],
+      "separacion_m": 5.0,
       "modo_cargas_previas": "sumar",
       "activa": true
     }

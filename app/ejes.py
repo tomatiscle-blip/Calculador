@@ -670,8 +670,8 @@ class EditorPorticoPorNiveles(QDialog):
         )
         self.niveles = list(self.niveles_disponibles)
         self.direccion = QComboBox()
-        self.direccion.addItem("Paralelo a X  (plano en un eje X: X1, X2…)", "x")
-        self.direccion.addItem("Paralelo a Y  (plano en un eje Y: Y1, Y2…)", "y")
+        self.direccion.addItem("Ubicado sobre un eje X (el pórtico corre paralelo a Y)", "x")
+        self.direccion.addItem("Ubicado sobre un eje Y (el pórtico corre paralelo a X)", "y")
         self.eje_transversal = QComboBox()
         self.nivel_final = QComboBox()
         for indice, nivel in enumerate(self.niveles_disponibles[1:], start=1):
@@ -696,8 +696,8 @@ class EditorPorticoPorNiveles(QDialog):
         )
         instrucciones.setWordWrap(True)
         formulario = QFormLayout()
-        formulario.addRow("Dirección del pórtico:", self.direccion)
-        formulario.addRow("Eje transversal del pórtico:", self.eje_transversal)
+        formulario.addRow("Orientación y ubicación del plano:", self.direccion)
+        formulario.addRow("Línea de ubicación:", self.eje_transversal)
         if self.niveles_disponibles:
             formulario.addRow(
                 "Nivel inferior:",

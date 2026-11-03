@@ -114,12 +114,22 @@ def viento(biblioteca: dict | None = None) -> dict:
     """Datos de viento (CIRSOC 102): ciudad, V (m/s), rho (kg/m3) y Cd."""
     datos = biblioteca if biblioteca is not None else cargar()
     fuente = datos.get("Viento", {})
-    return {
+    resultado = {
         "ciudad": fuente.get("ciudad", ""),
         "V": float(fuente.get("V_ms", 0.0)),
-        "rho": float(fuente.get("rho_kg_m3", 1.25)),
+        "rho": 1.225,
         "Cd": float(fuente.get("Cd", 1.3)),
     }
+    # La referencia de viento guardada por obra prevalece sobre el valor
+    # histórico compartido en materiales.json.
+    cargas_obra = rutas.leer_json(rutas.CARGAS, {}) or {}
+    referencia = ((cargas_obra.get("viento", {}) or {}).get("referencia_cirsoc_102_25", {}) or {})
+    ubicacion = referencia.get("ubicacion", {}) or {}
+    if referencia.get("V_basica_ms") is not None:
+        resultado["V"] = float(referencia["V_basica_ms"])
+    if ubicacion.get("ciudad"):
+        resultado["ciudad"] = ubicacion["ciudad"]
+    return resultado
 
 
 def buscar(grupo: str, clave: str, biblioteca: dict | None = None) -> dict:

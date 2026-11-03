@@ -419,7 +419,10 @@ class PaginaMuros(QWidget):
         self.visor_muro.columnas = {}
         self.visor_muro.vigas = {}
         self.visor_muro.tramos = []
-        self.visor_muro.niveles = []
+        # Mantener las referencias de planta baja y niveles superiores en el
+        # alzado del muro, igual que en el visor de pórticos.
+        from app.ejes import cargar_niveles
+        self.visor_muro.niveles = cargar_niveles()
 
         # Cargar cargas aplicadas al muro desde cargas.json
         self.visor_muro.cargas = self._cargar_cargas_muro(nombre)

@@ -1,4 +1,6 @@
+"""Genera la planilla maestra constructiva de columnas de la obra."""
 from __future__ import annotations
+
 import csv
 import sys
 from pathlib import Path
@@ -9,43 +11,75 @@ if str(_RAIZ) not in sys.path:
 
 from calc import rutas
 
-def generar():
-    SAL = rutas.SAL_COLUMNAS
-    SAL.mkdir(parents=True, exist_ok=True)
-    unifs = {p.stem.replace("unificado_", ""): rutas.leer_json(p, {}) for p in SAL.glob("unificado_*.json")}
-    finals = {p.stem.replace("resultado_final_", ""): rutas.leer_json(p, {}) for p in SAL.glob("resultado_final_*.json")}
-    csv_path = SAL / "planilla_columnas_globales_final.csv"
-    cols = ["Columna", "Eje", "Nivel", "N(kN)", "Mx(kNm)", "My(kNm)", "Mu_max(kNm)", "Biaxial", "b(cm)", "h(cm)", "f'c(MPa)", "Ast(cm2)", "Armadura", "Clasificacion", "Pnx(kN)", "Pny(kN)", "P0(kN)", "Pn_biaxial(kN)", "Cumple", "Porticos"]
-    with csv_path.open("w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f, delimiter=";")
-        w.writerow(cols)
-        for gid, u in unifs.items():
-            fin = finals.get(gid, {})
+
+def generar() -> Path:
+    """Una fila por columna física, con sección referida a los ejes globales."""
+    sal = rutas.SAL_COLUMNAS
+    sal.mkdir(parents=True, exist_ok=True)
+    unificados = {
+        p.stem.replace("unificado_", ""): rutas.leer_json(p, {}) or {}
+        for p in sal.glob("unificado_*.json")
+    }
+    finales = {
+        p.stem.replace("resultado_final_", ""): rutas.leer_json(p, {}) or {}
+        for p in sal.glob("resultado_final_*.json")
+    }
+    ruta_csv = sal / "planilla_columnas_globales_final.csv"
+    encabezados = [
+        "Columna", "Eje", "X global (m)", "Y global (m)", "Nivel (m)",
+        "Altura (m)", "Pórticos", "Lado X (cm)", "Lado Y (cm)",
+        "Sección", "Hormigón f'c (MPa)", "Armadura longitudinal",
+        "Barras", "Ø longitudinal (mm)", "Ast (cm²)", "Estribos Ø (mm)",
+        "Separación estribos (cm)", "Recubrimiento (cm)", "Flexión",
+        "Estado dimensionado", "Verificación biaxial",
+    ]
+    estructura = rutas.cargar_estructura()
+    catalogo = rutas._catalogo_columnas_globales(estructura)
+    ids = sorted(set(catalogo) | set(unificados) | set(finales))
+
+    with ruta_csv.open("w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f, delimiter=";")
+        writer.writerow(encabezados)
+        for gid in ids:
+            u = unificados.get(gid, {})
+            fin = finales.get(gid, {})
+            cat = catalogo.get(gid, {})
+            armado = u.get("armadura_longitudinal", {}) or {}
+            estribos = u.get("estribos", {}) or {}
             verif = fin.get("verificacion_biaxial", {}) or {}
-            biax = bool(u.get("biaxial", False))
-            w.writerow([
+            biaxial = bool(u.get("biaxial", fin.get("biaxial", False)))
+            if fin.get("tipo") == "pendiente" or not fin:
+                estado_verif = "PENDIENTE"
+            elif biaxial:
+                estado_verif = "CUMPLE" if verif.get("cumple") else "NO CUMPLE"
+            else:
+                estado_verif = "No aplica: uniaxial" if fin else "Pendiente"
+            writer.writerow([
                 gid,
-                u.get("eje_nombre", ""),
-                u.get("nivel", ""),
-                round(u.get("N_kN", 0), 2),
-                round(u.get("Mx_kNm", 0), 2),
-                round(u.get("My_kNm", 0), 2),
-                round(u.get("Mu_max_kNm", 0), 2),
-                "SI" if biax else "NO",
-                u.get("b_cm", ""),
-                u.get("h_cm", ""),
-                u.get("fck_MPa", ""),
-                u.get("Ast_cm2", ""),
-                u.get("armadura_longitudinal", {}).get("descripcion", ""),
-                u.get("clasificacion", ""),
-                round(fin.get("Pnx_kN", 0), 2) if biax else "",
-                round(fin.get("Pny_kN", 0), 2) if biax else "",
-                round(fin.get("P0_kN", 0), 2) if biax else "",
-                round(verif.get("Pn_biaxial_kN", 0), 2) if biax else "",
-                verif.get("cumple", "") if biax else "RESUELTA",
+                cat.get("eje_nombre", u.get("eje_nombre", "")),
+                cat.get("X", cat.get("x", "")),
+                cat.get("Y", cat.get("y", "")),
+                cat.get("nivel", u.get("nivel", "")),
+                u.get("altura_m", ""),
                 ";".join(u.get("porticos", [])),
+                u.get("lado_x_cm", ""),
+                u.get("lado_y_cm", ""),
+                u.get("tipo_seccion", ""),
+                u.get("fck_MPa", ""),
+                armado.get("descripcion", ""),
+                armado.get("n_barras", ""),
+                armado.get("diametro_mm", ""),
+                u.get("Ast_cm2", ""),
+                estribos.get("diametro_mm", ""),
+                estribos.get("paso_cm", ""),
+                u.get("recubrimiento_cm", ""),
+                "Biaxial" if biaxial else "Uniaxial",
+                u.get("estado_dimensionado", "Pendiente de dimensionado"),
+                estado_verif,
             ])
-    print("Planilla final generada:", csv_path)
+    print("Planilla maestra de columnas generada:", ruta_csv)
+    return ruta_csv
+
 
 if __name__ == "__main__":
     generar()

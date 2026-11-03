@@ -9,7 +9,7 @@ if str(_RAIZ) not in sys.path:
 
 import csv
 import sys
-from calc import rutas
+from calc import rutas, configuracion_obra
 
 # ============================================================
 # ADAPTADO A ESTRUCTURA GLOBAL (IDs globales) — version integrada
@@ -36,16 +36,11 @@ prof = float(input(
 ))
 
 terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
-if "q_adm_kPa" in terreno:
-    q_adm_kPa = float(terreno["q_adm_kPa"])
+q_adm_guardado = terreno.get("q_adm_kPa")
+if q_adm_guardado not in (None, "", 0):
+    q_adm_kPa = float(q_adm_guardado)
 else:
-    if abs(prof - 0.8) < 0.05:
-        q_adm_kgcm2 = 0.87
-    elif abs(prof - 1.3) < 0.05:
-        q_adm_kgcm2 = 1.36
-    else:
-        q_adm_kgcm2 = float(input("Ingrese q_adm [kg/cm²]: "))
-    q_adm_kPa = q_adm_kgcm2 * 98.1
+    q_adm_kPa = float(input("Ingrese q_adm del informe geotécnico [kPa]: "))
 if q_adm_kPa <= 0:
     raise ValueError("La tensión admisible del suelo debe ser mayor que cero.")
 print(f"\nq_adm adoptado = {q_adm_kPa:.2f} kPa")
@@ -73,33 +68,51 @@ def leer_columnas_csv(portico):
 # GEOTECNIA ZAPATA
 # ============================================================
 
-def dimensionar_base_geotecnia(Fy, M, q_adm):
+def dimensionar_base_geotecnia(Fy, M, q_adm, Bx=None, By=None, direccion="x"):
     N = abs(Fy)
     if N <= 0:
         raise ValueError("La reacción vertical de la base debe ser distinta de cero.")
-    area = N / q_adm
-    L = math.sqrt(area)
+    if Bx is None or By is None:
+        L = max(0.60, math.sqrt(N / q_adm) * 1.10)
+        Bx = By = math.ceil(L / 0.05) * 0.05
+    Bx, By = float(Bx), float(By)
+    if Bx <= 0 or By <= 0:
+        raise ValueError("Los lados iniciales de la zapata deben ser mayores que cero.")
     e = abs(M) / N
-
+    dimension_momento = Bx if direccion == "x" else By
+    for _ in range(200):
+        area = Bx * By
+        q_med = N / area
+        q_max = q_med * (1 + 6 * e / dimension_momento)
+        q_min = q_med * (1 - 6 * e / dimension_momento)
+        if q_max <= q_adm and q_min >= 0:
+            break
+        Bx = round(Bx + 0.05, 2)
+        By = round(By + 0.05, 2)
+        dimension_momento = Bx if direccion == "x" else By
+    area = Bx * By
     q_med = N / area
-    q_max = q_med * (1 + 6 * e / L)
-    q_min = q_med * (1 - 6 * e / L)
+    q_max = q_med * (1 + 6 * e / dimension_momento)
+    q_min = q_med * (1 - 6 * e / dimension_momento)
 
     return {
-        "lado_m": round(L, 2),
+        "lado_m": round(max(Bx, By), 2),
+        "Bx_m": round(Bx, 2),
+        "By_m": round(By, 2),
         "area_m2": round(area, 2),
         "excentricidad_m": round(e, 3),
         "q_adm_kPa": round(q_adm, 2),
         "q_max_kPa": round(q_max, 2),
         "q_min_kPa": round(q_min, 2),
-        "requiere_viga_fundacion": q_min < 0
+        "requiere_viga_fundacion": q_min < 0,
+        "cumple_q_adm": q_max <= q_adm and q_min >= 0,
     }
 
 # ============================================================
 # ARMADURA MÍNIMA ZAPATA
 # ============================================================
 
-def armadura_minima_zapata(lado_m, h_m):
+def armadura_minima_zapata(Bx_m, h_m, By_m=None):
     """
     Calcula armadura mínima de zapata en ambos sentidos
     y metraje de acero.
@@ -117,16 +130,12 @@ def armadura_minima_zapata(lado_m, h_m):
     recubrimiento_m = 0.07
 
     # longitud útil
-    L_util = lado_m - 2 * recubrimiento_m
-
-    # cantidad de barras por sentido
-    n_barras = int(L_util / paso_m) + 1
-
-    # longitud total por sentido
-    long_total_sentido = n_barras * L_util
-
-    # total ambos sentidos
-    long_total = 2 * long_total_sentido
+    By_m = Bx_m if By_m is None else By_m
+    util_x = max(0.0, Bx_m - 2 * recubrimiento_m)
+    util_y = max(0.0, By_m - 2 * recubrimiento_m)
+    n_barras_x = int(util_y / paso_m) + 1
+    n_barras_y = int(util_x / paso_m) + 1
+    long_total = n_barras_x * util_x + n_barras_y * util_y
 
     peso_kg_m = {
         8: 0.395,
@@ -138,7 +147,9 @@ def armadura_minima_zapata(lado_m, h_m):
     return {
         "diametro": f"Ø{diam_mm}",
         "paso_cm": int(paso_m * 100),
-        "barras_por_sentido": n_barras,
+        "barras_por_sentido": max(n_barras_x, n_barras_y),
+        "barras_sentido_x": n_barras_x,
+        "barras_sentido_y": n_barras_y,
         "longitud_total_m": round(long_total, 2),
         "peso_total_kg": round(peso_total_kg, 1)
     }
@@ -331,9 +342,19 @@ else:
 # ============================================================
 
 resultados = {}
+parametros_obra = configuracion_obra.cargar()
+bx_inicial = parametros_obra.get("BASE_BX_INICIAL_M")
+by_inicial = parametros_obra.get("BASE_BY_INICIAL_M")
+referencia = (rutas.porticos(rutas.cargar_estructura()).get(portico, {}) or {}).get(
+    "referencia_planta", {}
+) or {}
+direccion_base = str(referencia.get("direccion", "x")).lower()
 
 for nb, b in bases.items():
-    geo = dimensionar_base_geotecnia(b["Fy_kN"], b["Tz_kNm"], q_adm_kPa)
+    geo = dimensionar_base_geotecnia(
+        b["Fy_kN"], b["Tz_kNm"], q_adm_kPa,
+        bx_inicial, by_inicial, direccion_base,
+    )
     h = max(0.35, geo["lado_m"] / 10)
 
     col = columnas.get(nb.replace("B", "C"))
@@ -343,7 +364,7 @@ for nb, b in bases.items():
         "geotecnia": geo,
         "espesor_m": round(h, 2),
         "armadura_zapata": armadura_minima_zapata(
-            geo["lado_m"], h
+            geo["Bx_m"], h, geo["By_m"]
         ),
         "tronco": calcular_tronco(col, altura_fundacion, h) if col else None,
         "pelos_columna": calcular_pelos(col, altura_fundacion - h) if col else None
@@ -405,12 +426,13 @@ with open(txt_out, "w", encoding="utf-8") as f:
         # Geotecnia
         geo = res["geotecnia"]
         f.write("Geotecnia:\n")
-        f.write(f"  Lado de la zapata cuadrada: {geo['lado_m']} m\n")
+        f.write(f"  Dimensiones en planta: {geo['Bx_m']} × {geo['By_m']} m (ejes globales X × Y)\n")
         f.write(f"  Área de apoyo sobre el suelo: {geo['area_m2']} m²\n")
         f.write(f"  Excentricidad de la reacción: {geo['excentricidad_m']} m\n")
         f.write(f"  Presión admisible adoptada (q_adm): {geo['q_adm_kPa']} kPa\n")
         f.write(f"  Presión máxima del suelo (q_max): {geo['q_max_kPa']} kPa\n")
         f.write(f"  Presión mínima del suelo (q_min): {geo['q_min_kPa']} kPa\n")
+        f.write(f"  Cumple presión admisible y contacto: {geo['cumple_q_adm']}\n")
         f.write(
             "  Criterio de viga de fundación: q_min < 0 implica tracción "
             "teórica del suelo y activa esta alerta; "
@@ -428,7 +450,7 @@ with open(txt_out, "w", encoding="utf-8") as f:
         f.write("Armadura zapata:\n")
         f.write(f"  Diametro: {arm['diametro']}\n")
         f.write(f"  Paso: {arm['paso_cm']} cm\n")
-        f.write(f"  Barras por sentido: {arm['barras_por_sentido']}\n")
+        f.write(f"  Barras por sentido: X={arm['barras_sentido_x']} · Y={arm['barras_sentido_y']}\n")
         f.write(f"  Longitud total: {arm['longitud_total_m']} m\n")
         f.write(f"  Peso total: {arm['peso_total_kg']} kg\n")
 

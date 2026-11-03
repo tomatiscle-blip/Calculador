@@ -159,7 +159,8 @@
         },
         "b_cm": 22.0,
         "fc_MPa": 20,
-        "h_cm": 35.0
+        "h_cm": 38.0,
+        "h_ajustado_por_flecha": true
       }
     },
     "columnas": [
@@ -311,5 +312,45 @@
         "cota_origen_m": 3.0
       }
     ]
+  },
+  "Muro 1": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "4a8cdcf4-1d32-417d-9480-2899220442c2",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "6d8af4c0-2c13-4ca9-b383-a1032b4a27fc",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 4.0,
+    "x_inicio": 0.0,
+    "x_fin": 10.0,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 3.0,
+    "espesor_m": 0.21999999999999997,
+    "offset": 0.0,
+    "longitud_m": 10.0,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.12
+      },
+      {
+        "grupo": "Aislantes",
+        "clave": "eps",
+        "espesor_m": 0.02
+      },
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_hueco",
+        "espesor_m": 0.08
+      }
+    ],
+    "altura_m": 3.0,
+    "peso_propio_kN_m2": 2.884,
+    "peso_lineal_kN_m": 8.652
   }
 }

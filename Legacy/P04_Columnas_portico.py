@@ -9,7 +9,7 @@ import json
 import os
 import csv, os
 import sys
-from calc import rutas
+from calc import rutas, configuracion_obra
 
 # ============================================================
 # ADAPTADO A ESTRUCTURA GLOBAL (IDs globales) — version integrada
@@ -22,20 +22,8 @@ from calc import rutas
 # ==============================
 
 def definir_fck(nombre_columna, Pu_kN):
-    """
-    Define el fck de la columna.
-    C0 = planta baja
-    C1, C2 = pisos superiores
-    """
-    # planta baja → permitir H25
-    if nombre_columna.startswith("C0"):
-        if Pu_kN > 600:      # umbral razonable
-            return 25
-        else:
-            return 20
-
-    # pisos superiores → casi siempre H20
-    return 20
+    """Resistencia inicial seleccionada para la obra."""
+    return configuracion_obra.fc_predeterminado()
 
 
 def predimensionar_seccion(Pu_kN, Mu_kNm, fck_MPa):
@@ -799,7 +787,7 @@ else:
             Mu_sup = col.get("Mu_kNm_sup", 0)
         altura = col["altura_m"]
         fck = definir_fck(col_id, Pu)    # criterio de resistencia
-        fy = 420                         # MPa fijo
+        fy = int(configuracion_obra.cargar().get("FY_MPA", 420))
         Mu = max(abs(Mu_inf), abs(Mu_sup))
 
         # -----------------------------

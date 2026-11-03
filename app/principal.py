@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (  # noqa: E402
 )
 
 from calc import cargas, columnas, bases, pipeline, rutas, vigas_globales, vigas_fundacion  # noqa: E402
+from calc import configuracion_obra  # noqa: E402
 from app.cargas_proyecto import PaginaCargas  # noqa: E402
 from app.muros_proyecto import PaginaMuros  # noqa: E402
 from app.diseno_columnas_bases import datos_bases as pedir_datos_bases  # noqa: E402
@@ -763,7 +764,7 @@ class VentanaPrincipal(QMainWindow):
         pestanias.addTab(self._pagina_inicio(), "Inicio")
         pestanias.addTab(self._pagina_etapas(), "1 · Estado y etapas")
         pestanias.addTab(self.pagina_cargas, "Cargas")
-        pestanias.addTab(self._pagina_terreno(), "Terreno")
+        pestanias.addTab(self._pagina_configuracion_obra(), "Configuración de obra")
         pestanias.addTab(self._pagina_porticos(), "Pórticos")
         pestanias.addTab(self._pagina_estructura_global(), "Estructura global")
 
@@ -846,18 +847,15 @@ class VentanaPrincipal(QMainWindow):
         boton_completo.clicked.connect(self._calcular_columnas_globales_completo)
         fila_botones.addWidget(boton_completo, 0)
         caja.addLayout(fila_botones)
-        self.tabla_columnas_globales = QTableWidget(0, 9)
+        self.tabla_columnas_globales = QTableWidget(0, 12)
         self.tabla_columnas_globales.setHorizontalHeaderLabels(
-            ("ID", "Eje", "Nivel", "Mx", "My", "N", "Deriva", "Pórticos", "Estado")
+            ("ID", "Eje", "Nivel", "Mx", "My", "N", "Deriva", "Forma", "Lado X", "Lado Y", "Pórticos", "Estado")
         )
         caja.addWidget(self.tabla_columnas_globales, 1)
-        etiqueta_final = QLabel("Planilla global final (unificada + verificación biaxial).")
+        etiqueta_final = QLabel("Planilla maestra de columnas de la obra (sección y armaduras en ejes globales).")
         etiqueta_final.setWordWrap(True)
         caja.addWidget(etiqueta_final)
-        self.tabla_columnas_globales_final = QTableWidget(0, 20)
-        self.tabla_columnas_globales_final.setHorizontalHeaderLabels(
-            ("Columna", "Eje", "Nivel", "N(kN)", "Mx(kNm)", "My(kNm)", "Mu_max(kNm)", "Biaxial", "b(cm)", "h(cm)", "f'c(MPa)", "Ast(cm2)", "Armadura", "Clasificacion", "Pnx(kN)", "Pny(kN)", "P0(kN)", "Pn_biaxial(kN)", "Cumple", "Porticos")
-        )
+        self.tabla_columnas_globales_final = QTableWidget(0, 0)
         caja.addWidget(self.tabla_columnas_globales_final, 1)
         return pagina
 
@@ -875,8 +873,11 @@ class VentanaPrincipal(QMainWindow):
                 self.tabla_columnas_globales.setItem(fila, 4, QTableWidgetItem(str(r.get("My"))))
                 self.tabla_columnas_globales.setItem(fila, 5, QTableWidgetItem(str(r.get("N"))))
                 self.tabla_columnas_globales.setItem(fila, 6, QTableWidgetItem(str(r.get("deriva"))))
-                self.tabla_columnas_globales.setItem(fila, 7, QTableWidgetItem(", ".join(r.get("porticos", []))))
-                self.tabla_columnas_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("estado"))))
+                self.tabla_columnas_globales.setItem(fila, 7, QTableWidgetItem(str(r.get("forma_seccion"))))
+                self.tabla_columnas_globales.setItem(fila, 8, QTableWidgetItem(str(r.get("lado_x_cm"))))
+                self.tabla_columnas_globales.setItem(fila, 9, QTableWidgetItem(str(r.get("lado_y_cm"))))
+                self.tabla_columnas_globales.setItem(fila, 10, QTableWidgetItem(", ".join(r.get("porticos", []))))
+                self.tabla_columnas_globales.setItem(fila, 11, QTableWidgetItem(str(r.get("estado"))))
         except Exception as exc:
             QMessageBox.warning(self, "Columnas globales", str(exc))
 
@@ -893,6 +894,9 @@ class VentanaPrincipal(QMainWindow):
                 with ruta.open("r", encoding="utf-8-sig", newline="") as f:
                     reader = csv.reader(f, delimiter=";")
                     header = next(reader, None)
+                    if header:
+                        self.tabla_columnas_globales_final.setColumnCount(len(header))
+                        self.tabla_columnas_globales_final.setHorizontalHeaderLabels(header)
                     for row in reader:
                         fila = self.tabla_columnas_globales_final.rowCount()
                         self.tabla_columnas_globales_final.insertRow(fila)
@@ -1235,13 +1239,59 @@ class VentanaPrincipal(QMainWindow):
         self.spin_profundidad_fundacion.setDecimals(2)
         self.spin_profundidad_fundacion.setSuffix(" m")
 
-        self.spin_q_adm = QDoubleSpinBox()
-        self.spin_q_adm.setRange(1.0, 10000.0)
-        self.spin_q_adm.setDecimals(2)
-        self.spin_q_adm.setSuffix(" kPa")
+        self.txt_q_adm = QLineEdit()
+        self.txt_q_adm.setPlaceholderText("Completar con el informe geotécnico")
+        self.txt_fuente_terreno = QLineEdit()
+        self.txt_napa = QLineEdit()
+        self.txt_napa.setPlaceholderText("Opcional · profundidad bajo nivel de terreno, m")
+        self.txt_balasto = QLineEdit()
+        self.txt_balasto.setPlaceholderText("Opcional · completar solo si el modelo lo usa")
+        self.txt_perfil_suelo = QPlainTextEdit()
+        self.txt_perfil_suelo.setPlaceholderText(
+            "Capas del informe, una por línea (descripción; espesor m; γ kN/m³)."
+        )
+        self.txt_perfil_suelo.setMaximumHeight(100)
 
-        form.addRow("Profundidad hasta el fondo de zapata:", self.spin_profundidad_fundacion)
-        form.addRow("Presión admisible del suelo q_adm:", self.spin_q_adm)
+        form.addRow("Profundidad activa · bases aisladas de pórticos:", self.spin_profundidad_fundacion)
+        form.addRow("q_adm activa · bases aisladas de pórticos [kPa]:", self.txt_q_adm)
+        form.addRow("Informe / fuente geotécnica:", self.txt_fuente_terreno)
+        form.addRow("Nivel freático:", self.txt_napa)
+        form.addRow("Balasto vertical kᵥ [kN/m³] (referencia):", self.txt_balasto)
+        form.addRow("Perfil de suelo (referencia):", self.txt_perfil_suelo)
+        caja.addWidget(QLabel(
+            "La tabla inferior transcribe las recomendaciones del informe por tipo de fundación y profundidad. "
+            "El cálculo actual de bases de pórticos usa únicamente la profundidad y q_adm activas; "
+            "el balasto, la napa y el perfil son referencias y no intervienen todavía."
+        ))
+
+        grupo_recomendaciones = QGroupBox("Recomendaciones precargadas del informe geotécnico")
+        recomendaciones_layout = QVBoxLayout(grupo_recomendaciones)
+        recomendaciones_layout.addWidget(QLabel(
+            "Ejemplo de referencia tomado de un informe de 2016 para Solares de Poucke. "
+            "Confirmá ubicación, tipo de fundación y profundidad con el estudio aplicable a la obra antes de calcular."
+        ))
+        self.tabla_recomendaciones_terreno = QTableWidget(0, 6)
+        self.tabla_recomendaciones_terreno.setHorizontalHeaderLabels([
+            "Fundación", "Prof. [m]", "q_adm [kPa]", "Valor del informe",
+            "kᵥ [kN/m³] (informe)", "Referencia",
+        ])
+        self.tabla_recomendaciones_terreno.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+        self.tabla_recomendaciones_terreno.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.tabla_recomendaciones_terreno.verticalHeader().setVisible(False)
+        self.tabla_recomendaciones_terreno.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.tabla_recomendaciones_terreno.setMaximumHeight(125)
+        recomendaciones_layout.addWidget(self.tabla_recomendaciones_terreno)
+        recomendaciones_layout.addWidget(QLabel(
+            "La recomendación para zapata corrida corresponde al uso indicado por el informe; "
+            "no se aplica a las bases aisladas de pórticos. La app aún no dimensiona fundaciones corridas de muros."
+        ))
+        caja.addWidget(grupo_recomendaciones)
 
         btn = QPushButton("Guardar datos de terreno")
         btn.clicked.connect(self._guardar_terreno)
@@ -1255,80 +1305,213 @@ class VentanaPrincipal(QMainWindow):
     def _cargar_terreno(self) -> None:
         datos = rutas.leer_json(rutas.TERRENO, {}) or {}
         self.spin_profundidad_fundacion.setValue(float(datos.get("profundidad_fundacion_m", 0.8)))
-        self.spin_q_adm.setValue(float(datos.get("q_adm_kPa", 0.87 * 98.1)))
+        q_adm = datos.get("q_adm_kPa")
+        self.txt_q_adm.setText("" if q_adm in (None, "") else str(q_adm))
+        self.txt_fuente_terreno.setText(str(datos.get("fuente_geotecnica", "")))
+        nivel_freatico = datos.get("nivel_freatico_m")
+        balasto = datos.get("modulo_balasto_kN_m3")
+        self.txt_napa.setText("" if nivel_freatico in (None, "") else str(nivel_freatico))
+        self.txt_balasto.setText("" if balasto in (None, "") else str(balasto))
+        self.txt_perfil_suelo.setPlainText(str(datos.get("perfil_suelo", "")))
+        recomendaciones = datos.get("recomendaciones_fundacion", []) or []
+        tabla = getattr(self, "tabla_recomendaciones_terreno", None)
+        if tabla is not None:
+            tabla.setRowCount(len(recomendaciones))
+            for fila, recomendacion in enumerate(recomendaciones):
+                tipo = str(recomendacion.get("tipo_fundacion", "")).capitalize()
+                profundidad = recomendacion.get("profundidad_m")
+                q_kpa = recomendacion.get("q_adm_kPa")
+                q_original = recomendacion.get("q_adm_informe", "")
+                kv = recomendacion.get("kv_kN_m3")
+                kv_original = recomendacion.get("kv_informe", "")
+                kv_texto = "—"
+                if kv is not None:
+                    kv_texto = f"{float(kv):,.0f} ({kv_original})".replace(",", ".")
+                valores = [
+                    tipo,
+                    "" if profundidad is None else f"{float(profundidad):.2f}",
+                    "" if q_kpa is None else f"{float(q_kpa):.2f}",
+                    str(q_original),
+                    kv_texto,
+                    str(recomendacion.get("referencia", "")),
+                ]
+                for columna, valor in enumerate(valores):
+                    item = QTableWidgetItem(valor)
+                    item.setToolTip(str(recomendacion.get("observacion", "")))
+                    tabla.setItem(fila, columna, item)
 
     def _guardar_terreno(self) -> None:
         datos = rutas.leer_json(rutas.TERRENO, {}) or {}
+        def valor_opcional(campo: QLineEdit, etiqueta: str, permitir_cero: bool = False) -> float | None:
+            texto = campo.text().strip().replace(",", ".")
+            if not texto:
+                return None
+            try:
+                valor = float(texto)
+            except ValueError as exc:
+                raise ValueError(f"{etiqueta}: ingresá un número válido.") from exc
+            if valor < 0 or (valor == 0 and not permitir_cero):
+                condicion = "no puede ser negativo" if permitir_cero else "debe ser mayor que cero"
+                raise ValueError(f"{etiqueta}: {condicion}.")
+            return valor
+        try:
+            q_adm = valor_opcional(self.txt_q_adm, "q_adm")
+            napa = valor_opcional(self.txt_napa, "Nivel freático", permitir_cero=True)
+            balasto = valor_opcional(self.txt_balasto, "Módulo de balasto")
+        except ValueError as exc:
+            QMessageBox.warning(self, "Datos de terreno", str(exc))
+            return
         datos.update({
             "profundidad_fundacion_m": float(self.spin_profundidad_fundacion.value()),
-            "q_adm_kPa": float(self.spin_q_adm.value()),
+            "q_adm_kPa": q_adm,
+            "fuente_geotecnica": self.txt_fuente_terreno.text().strip(),
+            "nivel_freatico_m": napa,
+            "modulo_balasto_kN_m3": balasto,
+            "perfil_suelo": self.txt_perfil_suelo.toPlainText().strip(),
         })
         rutas.guardar_json(rutas.TERRENO, datos)
-        QMessageBox.information(self, "Terreno", "Datos de fundación guardados.")
+        QMessageBox.information(self, "Terreno", "Datos de terreno guardados en esta obra.")
+        self.refrescar()
+
+    def _pagina_configuracion_obra(self) -> QWidget:
+        pagina = QWidget()
+        caja = QVBoxLayout(pagina)
+        titulo = QLabel(
+            "Propiedades generales de la obra. Los valores geotécnicos deben provenir del informe; "
+            "las dimensiones de cada elemento se asignan en su planilla."
+        )
+        titulo.setWordWrap(True)
+        caja.addWidget(titulo)
+        secciones = QTabWidget()
+        secciones.addTab(self._pagina_parametros_motor(), "Material y análisis")
+        secciones.addTab(self._pagina_terreno(), "Terreno y fundaciones")
+        caja.addWidget(secciones, 1)
+        return pagina
 
 
     def _pagina_parametros_motor(self) -> QWidget:
         pagina = QWidget()
         caja = QVBoxLayout(pagina)
-        grupo = QGroupBox("Parámetros del motor de pórticos")
-        form = QFormLayout(grupo)
 
         def spin(minimo, maximo, decimales=6):
-            c = QDoubleSpinBox()
-            c.setRange(minimo, maximo)
-            c.setDecimals(decimales)
-            return c
+            control = QDoubleSpinBox()
+            control.setRange(minimo, maximo)
+            control.setDecimals(decimales)
+            return control
 
-        self.spin_e_mod = spin(0.001, 1e6, 6)
-        self.spin_g_mod = spin(0.001, 1e6, 6)
-        self.spin_ea = spin(0.0, 1e9, 3)
-        self.spin_ei = spin(0.0, 1e9, 3)
-        self.spin_poisson = spin(0.0, 0.5, 3)
+        grupo = QGroupBox("Material predeterminado de la obra")
+        form = QFormLayout(grupo)
+        grupo_predim = QGroupBox("Predimensionados iniciales")
+        form_predim = QFormLayout(grupo_predim)
+
+        self.combo_material_obra = QComboBox()
+        self.combo_material_obra.addItem("Hormigón armado", "hormigon_armado")
+        self.combo_fc_obra = QComboBox()
+        for fc in (20, 25, 30):
+            self.combo_fc_obra.addItem(f"H{fc} · f'c={fc} MPa", fc)
+        self.combo_fy_obra = QComboBox()
+        self.combo_fy_obra.addItem("ADN 420 · fy=420 MPa", 420)
         self.spin_peso_hormigon = spin(1.0, 100.0, 2)
-        self.txt_reglamento = QLineEdit("CIRSOC 201/2024")
-
-        form.addRow("Módulo de elasticidad E_MOD:", self.spin_e_mod)
-        form.addRow("Módulo de corte G_MOD:", self.spin_g_mod)
-        form.addRow("Rigidez axial EA:", self.spin_ea)
-        form.addRow("Rigidez a flexión EI:", self.spin_ei)
-        form.addRow("Coeficiente de Poisson ν:", self.spin_poisson)
-        form.addRow("Peso específico hormigón (kN/m³):", self.spin_peso_hormigon)
-        form.addRow("Reglamento aplicado:", self.txt_reglamento)
-
-        btn = QPushButton("Guardar parámetros")
+        self.spin_peso_hormigon.setValue(25.0)
+        self.combo_forma_columna_global = QComboBox()
+        self.combo_forma_columna_global.addItem("Rectangular", "rectangular")
+        self.combo_forma_columna_global.addItem("Circular", "circular")
+        self.spin_base_bx = spin(0.0, 20.0, 2)
+        self.spin_base_bx.setSuffix(" m (0 = automático)")
+        self.spin_base_by = spin(0.0, 20.0, 2)
+        self.spin_base_by.setSuffix(" m (0 = automático)")
+        self.spin_col_x = spin(10.0, 200.0, 1)
+        self.spin_col_y = spin(10.0, 200.0, 1)
+        self.spin_col_d = spin(10.0, 200.0, 1)
+        self.spin_viga_b = spin(10.0, 100.0, 1)
+        for control in (self.spin_col_x, self.spin_col_y, self.spin_col_d):
+            control.setSuffix(" cm")
+        self.spin_viga_b.setSuffix(" cm")
+        form.addRow("Material:", self.combo_material_obra)
+        form.addRow("Resistencia predeterminada:", self.combo_fc_obra)
+        form.addRow("Acero predeterminado:", self.combo_fy_obra)
+        form.addRow("Peso específico hormigón:", self.spin_peso_hormigon)
+        form_predim.addRow("Forma inicial columnas globales:", self.combo_forma_columna_global)
+        form_predim.addRow("Lado inicial de bases, global X:", self.spin_base_bx)
+        form_predim.addRow("Lado inicial de bases, global Y:", self.spin_base_by)
+        form_predim.addRow("Columna rectangular inicial · lado X:", self.spin_col_x)
+        form_predim.addRow("Columna rectangular inicial · lado Y:", self.spin_col_y)
+        form_predim.addRow("Columna circular inicial · diámetro:", self.spin_col_d)
+        form_predim.addRow("Ancho inicial de vigas:", self.spin_viga_b)
+        caja.addWidget(QLabel(
+            "La resistencia y el ancho de viga se proponen automáticamente desde estos valores. "
+            "Los lados de base se usan como arranque común y el cálculo puede ampliarlos. "
+            "Si ambos se dejan en 0, el arranque es cuadrado."
+        ))
+        grupo_motor = QGroupBox("Módulo elástico y reglamento activo")
+        form_motor = QFormLayout(grupo_motor)
+        self.txt_reglamento = QLineEdit("CIRSOC 201-25")
+        self.txt_reglamento.setReadOnly(True)
+        form_motor.addRow("Reglamento activo:", self.txt_reglamento)
+        nota_motor = QLabel(
+            "Ec se calcula automáticamente según densidad y f'c, con las fórmulas del art. 19.2.2.1. "
+            "El modelo usa secciones geométricas y las inercias efectivas "
+            "del art. 6.6.3.1.1(a); para cargas laterales usa 0,50 Ig según 6.6.3.1.2. "
+            "Esto no sustituye las verificaciones completas de diseño."
+        )
+        nota_motor.setWordWrap(True)
+        form_motor.addRow(nota_motor)
+        btn = QPushButton("Guardar configuración de la obra")
         btn.clicked.connect(self._guardar_parametros_motor)
 
         caja.addWidget(grupo)
+        caja.addWidget(grupo_predim)
+        caja.addWidget(grupo_motor)
         caja.addWidget(btn)
         caja.addStretch(1)
         self._cargar_parametros_motor()
         return pagina
 
     def _cargar_parametros_motor(self) -> None:
-        datos = rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}
-        self.spin_e_mod.setValue(float(datos.get("E_MOD", 1.0)))
-        self.spin_g_mod.setValue(float(datos.get("G_MOD", 1.0)))
-        self.spin_ea.setValue(float(datos.get("EA", 15000.0)))
-        self.spin_ei.setValue(float(datos.get("EI", 5000.0)))
-        self.spin_poisson.setValue(float(datos.get("POISSON", 0.3)))
+        datos = configuracion_obra.cargar()
+        self.combo_material_obra.setCurrentIndex(max(0, self.combo_material_obra.findData(datos.get("MATERIAL", "hormigon_armado"))))
+        self.combo_fc_obra.setCurrentIndex(max(0, self.combo_fc_obra.findData(int(datos.get("FC_MPA", 25)))))
+        self.combo_fy_obra.setCurrentIndex(max(0, self.combo_fy_obra.findData(int(datos.get("FY_MPA", 420)))))
+        self.combo_forma_columna_global.setCurrentIndex(max(0, self.combo_forma_columna_global.findData(datos.get("COLUMNA_FORMA_PREDETERMINADA", "rectangular"))))
+        self.spin_base_bx.setValue(float(datos.get("BASE_BX_INICIAL_M", 0.0) or 0.0))
+        self.spin_base_by.setValue(float(datos.get("BASE_BY_INICIAL_M", 0.0) or 0.0))
         self.spin_peso_hormigon.setValue(float(datos.get("PESO_ESPECIFICO_HORMIGON_KN_M3", 25.0)))
-        self.txt_reglamento.setText(str(datos.get("VERSION_MOTOR", "CIRSOC 201/2024")))
+        self.spin_col_x.setValue(float(datos.get("COLUMNA_LADO_X_CM", 25.0)))
+        self.spin_col_y.setValue(float(datos.get("COLUMNA_LADO_Y_CM", 40.0)))
+        self.spin_col_d.setValue(float(datos.get("COLUMNA_DIAMETRO_CM", 30.0)))
+        self.spin_viga_b.setValue(float(datos.get("VIGA_ANCHO_PREDIM_CM", 20.0)))
+        self.txt_reglamento.setText("CIRSOC 201-25")
 
     def _guardar_parametros_motor(self) -> None:
-        datos = {
-            "E_MOD": float(self.spin_e_mod.value()),
-            "G_MOD": float(self.spin_g_mod.value()),
-            "EA": float(self.spin_ea.value()),
-            "EI": float(self.spin_ei.value()),
-            "POISSON": float(self.spin_poisson.value()),
+        if bool(self.spin_base_bx.value()) != bool(self.spin_base_by.value()):
+            QMessageBox.warning(
+                self,
+                "Dimensiones incompletas",
+                "Para proponer una base rectangular, completá los dos lados globales X e Y. "
+                "Si querés un predimensionado automático, dejá ambos en 0.",
+            )
+            return
+        datos = rutas.leer_json(rutas.PARAMETROS_MOTOR, {}) or {}
+        datos.update({
+            "MATERIAL": self.combo_material_obra.currentData(),
+            "FC_MPA": int(self.combo_fc_obra.currentData()),
+            "FY_MPA": int(self.combo_fy_obra.currentData()),
+            "COLUMNA_FORMA_PREDETERMINADA": self.combo_forma_columna_global.currentData(),
+            "BASE_BX_INICIAL_M": float(self.spin_base_bx.value()) or None,
+            "BASE_BY_INICIAL_M": float(self.spin_base_by.value()) or None,
             "PESO_ESPECIFICO_HORMIGON_KN_M3": float(self.spin_peso_hormigon.value()),
-            "VERSION_MOTOR": self.txt_reglamento.text().strip(),
-        }
+            "COLUMNA_LADO_X_CM": float(self.spin_col_x.value()),
+            "COLUMNA_LADO_Y_CM": float(self.spin_col_y.value()),
+            "COLUMNA_DIAMETRO_CM": float(self.spin_col_d.value()),
+            "VIGA_ANCHO_PREDIM_CM": float(self.spin_viga_b.value()),
+            "VERSION_MOTOR": "CIRSOC 201-25",
+        })
         rutas.guardar_json(rutas.PARAMETROS_MOTOR, datos)
         import importlib
         import calc.portico as _cp
         importlib.reload(_cp)
-        QMessageBox.information(self, "Parámetros", "Parámetros guardados.")
+        QMessageBox.information(self, "Configuración", "Material y parámetros guardados en esta obra.")
+        self.refrescar()
 
 
     def _pagina_porticos(self) -> QWidget:
@@ -1414,7 +1597,6 @@ class VentanaPrincipal(QMainWindow):
         subpestanias.addTab(self._pagina_vigas(), "Vigas")
         subpestanias.addTab(self._pagina_columnas(), "Columnas")
         subpestanias.addTab(self._pagina_bases(), "Bases")
-        subpestanias.addTab(self._pagina_parametros_motor(), "Parámetros")
         caja_porticos.addWidget(subpestanias)
         return contenedor_porticos
 
@@ -1587,32 +1769,32 @@ class VentanaPrincipal(QMainWindow):
             lineal = 0.0
             ancho = 0.0
             nodos = []
+            porticos_con_viento = []
             if activo:
                 try:
                     from calc import materiales
-                    items_viento = cargas.items_viento_general(proyecto, materiales.cargar())
-                    lineal = sum(float(item["valor"]) for item in items_viento)
-                    ancho = float(configuracion_viento.get("ancho_tributario_m", 0.0))
-                    columnas_por_piso = {}
-                    for _cid, _col in self.estructura.items():
-                        if not isinstance(_col, dict):
-                            continue
-                        _clave = round(float(_col.get("nivel", 0.0)), 4)
-                        columnas_por_piso.setdefault(_clave, []).append(_col)
-                    for _columnas in columnas_por_piso.values():
-                        if not _columnas:
-                            continue
-                        _altura = float(_columnas[0].get("altura_m", 0.0))
-                        _fuerza = lineal * _altura / len(_columnas)
-                        for _col in _columnas:
-                            nodos.append({
-                                "x": float(_col.get("x", 0.0)),
-                                "y": float(_col.get("nivel", 0.0)) + float(_col.get("altura_m", 0.0)),
-                                "valor_kN": _fuerza,
-                            })
+                    resumenes = [
+                        cargas.resumen_viento_portico(proyecto, self.estructura, nombre, materiales.cargar())
+                        for nombre, datos_portico in self.estructura.items()
+                        if isinstance(datos_portico, dict) and "referencia_planta" in datos_portico
+                    ]
+                    aplicados = [r for r in resumenes if r.get("aplicado")]
+                    porticos_con_viento = [
+                        nombre for nombre, datos_portico in self.estructura.items()
+                        if isinstance(datos_portico, dict) and "referencia_planta" in datos_portico
+                        and cargas.resumen_viento_portico(proyecto, self.estructura, nombre, materiales.cargar()).get("aplicado")
+                    ]
+                    if aplicados:
+                        lineal = sum(r["carga_lineal_kN_m"] for r in aplicados) / len(aplicados)
+                        ancho = sum(r["ancho_tributario_m"] for r in aplicados) / len(aplicados)
+                        nodos = [{"valor_kN": sum(p.get("fuerza_total_kN", 0.0) for p in r["pisos"])} for r in aplicados]
                 except Exception:
                     nodos = []
-            self.vista_planta.set_datos_viento(nodos, direccion, lineal, ancho, porticos_activos=configuracion_viento.get("porticos_activos"))
+            self.vista_planta.set_datos_viento(
+                nodos, direccion, lineal, ancho,
+                porticos_activos=porticos_con_viento,
+                configurado=bool(configuracion_viento.get("activo")),
+            )
         except Exception:
             pass
         # El selector de nivel se repuebla en _cargar_inicio (único lugar que
@@ -1666,6 +1848,8 @@ class VentanaPrincipal(QMainWindow):
         try:
             rutas.seleccionar_obra(ruta)
             importlib.reload(pipeline)
+            import calc.portico as _cp
+            importlib.reload(_cp)
             self.pagina_cargas.recargar()
             self.refrescar()
         except (OSError, ValueError) as exc:
@@ -1679,6 +1863,8 @@ class VentanaPrincipal(QMainWindow):
             carpeta = rutas.crear_obra(nombre.strip())
             rutas.seleccionar_obra(carpeta)
             importlib.reload(pipeline)
+            import calc.portico as _cp
+            importlib.reload(_cp)
             self.pagina_cargas.recargar()
             self.refrescar()
             self.statusBar().showMessage(f"Obra creada en {carpeta}", 7000)
@@ -1718,6 +1904,8 @@ class VentanaPrincipal(QMainWindow):
             else:
                 rutas.seleccionar_obra(None)
             importlib.reload(pipeline)
+            import calc.portico as _cp
+            importlib.reload(_cp)
             self.pagina_cargas.recargar()
             self.refrescar()
             self.statusBar().showMessage(f"Obra eliminada: {carpeta.name}", 7000)
@@ -2228,6 +2416,16 @@ class VentanaPrincipal(QMainWindow):
                     y_global=y_global,
                     piso=piso,
                 )
+                columna_global = estructura.setdefault("columnas", {}).get(gid_columna, {})
+                if "forma_seccion" not in columna_global:
+                    forma_inicial = str(configuracion_obra.cargar().get(
+                        "COLUMNA_FORMA_PREDETERMINADA", "rectangular"
+                    )).lower()
+                    columna_global["forma_seccion"] = forma_inicial
+                    if forma_inicial == "circular":
+                        columna_global["diametro_cm"] = float(
+                            configuracion_obra.cargar().get("COLUMNA_DIAMETRO_CM", 30.0)
+                        )
                 ids_columnas_globales.append(gid_columna)
 
                 if piso == 0:
@@ -2327,6 +2525,40 @@ class VentanaPrincipal(QMainWindow):
 
         datos["columnas"] = ids_columnas_globales
         datos["bases"] = ids_bases_globales
+        # La forma geométrica se define al ingresar el pórtico y se guarda en
+        # la columna global para que análisis y dimensionado compartan el dato.
+        catalogo_columnas = estructura.setdefault("columnas", {})
+        ids_unicos = list(dict.fromkeys(ids_columnas_globales))
+        pendientes_circulares = [
+            cid for cid in ids_unicos
+            if str(catalogo_columnas.get(cid, {}).get("forma_seccion", "rectangular")).lower()
+            not in ("circular", "circular con sunchos")
+        ]
+        if pendientes_circulares and QMessageBox.question(
+            self, "Secciones de columnas",
+            "¿Este pórtico tiene alguna columna circular?\n"
+            "Si respondés Sí, vas a poder elegir cuáles; las demás quedan rectangulares.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) == QMessageBox.StandardButton.Yes:
+            opciones = pendientes_circulares + ["Finalizar selección"]
+            while opciones and opciones[-1] == "Finalizar selección":
+                elegido, ok = QInputDialog.getItem(
+                    self, "Columnas circulares", "Elegí una columna circular:",
+                    opciones, 0, False,
+                )
+                if not ok or elegido == "Finalizar selección":
+                    break
+                diametro, ok = QInputDialog.getDouble(
+                    self, f"Sección {elegido}", "Diámetro inicial [cm]:",
+                    float(configuracion_obra.cargar().get("COLUMNA_DIAMETRO_CM", 30.0)),
+                    10.0, 200.0, 1,
+                )
+                if not ok:
+                    break
+                catalogo_columnas[elegido]["forma_seccion"] = "circular"
+                catalogo_columnas[elegido]["diametro_cm"] = diametro
+                opciones.remove(elegido)
         estructura[nombre] = datos
         rutas.guardar_estructura(estructura)
         self.refrescar()

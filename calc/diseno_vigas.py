@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import io
+from contextlib import redirect_stdout
 from pathlib import Path
 
-from . import cargas, rutas
+from . import cargas, configuracion_obra, rutas
 
 
 def _mayor_absoluto(bloques: list[dict], grupo: str, tramo_id: str, campo: str) -> float:
@@ -42,11 +44,25 @@ def preparar_datos(portico: str, secciones: dict | None = None) -> tuple[dict, l
     advertencias: list[str] = []
     datos_vigas: dict = {}
     secciones = secciones or {}
+    parametros_obra = configuracion_obra.cargar()
+    try:
+        ancho_inicial = float(parametros_obra.get("VIGA_ANCHO_PREDIM_CM", 20.0) or 20.0)
+    except (TypeError, ValueError):
+        ancho_inicial = 20.0
+    if ancho_inicial <= 0:
+        ancho_inicial = 20.0
+    fc_inicial = configuracion_obra.fc_predeterminado()
     for viga_id, viga in datos_portico.get("vigas", {}).items():
         entrada = {k: v for k, v in viga.items() if k in ("b_cm", "h_cm", "recubrimiento_cm", "fc_MPa", "fy_MPa")}
         entrada.update(secciones.get(viga_id, {}))
-        if entrada.get("b_cm") is None or entrada.get("fc_MPa") is None:
-            raise ValueError(f"Faltan ancho b y/o resistencia fc para {viga_id}; completalos en la ventana de vigas.")
+        try:
+            ancho_guardado = float(entrada.get("b_cm"))
+        except (TypeError, ValueError):
+            ancho_guardado = 0.0
+        if ancho_guardado <= 0:
+            entrada["b_cm"] = ancho_inicial
+        if entrada.get("fc_MPa") not in (20, 25, 30):
+            entrada["fc_MPa"] = fc_inicial
         entrada["tramos"] = []
         for tramo in viga.get("tramos", []):
             tramo_id = tramo.get("id", "")
@@ -133,7 +149,11 @@ def dimensionar(portico: str, secciones: dict | None = None, tipo_flecha: str = 
     if not coef_kd:
         raise FileNotFoundError(f"Falta la tabla {rutas.COEFICIENTES_KD}")
     legacy.RESULTADOS = legacy._resultados_vacios()
-    legacy.procesar_vigas(datos_vigas, coef_kd, rutas.SAL_VIGAS, portico)
     salida = rutas.SAL_VIGAS / f"resultados_{rutas.nombre_seguro(portico)}_vigas.json"
-    legacy.guardar_resultados_json(salida)
+    # P02 conserva impresiones de depuración con símbolos Unicode. En Windows
+    # la app puede ejecutarse sin consola o con cp1252; esas impresiones no
+    # deben abortar un cálculo que sí puede escribir sus planillas.
+    with redirect_stdout(io.StringIO()):
+        legacy.procesar_vigas(datos_vigas, coef_kd, rutas.SAL_VIGAS, portico)
+        legacy.guardar_resultados_json(salida)
     return salida, advertencias

@@ -62,13 +62,13 @@ def direccion_portico(datos_portico: dict) -> str:
 def ancho_tributario_entre_porticos(estructura: dict, nombre_portico: str) -> float | None:
     """Suma medias separaciones entre pórticos paralelos del mismo plano."""
     portico_objetivo = estructura.get(nombre_portico)
-    if not isinstance(portico_objetivo, dict):
+    if not isinstance(portico_objetivo, dict) or "referencia_planta" not in portico_objetivo:
         return None
     direccion = direccion_portico(portico_objetivo)
     posiciones = []
     cantidad_porticos = 0
     for nombre, datos in estructura.items():
-        if not isinstance(datos, dict) or direccion_portico(datos) != direccion:
+        if not isinstance(datos, dict) or "referencia_planta" not in datos or direccion_portico(datos) != direccion:
             continue
         cantidad_porticos += 1
         try:
@@ -100,14 +100,14 @@ def ancho_tributario_entre_porticos(estructura: dict, nombre_portico: str) -> fl
 
 
 def porticos_afectados_por_viento(estructura: dict, direccion_viento: str) -> list[str]:
-    """Pórticos cuyo plano es perpendicular a la dirección del viento."""
+    """Pórticos 2D cuyo eje horizontal coincide con la dirección global del viento."""
     direccion_viento = direccion_viento.strip().lower()
     if direccion_viento not in ("x", "y"):
         return []
     return [
         nombre
         for nombre, datos in estructura.items()
-        if isinstance(datos, dict) and direccion_portico(datos) != direccion_viento
+        if isinstance(datos, dict) and "referencia_planta" in datos and direccion_portico(datos) == direccion_viento
     ]
 
 
@@ -119,15 +119,101 @@ def anchos_tributarios_viento(estructura: dict, direccion_viento: str) -> dict[s
         resultado[nombre] = ancho_tributario_entre_porticos(estructura, nombre)
     return resultado
 
-def presion_viento(V: float, rho: float = 1.25) -> float:
+def presion_viento(V: float, rho: float = 1.225) -> float:
 
     """Presión dinámica del viento en kN/m2 (CIRSOC 102)."""
     return 0.5 * rho * (V**2) / 1000
 
 
-def carga_lineal_viento(V: float, ancho_tributario: float, Cd: float = 1.3, rho: float = 1.25) -> float:
+def carga_lineal_viento(V: float, ancho_tributario: float, Cd: float = 1.3, rho: float = 1.225) -> float:
     """Carga lineal de viento (kN/m)."""
     return presion_viento(V, rho) * Cd * ancho_tributario
+
+
+def resumen_viento_portico(datos: dict, estructura: dict, nombre_portico: str,
+                           biblioteca: dict | None = None) -> dict:
+    """Carga horizontal efectiva para un pórtico y su reparto equivalente por piso."""
+    configuracion = datos.get("viento", {}) or {}
+    estructura_portico = estructura.get(nombre_portico, {}) or {}
+    direccion = str(configuracion.get("direccion_viento", "x")).strip().lower()
+    orientacion_portico = direccion_portico_de_datos(estructura_portico)
+    eje_ubicacion = "y" if orientacion_portico == "x" else "x"
+    posicion_ubicacion = float(estructura_portico.get("posicion_planta_m", 0.0) or 0.0)
+    activos = configuracion.get("porticos_activos")
+    activo_global = bool(configuracion.get("activo"))
+    seleccionado = activos is None or nombre_portico in (activos or [])
+    coincide_eje = orientacion_portico == direccion and direccion in ("x", "y")
+
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    viento_bib = materiales.viento(bib)
+    referencia = configuracion.get("referencia_cirsoc_102_25", {}) or {}
+    ubicacion = referencia.get("ubicacion", {}) or {}
+    velocidad = referencia.get("V_basica_ms")
+    if velocidad is None:
+        velocidad = viento_bib["V"]
+    velocidad = float(velocidad or 0.0)
+    ciudad = ubicacion.get("ciudad") or viento_bib.get("ciudad", "")
+    anchos = configuracion.get("anchos_por_portico", {}) or {}
+    ancho = float(anchos.get(nombre_portico, configuracion.get("ancho_tributario_m", 0.0)) or 0.0)
+    motivo = ""
+    if not activo_global:
+        motivo = "viento desactivado"
+    elif not coincide_eje:
+        motivo = "el plano del pórtico no coincide con el eje global del viento"
+    elif not seleccionado:
+        motivo = "pórtico desmarcado"
+    elif ancho <= 0:
+        motivo = "falta ancho tributario"
+    aplica = not motivo
+    rho = 1.225  # densidad estándar usada por CIRSOC 102-25 en q = 0,613 V²
+    lineal = carga_lineal_viento(velocidad, ancho, viento_bib["Cd"], rho) if aplica else 0.0
+
+    columnas_raw = estructura_portico.get("columnas", {}) or {}
+    if isinstance(columnas_raw, list):
+        catalogo = estructura.get("columnas", {}) or {}
+        columnas = {cid: catalogo.get(cid, {}) for cid in columnas_raw}
+    else:
+        columnas = columnas_raw
+    por_piso: dict[float, list[dict]] = {}
+    for columna in columnas.values():
+        if not isinstance(columna, dict):
+            continue
+        nivel = float(columna.get("nivel", 0.0) or 0.0)
+        por_piso.setdefault(nivel, []).append(columna)
+    pisos = []
+    for nivel, cols in sorted(por_piso.items()):
+        altura = float(cols[0].get("altura_m", 0.0) or 0.0)
+        total = lineal * altura
+        pisos.append({
+            "nivel_m": nivel,
+            "altura_m": altura,
+            "cantidad_columnas": len(cols),
+            "fuerza_total_kN": total,
+            "fuerza_por_columna_kN": total / len(cols) if cols else 0.0,
+        })
+    return {
+        "activo": bool(configuracion.get("activo")),
+        "aplicado": aplica,
+        "motivo": motivo,
+        "direccion_global": direccion,
+        "direccion_portico": orientacion_portico,
+        "eje_ubicacion": eje_ubicacion,
+        "posicion_ubicacion_m": posicion_ubicacion,
+        "ciudad": ciudad,
+        "V_basica_ms": velocidad,
+        "ancho_tributario_m": ancho,
+        "Cd": viento_bib["Cd"],
+        "rho_kg_m3": rho,
+        "carga_lineal_kN_m": lineal,
+        "presion_modelada_kN_m2": 0.5 * rho * velocidad**2 / 1000.0 * viento_bib["Cd"],
+        "metodo": "q = 0.5 rho V^2; Cd global fijo (sin Kz, Kzt, Kd ni Ke)",
+        "pisos": pisos,
+    }
+
+
+def direccion_portico_de_datos(datos_portico: dict) -> str:
+    """Dirección global del eje horizontal del plano 2D."""
+    return direccion_portico(datos_portico)
 
 
 # ---------------------------------------------------------------------------
@@ -210,10 +296,14 @@ def combinaciones_de_componentes(d_total: float, l_total: float, w_total: float)
     Es la ÚNICA cuenta de combinaciones del programa: la usan el pórtico, la losa
     y las reacciones, así no pueden dar distinto.
     """
-    return {
+    resultado = {
         nombre: fD * d_total + fL * l_total + fW * w_total
         for nombre, (fD, fL, fW) in FACTORES_COMBINACIONES.items()
     }
+    for nombre, (fD, fL, fW) in FACTORES_COMBINACIONES.items():
+        if fW:
+            resultado[f"{nombre} (W reverso)"] = fD * d_total + fL * l_total - fW * w_total
+    return resultado
 
 
 def combinaciones(items: list[dict]) -> dict[str, float]:
@@ -449,6 +539,14 @@ def items_viento_general(datos: dict, biblioteca: dict, ancho_override: float | 
     if not configuracion.get("activo"):
         return []
     viento = materiales.viento(biblioteca)
+    referencia = configuracion.get("referencia_cirsoc_102_25", {}) or {}
+    ubicacion = referencia.get("ubicacion", {}) or {}
+    velocidad = referencia.get("V_basica_ms")
+    if velocidad is not None:
+        viento["V"] = float(velocidad)
+    if ubicacion.get("ciudad"):
+        viento["ciudad"] = ubicacion["ciudad"]
+    viento["rho"] = 1.225
     if ancho_override is not None and ancho_override > 0:
         ancho = float(ancho_override)
     else:
@@ -523,21 +621,38 @@ def informe_completo(analisis: AnalisisCargas) -> str:
         ciudad = ubic.get("ciudad", "")
         V = ref.get("V_basica_ms")
         direccion = str(viento_config.get("direccion_viento", "x")).lower()
-        afectados = viento_config.get("porticos_activos") or []
-        anchos = viento_config.get("anchos_por_portico", {}) or {}
+        estructura = rutas.cargar_estructura()
+        afectados = [
+            nombre for nombre, p in estructura.items()
+            if isinstance(p, dict) and "referencia_planta" in p
+            and resumen_viento_portico(datos, estructura, nombre, materiales.cargar()).get("aplicado")
+        ]
         texto += "\nVIENTO GLOBAL DEL PROYECTO (informativo; la aplicación estructural la realiza calc.portico):\n"
         texto += f"  Ciudad: {ciudad}\n"
         texto += f"  Velocidad básica: {V} m/s\n"
         texto += f"  Dirección: {direccion}\n"
         texto += f"  Pórticos afectados: {', '.join(afectados) if afectados else 'ninguno'}\n"
         bib = materiales.cargar()
-        for nombre, ancho in (anchos or {}).items():
-            try:
-                w = items_viento_general(datos, bib, ancho_override=float(ancho))
-                wval = sum(float(i["valor"]) for i in w) if w else 0.0
-            except Exception:
-                wval = 0.0
-            texto += f"  {nombre}: ancho tributario = {ancho} m · carga horizontal equivalente = {wval:.2f} kN/m\n"
+        texto += "\nRESUMEN DE VIENTO POR PÓRTICO (FX local solo si el plano coincide con el eje global):\n"
+        for nombre, datos_portico in sorted(estructura.items()):
+            if not isinstance(datos_portico, dict) or "referencia_planta" not in datos_portico:
+                continue
+            resumen = resumen_viento_portico(datos, estructura, nombre, bib)
+            estado = "APLICADO" if resumen["aplicado"] else "NO APLICA"
+            texto += (
+                f"  {nombre} (orientación {resumen['direccion_portico'].upper()}, "
+                f"sobre línea {resumen['eje_ubicacion'].upper()}={resumen['posicion_ubicacion_m']:.2f} m): {estado} · "
+                f"viento global {resumen['direccion_global'].upper()} · V={resumen['V_basica_ms']:.2f} m/s · "
+                f"b={resumen['ancho_tributario_m']:.2f} m · q·Cd={resumen['presion_modelada_kN_m2']:.3f} kN/m² · "
+                f"w={resumen['carga_lineal_kN_m']:.3f} kN/m\n"
+            )
+            if resumen["motivo"]:
+                texto += f"    Motivo: {resumen['motivo']}\n"
+            for piso in resumen["pisos"]:
+                texto += (
+                    f"    nivel {piso['nivel_m']:.2f} m: F={piso['fuerza_total_kN']:.2f} kN "
+                    f"({piso['cantidad_columnas']} columnas; {piso['fuerza_por_columna_kN']:.2f} kN/columna)\n"
+                )
     return texto
 
 
@@ -680,20 +795,35 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
         ciudad = ubic.get("ciudad", "")
         V = ref.get("V_basica_ms")
         direccion = str(viento_config.get("direccion_viento", "x")).lower()
-        afectados = viento_config.get("porticos_activos") or []
-        anchos = viento_config.get("anchos_por_portico", {}) or {}
+        afectados = [
+            nombre for nombre, p in estructura.items()
+            if isinstance(p, dict) and "referencia_planta" in p
+            and resumen_viento_portico(datos, estructura, nombre, bib).get("aplicado")
+        ]
         lineas.extend(["", "VIENTO GLOBAL DEL PROYECTO (informativo; la aplicación estructural la realiza calc.portico):"])
         lineas.append(f"  Ciudad: {ciudad}")
         lineas.append(f"  Velocidad básica: {V} m/s")
         lineas.append(f"  Dirección: {direccion}")
         lineas.append(f"  Pórticos afectados: {', '.join(afectados) if afectados else 'ninguno'}")
-        for nombre, ancho in (anchos or {}).items():
-            try:
-                w = items_viento_general(datos, bib, ancho_override=float(ancho))
-                wval = sum(float(i["valor"]) for i in w) if w else 0.0
-            except Exception:
-                wval = 0.0
-            lineas.append(f"  {nombre}: ancho tributario = {ancho} m · carga horizontal equivalente = {wval:.2f} kN/m")
+        lineas.append("RESUMEN EFECTIVO POR PÓRTICO:")
+        for nombre, datos_portico in sorted(estructura.items()):
+            if not isinstance(datos_portico, dict) or "referencia_planta" not in datos_portico:
+                continue
+            resumen = resumen_viento_portico(datos, estructura, nombre, bib)
+            estado = "APLICADO" if resumen["aplicado"] else "NO APLICA"
+            lineas.append(
+                f"  {nombre} (orientación {resumen['direccion_portico'].upper()}, "
+                f"sobre línea {resumen['eje_ubicacion'].upper()}={resumen['posicion_ubicacion_m']:.2f} m): {estado} · "
+                f"dirección global {resumen['direccion_global'].upper()} · V={resumen['V_basica_ms']:.2f} m/s · "
+                f"b={resumen['ancho_tributario_m']:.2f} m · w={resumen['carga_lineal_kN_m']:.3f} kN/m"
+            )
+            if resumen["motivo"]:
+                lineas.append(f"    Motivo: {resumen['motivo']}")
+            for piso in resumen["pisos"]:
+                lineas.append(
+                    f"    nivel {piso['nivel_m']:.2f} m: F={piso['fuerza_total_kN']:.2f} kN, "
+                    f"{piso['cantidad_columnas']} columnas × {piso['fuerza_por_columna_kN']:.2f} kN"
+                )
     return "\n".join(lineas) + "\n"
 
 

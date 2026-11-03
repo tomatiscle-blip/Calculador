@@ -54,6 +54,8 @@ def _fila_a_dimensionado(row):
         "tipo_seccion": row.get("Tipo_seccion", ""),
         "b_cm": b,
         "h_cm": h,
+        "lado_x_cm": h,
+        "lado_y_cm": b,
         "altura_libre_m": float(row.get("Altura_libre(m)", 0) or 0),
         "recubrimiento_cm": float(row.get("Recubrimiento(cm)", 0) or 0),
         "Pu_kN": float(row.get("Pu(kN)", 0) or 0),
@@ -100,6 +102,17 @@ def generar_dimensionados_json(portico=None):
         if gid is None:
             continue
         dim = _fila_a_dimensionado(row)
+        datos_portico = rutas.pórtico(estructura, p) or {}
+        direccion = str((datos_portico.get("referencia_planta", {}) or {}).get("direccion", "")).lower()
+        if direccion not in ("x", "y"):
+            # Sin orientación confiable no se debe adivinar el lado global.
+            dim["lado_x_cm"] = None
+            dim["lado_y_cm"] = None
+            dim["orientacion_global_valida"] = False
+        else:
+            dim["direccion_plano"] = direccion
+            dim["lado_x_cm"], dim["lado_y_cm"] = (dim["h_cm"], dim["b_cm"]) if direccion == "x" else (dim["b_cm"], dim["h_cm"])
+            dim["orientacion_global_valida"] = True
         por_gid.setdefault(gid, {})[p] = dim
     for gid, dims_por_portico in por_gid.items():
         archivo = SAL / f"dimensionado_{gid}.json"
