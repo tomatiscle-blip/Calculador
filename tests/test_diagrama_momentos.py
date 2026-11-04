@@ -1,6 +1,6 @@
 import unittest
 
-from calc.portico import _diagrama_momento
+from calc.portico import _acumular, _diagrama_momento
 
 
 class Nodo:
@@ -27,6 +27,13 @@ class Modelo:
 
 
 class DiagramaMomentosTests(unittest.TestCase):
+    def test_envolvente_conserva_el_maximo_en_modulo_por_magnitud(self):
+        envolvente = {}
+        _acumular(envolvente, "C1", {"M_inf": -3.0, "M_sup": 2.0})
+        _acumular(envolvente, "C1", {"M_inf": 4.0, "M_sup": -5.0})
+
+        self.assertEqual(envolvente["C1"], {"M_inf": 4.0, "M_sup": 5.0})
+
     def test_incluye_momento_corte_y_apoyos(self):
         apoyos = [{"x": 0.0, "y": 0.0, "tipo": "empotramiento"}]
         diagrama = _diagrama_momento(

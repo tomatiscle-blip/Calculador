@@ -18,7 +18,7 @@ Estado del cálculo:
 
 from __future__ import annotations
 
-from . import materiales
+from . import cargas, materiales, rutas
 
 # ---------------------------------------------------------------------------
 # Resistencias superficiales (ISO 6946) para un muro vertical, flujo horizontal
@@ -246,6 +246,88 @@ def calcular_muro_compuesto(
     }
 
 
+def cargas_losas_en_muro(nombre_muro: str, datos_cargas: dict | None = None) -> dict:
+    """Reacciones de servicio de losas transferidas al muro.
+
+    Para losas estructurales usa las reacciones por borde del modelo de placa.
+    Las alivianadas unidireccionales conservan la distribución luz/2.
+    """
+    if datos_cargas is None:
+        datos_cargas = rutas.leer_json(rutas.CARGAS, {}) or {}
+    resultado = {"D_kN_m": 0.0, "L_kN_m": 0.0, "losas": [], "avisos": []}
+    bib = materiales.cargar()
+    for nombre, losa in (datos_cargas.get("elementos", {}) or {}).items():
+        if not losa.get("activo", True) or losa.get("tipo") not in ("losa", "cubierta"):
+            continue
+        apoyos = losa.get("apoya_en", {}) or {}
+        lados = [lado for lado, apoyo in apoyos.items()
+                 if apoyo and apoyo.get("tipo") == "muro" and apoyo.get("nombre") == nombre_muro]
+        if not lados:
+            continue
+        luz = float(losa.get("luz_transversal_m", 0) or 0)
+        if luz <= 0:
+            continue
+        if losa.get("tipologia") in ("maciza", "maciza_cruzada", "casetonada"):
+            try:
+                from . import losas_macizas
+
+                reacciones = losas_macizas.reacciones_y_anchos_por_borde(losa, bib)
+            except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
+                resultado["avisos"].append(
+                    f"{nombre}: no se calcularon reacciones para el muro {nombre_muro}: {exc}"
+                )
+                continue
+            d = sum(
+                reacciones[lado]["cargas_kN_m"]["D"]
+                for lado in lados if lado in reacciones
+            )
+            live = sum(
+                reacciones[lado]["cargas_kN_m"]["L"]
+                for lado in lados if lado in reacciones
+            )
+        else:
+            q = cargas.valores_superficiales(losa, bib)
+            factor = luz / 2.0 * len(lados)
+            d, live = q["D_kNm2"] * factor, q["L_kNm2"] * factor
+        resultado["D_kN_m"] += d
+        resultado["L_kN_m"] += live
+        panel = losa.get("panel_ejes") or {}
+        resultado["losas"].append({
+            "nombre": nombre,
+            "D_kN_m": d,
+            "L_kN_m": live,
+            "cota_m": panel.get("cota_apoyo_m"),
+        })
+    return resultado
+
+
+def combinaciones_axiales_basicas(carga_permanente_kN_m: float,
+                                  sobrecarga_kN_m: float) -> dict:
+    """Combos gravitatorios básicos CIRSOC 501: 1.4D y 1.2D+1.6L."""
+    d = max(0.0, float(carga_permanente_kN_m))
+    live = max(0.0, float(sobrecarga_kN_m))
+    combos = {"1.4D": 1.4 * d, "1.2D + 1.6L": 1.2 * d + 1.6 * live}
+    critica, pu = max(combos.items(), key=lambda par: par[1])
+    return {"D_kN_m": d, "L_kN_m": live, "combinaciones_kN_m": combos,
+            "combinacion_critica": critica, "Pu_kN_m": pu}
+
+
+def verificar_zapata_corrida(carga_kN_m: float, terreno: dict | None = None) -> dict:
+    """Predimensionado geotécnico centrado: B=N/qadm; no verifica flexión."""
+    if terreno is None:
+        terreno = rutas.leer_json(rutas.TERRENO, {}) or {}
+    rec = next((r for r in terreno.get("recomendaciones_fundacion", [])
+                if r.get("tipo_fundacion") == "continua"), {})
+    qadm = float(rec.get("q_adm_kPa") or terreno.get("q_adm_kPa") or 0)
+    if qadm <= 0:
+        return {"ok": False, "pendiente": "Falta q_adm para zapata continua en datos/terreno.json."}
+    ancho = carga_kN_m / qadm
+    return {"ok": True, "carga_servicio_kN_m": carga_kN_m, "q_adm_kPa": qadm,
+            "ancho_minimo_m": ancho,
+            "profundidad_m": rec.get("profundidad_m", terreno.get("profundidad_fundacion_m")),
+            "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."}
+
+
 def calcular_muro(elemento: dict) -> dict:
     """Composición simple (retrocompatibilidad con el cálculo previo)."""
     densidad = materiales.buscar(elemento["clave"])  # kg/m³
@@ -257,4 +339,3 @@ def calcular_muro(elemento: dict) -> dict:
         "tipo": "muro",
         "carga_kN_m": q_kN_m,
     }
-

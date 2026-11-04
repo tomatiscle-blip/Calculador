@@ -1,1 +1,19 @@
-VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ERROR:\nTraceback (most recent call last):
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 3529, in main
+    ventana = VentanaPrincipal()
+  File "D:\03 Ingenieria\Calculador\app\principal.py", line 693, in __init__
+    self.pagina_muros = PaginaMuros(self)
+                        ~~~~~~~~~~~^^^^^^
+  File "D:\03 Ingenieria\Calculador\app\muros_proyecto.py", line 354, in __init__
+    self.refrescar()
+    ~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\muros_proyecto.py", line 428, in refrescar
+    self._actualizar_visor_muro()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\03 Ingenieria\Calculador\app\muros_proyecto.py", line 457, in _actualizar_visor_muro
+    reacciones = muros.cargas_losas_en_muro(nombre)
+  File "D:\03 Ingenieria\Calculador\calc\muros.py", line 256, in cargas_losas_en_muro
+    datos_cargas = rutas.leer_json(rutas.CARGAS, {}) or {}
+                   ^^^^^
+NameError: name 'rutas' is not defined
+VentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\nVentanaPrincipal ok\nshow ok\n

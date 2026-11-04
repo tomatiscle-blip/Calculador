@@ -1,6 +1,10 @@
 import unittest
 
-from calc.portico import _huella_entradas, _peso_propio_viga_kN_m
+from calc.portico import (
+    _aviso_viento_no_aplicado,
+    _huella_entradas,
+    _peso_propio_viga_kN_m,
+)
 
 
 class PesoPropioVigaTests(unittest.TestCase):
@@ -35,6 +39,30 @@ class PesoPropioVigaTests(unittest.TestCase):
         datos["vigas"]["V1-3"]["h_cm"] = 60
 
         self.assertNotEqual(huella_original, _huella_entradas(datos, {}, {}))
+
+    def test_viento_en_otra_direccion_no_es_aviso_del_motor(self):
+        aviso = _aviso_viento_no_aplicado({
+            "aplicado": False,
+            "motivo": "el plano del pórtico no coincide con el eje global del viento",
+        })
+
+        self.assertIsNone(aviso)
+
+    def test_portico_desmarcado_no_es_aviso_del_motor(self):
+        aviso = _aviso_viento_no_aplicado({
+            "aplicado": False,
+            "motivo": "pórtico desmarcado",
+        })
+
+        self.assertIsNone(aviso)
+
+    def test_viento_con_configuracion_incompleta_sigue_generando_aviso(self):
+        aviso = _aviso_viento_no_aplicado({
+            "aplicado": False,
+            "motivo": "falta ancho tributario",
+        })
+
+        self.assertEqual(aviso, "Viento horizontal omitido: falta ancho tributario.")
 
 
 if __name__ == "__main__":

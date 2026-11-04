@@ -351,6 +351,218 @@
     ],
     "altura_m": 3.0,
     "peso_propio_kN_m2": 2.884,
-    "peso_lineal_kN_m": 8.652
+    "peso_lineal_kN_m": 8.652,
+    "resultado_calculo": {
+      "resistencia_termica": {
+        "capas": [
+          {
+            "clave": "ladrillo_comun",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.12,
+            "lambda_w_mk": 0.81,
+            "R_m2K_W": 0.14814814814814814
+          },
+          {
+            "clave": "eps",
+            "grupo": "Aislantes",
+            "espesor_m": 0.02,
+            "lambda_w_mk": 0.037,
+            "R_m2K_W": 0.5405405405405406
+          },
+          {
+            "clave": "ladrillo_hueco",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.08,
+            "lambda_w_mk": 0.48,
+            "R_m2K_W": 0.16666666666666669
+          }
+        ],
+        "R_si_m2K_W": 0.13,
+        "R_se_m2K_W": 0.04,
+        "R_capas_m2K_W": 0.8553553553553555,
+        "R_total_m2K_W": 1.0253553553553554,
+        "U_W_m2K": 0.9752716409750763
+      },
+      "cargas_losas": {
+        "D_kN_m": 8.66,
+        "L_kN_m": 4.0,
+        "losas": [
+          {
+            "nombre": "Losa 02",
+            "D_kN_m": 8.66,
+            "L_kN_m": 4.0
+          }
+        ]
+      },
+      "diseno_estructural": {
+        "ok": true,
+        "hoja_portante": {
+          "clave": "ladrillo_comun",
+          "fm_mpa": 1.75,
+          "espesor_m": 0.12,
+          "mortero": "mortero_normal_n"
+        },
+        "esbeltez_hr": 86.60254037844386,
+        "es_esbelta": false,
+        "area_franja_m2": 0.12,
+        "compresion": {
+          "Pn_kN": 82.97142857142858,
+          "phi": 0.6,
+          "phi_Pn_kN": 49.78285714285715,
+          "rama": "h/r <= 99",
+          "factor_reduccion": 0.6173469387755102,
+          "carga_axial_kN_m": 21.311999999999998,
+          "pasa": true
+        },
+        "corte": {
+          "Vn_kN": 58.03136611640665,
+          "phi": 0.8,
+          "phi_Vn_kN": 46.425092893125324
+        },
+        "armada": false,
+        "fy_mpa": 420.0,
+        "recomendaciones": [
+          "Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.",
+          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3.00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
+          "Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.",
+          "Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano."
+        ],
+        "pendiente": null
+      },
+      "cimiento": {
+        "ok": true,
+        "carga_servicio_kN_m": 21.311999999999998,
+        "q_adm_kPa": 85.32,
+        "ancho_minimo_m": 0.24978902953586496,
+        "profundidad_m": 0.8,
+        "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."
+      }
+    }
+  },
+  "Muro 2": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "8a84bb14-f31d-4a61-99b3-f280d81281ec",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "f1ba4cd8-343f-48ae-83c9-a482876421c8",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 8.0,
+    "x_inicio": 5.0,
+    "x_fin": 10.0,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 3.0,
+    "espesor_m": 0.21999999999999997,
+    "offset": 0.0,
+    "longitud_m": 5.0,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.12
+      },
+      {
+        "grupo": "Aislantes",
+        "clave": "eps",
+        "espesor_m": 0.02
+      },
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_hueco",
+        "espesor_m": 0.08
+      }
+    ],
+    "altura_m": 3.0,
+    "peso_propio_kN_m2": 2.884,
+    "peso_lineal_kN_m": 8.652,
+    "resultado_calculo": {
+      "resistencia_termica": {
+        "capas": [
+          {
+            "clave": "ladrillo_comun",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.12,
+            "lambda_w_mk": 0.81,
+            "R_m2K_W": 0.14814814814814814
+          },
+          {
+            "clave": "eps",
+            "grupo": "Aislantes",
+            "espesor_m": 0.02,
+            "lambda_w_mk": 0.037,
+            "R_m2K_W": 0.5405405405405406
+          },
+          {
+            "clave": "ladrillo_hueco",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.08,
+            "lambda_w_mk": 0.48,
+            "R_m2K_W": 0.16666666666666669
+          }
+        ],
+        "R_si_m2K_W": 0.13,
+        "R_se_m2K_W": 0.04,
+        "R_capas_m2K_W": 0.8553553553553555,
+        "R_total_m2K_W": 1.0253553553553554,
+        "U_W_m2K": 0.9752716409750763
+      },
+      "cargas_losas": {
+        "D_kN_m": 8.66,
+        "L_kN_m": 4.0,
+        "losas": [
+          {
+            "nombre": "Losa 02",
+            "D_kN_m": 8.66,
+            "L_kN_m": 4.0
+          }
+        ]
+      },
+      "diseno_estructural": {
+        "ok": true,
+        "hoja_portante": {
+          "clave": "ladrillo_comun",
+          "fm_mpa": 1.75,
+          "espesor_m": 0.12,
+          "mortero": "mortero_normal_n"
+        },
+        "esbeltez_hr": 86.60254037844386,
+        "es_esbelta": false,
+        "area_franja_m2": 0.12,
+        "compresion": {
+          "Pn_kN": 82.97142857142858,
+          "phi": 0.6,
+          "phi_Pn_kN": 49.78285714285715,
+          "rama": "h/r <= 99",
+          "factor_reduccion": 0.6173469387755102,
+          "carga_axial_kN_m": 21.311999999999998,
+          "pasa": true
+        },
+        "corte": {
+          "Vn_kN": 58.03136611640665,
+          "phi": 0.8,
+          "phi_Vn_kN": 46.425092893125324
+        },
+        "armada": false,
+        "fy_mpa": 420.0,
+        "recomendaciones": [
+          "Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.",
+          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3.00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
+          "Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.",
+          "Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano."
+        ],
+        "pendiente": null
+      },
+      "cimiento": {
+        "ok": true,
+        "carga_servicio_kN_m": 21.311999999999998,
+        "q_adm_kPa": 85.32,
+        "ancho_minimo_m": 0.24978902953586496,
+        "profundidad_m": 0.8,
+        "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."
+      }
+    }
   }
 }

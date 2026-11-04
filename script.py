@@ -131,13 +131,19 @@ def _aplicaciones_losas_portico(
     for nombre_losa, elemento in elementos.items():
         panel = elemento.get("panel_ejes")
         apoyos = elemento.get("apoya_en")
+        direccion_luz = str(
+            panel.get("direccion_luz", "x") if isinstance(panel, dict) else "x"
+        )
+        bidireccional = elemento.get("tipologia") in ("maciza_cruzada", "casetonada")
+        direcciones_apoyo = {"y" if direccion_luz == "x" else "x"}
+        if bidireccional:
+            direcciones_apoyo.add(direccion_luz)
         if (
             elemento.get("tipo") != "losa"
             or not elemento.get("activo", True)
             or not isinstance(panel, dict)
             or not isinstance(apoyos, dict)
-            or direccion_portico
-            != ("y" if str(panel.get("direccion_luz", "x")) == "x" else "x")
+            or direccion_portico not in direcciones_apoyo
             or not apoyos
         ):
             continue
@@ -170,15 +176,61 @@ def _aplicaciones_losas_portico(
     avisos: list[str] = []
     for nombre_losa, elemento, panel, apoyos in losas_asociadas:
         direccion_luz = str(panel.get("direccion_luz", "x"))
-        ejes_apoyo = (panel.get("ejes", {}) or {}).get(direccion_luz, {})
-        inicio_libre = float(panel.get("coordenada_libre_inicio_m", 0.0))
-        fin_libre = float(panel.get("coordenada_libre_fin_m", 0.0))
+        direccion_transversal = "y" if direccion_luz == "x" else "x"
+        bidireccional = elemento.get("tipologia") in ("maciza_cruzada", "casetonada")
         luz = float(elemento.get("luz_transversal_m", 0.0) or 0.0)
-        if luz <= 0 or fin_libre <= inicio_libre:
+        ejes_panel = panel.get("ejes", {}) or {}
+        ejes_luz = ejes_panel.get(direccion_luz, {}) or {}
+        inicio_luz = float(
+            (ejes_luz.get("inicio", {}) or {}).get("coordenada_m", 0.0)
+        )
+        fin_luz = float(
+            (ejes_luz.get("fin", {}) or {}).get("coordenada_m", 0.0)
+        )
+        inicio_transversal = float(panel.get("coordenada_libre_inicio_m", 0.0))
+        fin_transversal = float(panel.get("coordenada_libre_fin_m", 0.0))
+        if luz <= 0 or fin_transversal <= inicio_transversal or fin_luz <= inicio_luz:
             avisos.append(f"{nombre_losa}: geometrÃ­a de paÃ±o invÃ¡lida; no se aplicÃ³.")
             continue
 
-        for lado, borde in zip(("izq", "der"), ("inicio", "fin")):
+        if bidireccional:
+            try:
+                from calc import losas_macizas
+
+                anchos_apoyo = losas_macizas.reacciones_y_anchos_por_borde(elemento)
+            except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
+                avisos.append(
+                    f"{nombre_losa}: no se pudieron obtener las reacciones "
+                    f"bidireccionales para transferirlas: {exc}"
+                )
+                continue
+        else:
+            anchos_apoyo = {
+                "izq": {"ancho_tributario_m": luz / 2.0},
+                "der": {"ancho_tributario_m": luz / 2.0},
+            }
+        lados = ("izq", "der", "inf", "sup") if bidireccional else ("izq", "der")
+        for lado in lados:
+            if lado in ("izq", "der"):
+                direccion_borde = direccion_transversal
+                borde = "inicio" if lado == "izq" else "fin"
+                ejes_apoyo = ejes_panel.get(direccion_luz, {}) or {}
+                inicio_libre, fin_libre = inicio_transversal, fin_transversal
+            else:
+                direccion_borde = direccion_luz
+                borde = "inicio" if lado == "inf" else "fin"
+                ejes_apoyo = ejes_panel.get(direccion_transversal, {}) or {}
+                inicio_libre, fin_libre = inicio_luz, fin_luz
+            if direccion_portico != direccion_borde:
+                continue
+            ancho_tributario = float(
+                anchos_apoyo.get(lado, {}).get("ancho_tributario_m", 0.0)
+            )
+            if ancho_tributario <= 0:
+                avisos.append(
+                    f"{nombre_losa}: no hay reacción positiva calculada para el borde {lado}."
+                )
+                continue
             destino = apoyos.get(lado) or {}
             tipo = str(destino.get("tipo", "")).lower()
             if tipo == "muro":
@@ -217,7 +269,7 @@ def _aplicaciones_losas_portico(
                         _x_fin = float(_muro.get("x_fin", 0.0)) - _origen
                     except (TypeError, ValueError):
                         continue
-                    _ancho_trib = luz / 2.0
+                    _ancho_trib = ancho_tributario
                     for _vid, _v in vigas.items():
                         for _tramo in _v.get("tramos", []):
                             _tid = str(_tramo.get("id", ""))
@@ -258,7 +310,7 @@ def _aplicaciones_losas_portico(
                             "x_inicio_m": 0.0,
                             "x_fin_m": float(_rango[1] - _rango[0]) if _rango else 0.0,
                             "ancho_modo": "manual",
-                            "ancho_tributario_m": luz / 2.0,
+                            "ancho_tributario_m": ancho_tributario,
                             "modo_cargas_previas": "sumar",
                             "activa": True,
                         }
@@ -342,7 +394,7 @@ def _aplicaciones_losas_portico(
                     "x_inicio_m": x_inicio,
                     "x_fin_m": x_fin,
                     "ancho_modo": "manual",
-                    "ancho_tributario_m": luz / 2.0,
+                    "ancho_tributario_m": ancho_tributario,
                     "modo_cargas_previas": "sumar",
                     "activa": True,
                 })

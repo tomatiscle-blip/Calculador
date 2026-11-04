@@ -8,13 +8,24 @@ CRITERIOS DE DISEÑO Y MODELADO DE LOSAS PARA APLICACIÓN ESTRUCTURAL (PYNITE)
   * Cuándo conviene: Para luces grandes (> 5 a 6 metros) donde una losa maciza 
     resultaría muy pesada y gruesa. Emplea nervios cruzados y una capa de 
     compresión (topping).
-  * Modelado FEM: No es necesario dibujar cada nervio individualmente; se modela 
-    como una placa única aplicando factores de reducción ortótropos (kx_mod, ky_mod) 
-    para simular la menor rigidez frente a una sección maciza.
+  * CIRSOC 201-24 (documento identificado como Proyecto en el PDF incluido),
+    artículos 8.8.1.2 a 8.8.1.4: ancho de nervio >= 100 mm, canto total <= 3,5
+    veces el ancho mínimo y separación libre <= 750 mm.
+  * Espesor de capa superior: >= max(separación libre/12, 40 mm) para los
+    aligeramientos estructurales del artículo 8.8.2.1; en los demás casos,
+    >= max(separación libre/12, 50 mm), artículo 8.8.3.1.
+  * Si no se cumplen los límites geométricos de 8.8.1.1 a 8.8.1.4, el artículo
+    8.8.1.8 requiere diseñar el sistema como losa y vigas.
+  * El CIRSOC no prescribe factores kx_mod/ky_mod. En el análisis preliminar de
+    esta aplicación se ingresan manualmente y modifican la rigidez ortótropa de
+    la placa equivalente; deben justificarse para el sistema real.
 
 - Losa Maciza Unidireccional (Armada en una dirección):
   * Cuándo conviene: Relación de lados alargada (Ly / Lx > 2). Las cargas se 
     transmiten principalmente hacia los dos apoyos opuestos de menor luz.
+  * Espesor mínimo orientativo: Tabla 7.3.1.1 para losas macizas no pretensadas,
+    según condición de apoyo (L/20, L/24, L/28 o L/10 en voladizo). No sustituye
+    la verificación de flechas cuando corresponda.
 
 - Losa Maciza Cruzada (Armada en dos direcciones):
   * Cuándo conviene: Planta más cuadrada (Ly / Lx <= 2) apoyada en sus 4 lados.
@@ -67,4 +78,7 @@ valores clave en los puntos críticos de la malla:
 - Momentos negativos en apoyos (si es continua) para la armadura superior.
 - Fuerzas de corte (Qx, Qy) para verificar la capacidad resistente del hormigón 
     al corte y definir si requiere armadura transversal.
+
+El motor actual informa solicitaciones y reacciones elásticas de paños aislados.
+No dimensiona armaduras, no verifica flecha, fisuración, corte ni continuidad.
 ================================================================================

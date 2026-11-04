@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -19,7 +20,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 app = QApplication.instance() or QApplication([])
 
-from app.visualizacion import VistaPlantaPorticos  # noqa: E402
+from app.visualizacion import VistaPlantaPorticos, VistaPortico  # noqa: E402
 
 EJES = {
     "x": [
@@ -56,7 +57,7 @@ ESTRUCTURA = {
             "V0-1": {
                 "cota_m": 3.0,
                 "nivel_nombre": "N1",
-                "tramos": [{"x_inicio": 0.0, "x_fin": 5.0}],
+                "tramos": [{"id": "V0-1 T1", "x_inicio": 0.0, "x_fin": 5.0}],
             }
         },
         "bases": {"B0-1": {"x": 0.0}, "B0-2": {"x": 5.0}},
@@ -90,7 +91,7 @@ LOSAS = {
     "Losa 1": {
         "tipo": "losa",
         "apoya_en": {
-            "izq": {"tipo": "muro", "nombre": "Muro 1"},
+            "izq": {"tipo": "muro", "nombre": "Muro 2"},
             "der": {"tipo": "portico", "portico": "Pórtico 1", "viga": "V0-1"},
         },
         "panel_ejes": {
@@ -171,6 +172,34 @@ class GeometriaDePlanta(unittest.TestCase):
         geom = vista_con(None)._geometria(ESTRUCTURA["Muro 1"])
         self.assertEqual(vista_con(None)._punto(geom, 5.0), (5.0, 0.0))
 
+    def test_dimensiones_de_bases_por_portico_en_escena(self):
+        vista = vista_con(0.0)
+        archivos_leidos = []
+
+        def leer_resultados(ruta, por_defecto=None):
+            archivos_leidos.append(Path(ruta).name)
+            if Path(ruta).name == "resultados_bases_globales.json":
+                return []
+            if Path(ruta).name == "bases_Pórtico 1.json":
+                return {
+                    "B0-1": {"geotecnia": {"Bx_m": 0.85, "By_m": 0.9}},
+                    "B0-2": {"geotecnia": {"lado_m": 1.0}},
+                }
+            return por_defecto
+
+        with patch("app.visualizacion.rutas.leer_json", side_effect=leer_resultados):
+            bases = vista._escena()["bases_unicas"]
+            vista._escena()
+
+        self.assertEqual(
+            {base["nombre"]: base["dimensiones"] for base in bases},
+            {"B0-1": (0.85, 0.9), "B0-2": (1.0, 1.0)},
+        )
+        self.assertEqual(
+            archivos_leidos,
+            ["resultados_bases_globales.json", "bases_Pórtico 1.json"],
+        )
+
     # --- flechas de muro perpendicular entre pórticos -------------------------
 
     def test_flecha_muro_perpendicular_en_escena(self):
@@ -180,7 +209,24 @@ class GeometriaDePlanta(unittest.TestCase):
         Pórtico 2 corre en Y sobre X1 (x=0.0): x_m=2.0 → (0.0, 2.0).
         La aplicación inactiva y la de tipo lineal no generan flechas.
         """
-        escena = vista_con(3.0)._escena()
+        estructura = dict(ESTRUCTURA)
+        estructura["Pórtico 2"] = {
+            **ESTRUCTURA["Pórtico 2"],
+            "vigas": {
+                "V1-1": {
+                    "cota_m": 3.0,
+                    "nivel_nombre": "N1",
+                    "tramos": [{"id": "V1-1 T1", "x_inicio": 0.0, "x_fin": 4.0}],
+                }
+            },
+        }
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, estructura)
+        vista.set_losas(LOSAS)
+        vista.set_aplicaciones(APLICACIONES)
+        vista.set_portico_activo("Pórtico 1")
+        vista.set_nivel_activo(3.0)
+        escena = vista._escena()
         cargas = escena["cargas_muro"]
         self.assertEqual(len(cargas), 1, "solo la aplicación activa debería renderizar")
         flecha = cargas[0]
@@ -251,7 +297,22 @@ class FiltroPorNivel(unittest.TestCase):
         self.assertEqual(len(proy_muros), 1)
 
     def test_rotulos_indican_eje_y_apoyos(self):
-        escena = vista_con(3.0)._escena()
+        estructura = dict(ESTRUCTURA)
+        estructura["Muro 2"] = {
+            "tipo": "muro",
+            "referencia_planta": {"direccion": "y", "eje_id": "x:1"},
+            "posicion_planta_m": 0.0,
+            "x_inicio": 0.0,
+            "x_fin": 4.0,
+            "nivel_inicio": 3.0,
+            "nivel_fin": 6.0,
+        }
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, estructura)
+        vista.set_losas(LOSAS)
+        vista.set_portico_activo("Pórtico 1")
+        vista.set_nivel_activo(3.0)
+        escena = vista._escena()
         textos = [r["texto"] for r in escena["rotulos"]]
         # El pórtico dice sobre qué eje corre y desde dónde.
         self.assertTrue(any("Pórtico 1" in t and "Y2" in t for t in textos))
@@ -298,6 +359,213 @@ class FiltroPorNivel(unittest.TestCase):
         escena = vista_con(3.0)._escena()
         nombres = {p["nombre"] for p in escena["porticos"]}
         self.assertEqual(nombres, {"Pórtico 1", "Pórtico 2"})
+
+    def test_columnas_globales_reutilizadas_se_proyectan_al_eje_del_portico(self):
+        estructura = {
+            "columnas": {
+                # Esta coordenada local (5 m) pertenece al pórtico Y original;
+                # en el pórtico X nuevo, su coordenada de planta X es 3 m.
+                "C0-5": {
+                    "x": 5.0, "nivel": 0.0, "X": 3.0, "Y": 4.0,
+                    "eje_nombre": "X2",
+                },
+            },
+            "Pórtico 3": {
+                "referencia_planta": {
+                    "direccion": "x", "eje_id": "y:2",
+                    "eje_longitudinal_id": "x:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "posicion_planta_m": 4.0,
+                "columnas": ["C0-5"],
+                "vigas": {},
+            },
+        }
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, estructura)
+        escena = vista._escena()
+
+        portico = next(p for p in escena["porticos"] if p["nombre"] == "Pórtico 3")
+        self.assertEqual(portico["columnas"][0][1], (3.0, 4.0))
+        self.assertNotIn("columnas", {p["nombre"] for p in escena["porticos"]})
+        rotulo = next(r for r in escena["rotulos"] if r["texto"].startswith("Pórtico 3"))
+        self.assertEqual(rotulo["giro"], 0.0)
+
+    def test_losa_cruzada_muestra_los_cuatro_bordes_apoyados(self):
+        estructura = {
+            "Pórtico Y1": {
+                "referencia_planta": {
+                    "direccion": "y", "eje_id": "x:1",
+                    "eje_longitudinal_id": "y:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "columnas": {"C1": {"x": 0.0, "nivel": 3.0}},
+                "vigas": {"VY1": {"tramos": [{"x_inicio": 0.0, "x_fin": 4.0}]}},
+            },
+            "Pórtico Y2": {
+                "referencia_planta": {
+                    "direccion": "y", "eje_id": "x:2",
+                    "eje_longitudinal_id": "y:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "columnas": {"C2": {"x": 0.0, "nivel": 3.0}},
+                "vigas": {"VY2": {"tramos": [{"x_inicio": 0.0, "x_fin": 4.0}]}},
+            },
+            "Pórtico X1": {
+                "referencia_planta": {
+                    "direccion": "x", "eje_id": "y:1",
+                    "eje_longitudinal_id": "x:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "columnas": {"C3": {"x": 0.0, "nivel": 3.0}},
+                "vigas": {"VX1": {"tramos": [{"x_inicio": 0.0, "x_fin": 5.0}]}},
+            },
+            "Pórtico X2": {
+                "referencia_planta": {
+                    "direccion": "x", "eje_id": "y:2",
+                    "eje_longitudinal_id": "x:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "columnas": {"C4": {"x": 0.0, "nivel": 3.0}},
+                "vigas": {"VX2": {"tramos": [{"x_inicio": 0.0, "x_fin": 5.0}]}},
+            },
+        }
+        losa = {
+            "tipo": "losa",
+            "tipologia": "maciza_cruzada",
+            "panel_ejes": {
+                "direccion_luz": "x",
+                "cota_apoyo_m": 3.0,
+                "ejes": {
+                    "x": {
+                        "inicio": {"coordenada_m": 0.0},
+                        "fin": {"coordenada_m": 5.0},
+                    },
+                    "y": {
+                        "inicio": {"coordenada_m": 0.0},
+                        "fin": {"coordenada_m": 4.0},
+                    },
+                },
+            },
+            "apoya_en": {
+                "izq": {"tipo": "portico", "portico": "Pórtico Y1", "viga": "VY1"},
+                "der": {"tipo": "portico", "portico": "Pórtico Y2", "viga": "VY2"},
+                "inf": {"tipo": "portico", "portico": "Pórtico X1", "viga": "VX1"},
+                "sup": {"tipo": "portico", "portico": "Pórtico X2", "viga": "VX2"},
+            },
+        }
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, estructura)
+        vista.set_losas({"Losa cruzada": losa})
+
+        apoyos = vista._escena()["apoyos_losa"]
+        self.assertEqual({apoyo["lado"] for apoyo in apoyos}, {"izq", "der", "inf", "sup"})
+        self.assertEqual({apoyo["eje_borde"] for apoyo in apoyos}, {"x", "y"})
+        from PySide6.QtGui import QColor, QImage
+
+        vista.resize(600, 400)
+        imagen = QImage(600, 400, QImage.Format.Format_ARGB32)
+        imagen.fill(QColor("#ffffff"))
+        vista.render(imagen)
+
+    def test_losa_unidireccional_acepta_apoyos_con_vigas_contiguas(self):
+        estructura = {}
+        for nombre, eje_id, coordenada in (
+            ("Pórtico Y1", "x:1", 0.0),
+            ("Pórtico Y2", "x:2", 5.0),
+        ):
+            estructura[nombre] = {
+                "referencia_planta": {
+                    "direccion": "y",
+                    "eje_id": eje_id,
+                    "eje_longitudinal_id": "y:1",
+                    "origen_longitudinal_m": 0.0,
+                },
+                "posicion_planta_m": coordenada,
+                "vigas": {
+                    "V1": {
+                        "tramos": [
+                            {"x_inicio": 0.0, "x_fin": 5.0},
+                            {"x_inicio": 5.0, "x_fin": 10.0},
+                        ]
+                    }
+                },
+            }
+        losa = {
+            "tipo": "losa",
+            "tipologia": "maciza",
+            "panel_ejes": {
+                "direccion_luz": "x",
+                "cota_apoyo_m": 3.0,
+                "ejes": {
+                    "x": {
+                        "inicio": {"id": "x:1", "coordenada_m": 0.0},
+                        "fin": {"id": "x:2", "coordenada_m": 5.0},
+                    },
+                    "y": {
+                        "inicio": {"id": "y:1", "coordenada_m": 0.0},
+                        "fin": {"id": "y:2", "coordenada_m": 10.0},
+                    },
+                },
+            },
+            "apoya_en": {
+                "izq": {"tipo": "portico", "portico": "Pórtico Y1", "viga": "V1"},
+                "der": {"tipo": "portico", "portico": "Pórtico Y2", "viga": "V1"},
+            },
+        }
+        vista = VistaPlantaPorticos()
+        vista.set_datos(EJES, NIVELES, estructura)
+        vista.set_losas({"Losa unidireccional": losa})
+
+        apoyos = vista._escena()["apoyos_losa"]
+        self.assertEqual({apoyo["lado"] for apoyo in apoyos}, {"izq", "der"})
+        self.assertTrue(all(apoyo["direccion_luz"] == "x" for apoyo in apoyos))
+
+        from PySide6.QtGui import QColor, QImage
+
+        vista.resize(600, 400)
+        imagen = QImage(600, 400, QImage.Format.Format_ARGB32)
+        imagen.fill(QColor("#ffffff"))
+        vista.render(imagen)
+        colores = {
+            imagen.pixelColor(x, y).name()
+            for x in range(imagen.width())
+            for y in range(imagen.height())
+        }
+        self.assertIn("#047857", colores)
+        self.assertIn("#475569", colores)
+
+    def test_reaccion_de_losa_se_dibuja_a_la_cota_del_apoyo_en_muro(self):
+        vista = VistaPortico()
+        vista.tipo = "muro"
+        vista.muros = {
+            "Muro 1": {
+                "x_inicio": 0.0,
+                "x_fin": 10.0,
+                "nivel_inicio": 0.0,
+                "nivel_fin": 6.0,
+            }
+        }
+        vista.cargas = {
+            "MURO": [{
+                "x_inicio_m": 0.0,
+                "x_fin_m": 10.0,
+                "valor_kN_m": 6.0,
+                "tipo": "D",
+                "cota_m": 3.0,
+            }]
+        }
+        painter = Mock()
+        painter.fontMetrics.return_value.horizontalAdvance.return_value = 10
+        from PySide6.QtCore import QPointF
+
+        vista._dibujar_cargas_muro(
+            painter, lambda x, cota: QPointF(x * 10, 100 - cota * 10)
+        )
+
+        inicio_flecha, punta_flecha = painter.drawLine.call_args.args
+        self.assertEqual(inicio_flecha, QPointF(50.0, 70.0))
+        self.assertEqual(punta_flecha, QPointF(50.0, 82.0))
 
     def test_losa_sin_panel_no_se_pierde(self):
         # Sin datos de ejes se avisa por etiqueta en vez de desaparecer
@@ -358,18 +626,15 @@ class FiltroPorNivel(unittest.TestCase):
         rot = vista._rotulo(1.0, 2.0, "X")
         self.assertIs(rot["flotante"], True)
 
-    def test_solo_el_portico_activo_conserva_su_texto(self):
-        """De los pórticos, solo el activo mantiene el rótulo visible."""
+    def test_nombres_de_porticos_se_muestran_horizontales(self):
+        """Los nombres de todos los pórticos quedan legibles en planta."""
         vista = vista_con(3.0)
         vista.portico_activo = "Pórtico 1"
         escena = vista._escena()
-        por_nombre = {}
-        for rot in escena["rotulos"]:
-            if "Pórtico" in rot["texto"]:
-                por_nombre[rot["texto"].split("·")[0].strip()] = rot["flotante"]
-        self.assertIn("Pórtico 1", por_nombre)
-        self.assertFalse(por_nombre["Pórtico 1"], "el pórtico activo debe verse")
-        self.assertTrue(por_nombre["Pórtico 2"], "el inactivo debe quedar flotante")
+        rotulos = [r for r in escena["rotulos"] if r["texto"].startswith("Pórtico")]
+        self.assertEqual(len(rotulos), 2)
+        self.assertTrue(all(not rotulo["flotante"] for rotulo in rotulos))
+        self.assertTrue(all(rotulo["giro"] == 0.0 for rotulo in rotulos))
 
     # --- estilos visuales por categoría ---------------------------------
 

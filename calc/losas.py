@@ -410,6 +410,14 @@ def calcular_desde_elemento_carga(
     """Dimensiona una losa alivianada usando la composición ya definida en Cargas."""
     if elemento.get("tipo") != "losa" or elemento.get("tipologia") != "alivianada":
         raise ValueError("El cálculo de viguetas está disponible para losas alivianadas.")
+    apoyos = elemento.get("apoya_en", {}) or {}
+    cantidad_apoyos = sum(
+        bool(apoyos.get(lado)) for lado in ("izq", "der", "inf", "sup")
+    )
+    if cantidad_apoyos > 2:
+        raise ValueError(
+            "Una losa con tres o cuatro bordes apoyados debe calcularse como placa cruzada."
+        )
     luz = float(elemento.get("luz_transversal_m", 0.0))
     ancho = float(elemento.get("ancho_losa_m", 0.0))
     if luz <= 0 or ancho <= 0:
@@ -436,6 +444,7 @@ def calcular_desde_elemento_carga(
         "ancho_losa_m": ancho,
         "materiales": seleccion,
         "sobrecarga": elemento.get("sobrecarga", "vivienda"),
+        "apoya_en": elemento.get("apoya_en", {}),
         "peso_propio_kNm2": sum(
             cargas.valor_componente_superficial(componente, bib)[1] for componente in base
         ),
@@ -461,6 +470,8 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
         m.append(f"Carga del proyecto: {r.carga_id}\n")
     m.append(f"Luz libre: {r.luz_libre_m:.2f} m\n")
     m.append(f"Luz de cálculo (con tolerancia): {r.luz_calculo_m:.2f} m\n\n")
+    m.append(f"Ancho del paño: {r.ancho_losa_m:.2f} m\n")
+    m.append(f"Área para cómputo: {r.area_losa_m2:.2f} m²\n\n")
 
     subtotal_D2 = 0.0
     m.append("Materiales seleccionados:\n")
@@ -523,7 +534,36 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
     m.append(f" - Total barras: {nervios['barras_total']} unidades\n")
     m.append(f" - Longitud total de barras: {nervios['longitud_total_barras_m']:.2f} m\n\n")
 
+    m.append("Reacciones de apoyo (sin combinar; cargas lineales):\n")
+    for apoyo in r.reacciones:
+        cargas_apoyo = apoyo["cargas"]
+        referencia = apoyo.get("apoya_en")
+        if isinstance(referencia, dict):
+            if referencia.get("tipo") == "muro":
+                nombre_apoyo = f"muro {referencia.get('nombre', '')}"
+            elif referencia.get("tipo") == "portico":
+                nombre_apoyo = (
+                    f"pórtico {referencia.get('portico', '')}, "
+                    f"viga {referencia.get('viga', '')}"
+                )
+            else:
+                nombre_apoyo = ""
+        else:
+            nombre_apoyo = ""
+        sufijo = f" → {nombre_apoyo}" if nombre_apoyo else ""
+        m.append(
+            f" - Borde {apoyo['apoyo']}{sufijo}: D={cargas_apoyo['D']:.3f}, "
+            f"L={cargas_apoyo['L']:.3f}, W={cargas_apoyo['W']:.3f} kN/m\n"
+        )
+        for nombre_combo, valor in apoyo["combinaciones"].items():
+            m.append(f"   {nombre_combo}: {valor:.3f} kN/m\n")
+    m.append("\n")
+
     m.append("=================================\n")
+    m.append(
+        "Alcance: cálculo de viguetas y cómputo según los datos y la tabla de capacidades cargada; "
+        "las reacciones se transfieren sin combinar.\n"
+    )
     m.append("Fin de la memoria de cálculo\n")
     return "".join(m)
 
@@ -821,4 +861,3 @@ def _main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_main(sys.argv[1:]))
-

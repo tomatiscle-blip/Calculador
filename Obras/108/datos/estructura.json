@@ -1,0 +1,734 @@
+{
+  "columnas": {
+    "C0-1": {
+      "x": 0.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "eje_nombre": "Y1",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 0.0,
+      "Y": 0.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-2": {
+      "x": 5.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "eje_nombre": "Y2",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 0.0,
+      "Y": 5.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-3": {
+      "x": 10.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "eje_nombre": "Y3",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 0.0,
+      "Y": 10.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-4": {
+      "x": 0.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "eje_nombre": "Y1",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 3.0,
+      "Y": 0.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-5": {
+      "x": 5.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "eje_nombre": "Y2",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 3.0,
+      "Y": 5.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-6": {
+      "x": 10.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "eje_nombre": "Y3",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 3.0,
+      "Y": 10.0,
+      "forma_seccion": "rectangular"
+    },
+    "C1-1": {
+      "x": 0.0,
+      "nivel": 3.0,
+      "altura_m": 3.0,
+      "eje_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "eje_nombre": "Y1",
+      "nivel_inicio": "N1",
+      "piso": 1,
+      "X": 3.0,
+      "Y": 0.0,
+      "forma_seccion": "rectangular"
+    },
+    "C1-2": {
+      "x": 5.0,
+      "nivel": 3.0,
+      "altura_m": 3.0,
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "eje_nombre": "Y2",
+      "nivel_inicio": "N1",
+      "piso": 1,
+      "X": 3.0,
+      "Y": 5.0,
+      "forma_seccion": "rectangular"
+    },
+    "C1-3": {
+      "x": 10.0,
+      "nivel": 3.0,
+      "altura_m": 3.0,
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "eje_nombre": "Y3",
+      "nivel_inicio": "N1",
+      "piso": 1,
+      "X": 3.0,
+      "Y": 10.0,
+      "forma_seccion": "rectangular"
+    },
+    "C0-7": {
+      "x": 6.0,
+      "nivel": 0.0,
+      "altura_m": 3.0,
+      "eje_id": "d407f183-7490-476f-b91f-7cfd34a207ed",
+      "eje_nombre": "X3",
+      "nivel_inicio": "PB",
+      "piso": 0,
+      "X": 6.0,
+      "Y": 5.0,
+      "forma_seccion": "rectangular"
+    }
+  },
+  "bases": {
+    "BASE-001": {
+      "x": 0.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "eje_nombre": "Y1",
+      "X": 0.0,
+      "Y": 0.0
+    },
+    "BASE-002": {
+      "x": 5.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "eje_nombre": "Y2",
+      "X": 0.0,
+      "Y": 5.0
+    },
+    "BASE-003": {
+      "x": 10.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "eje_nombre": "Y3",
+      "X": 0.0,
+      "Y": 10.0
+    },
+    "BASE-004": {
+      "x": 0.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "eje_nombre": "Y1",
+      "X": 3.0,
+      "Y": 0.0
+    },
+    "BASE-005": {
+      "x": 5.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "eje_nombre": "Y2",
+      "X": 3.0,
+      "Y": 5.0
+    },
+    "BASE-006": {
+      "x": 10.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "eje_nombre": "Y3",
+      "X": 3.0,
+      "Y": 10.0
+    },
+    "BASE-007": {
+      "x": 6.0,
+      "nivel": 0.0,
+      "tipo": "empotramiento",
+      "eje_id": "d407f183-7490-476f-b91f-7cfd34a207ed",
+      "eje_nombre": "X3",
+      "X": 6.0,
+      "Y": 5.0
+    }
+  },
+  "Pórtico 1": {
+    "vigas": {
+      "V0-1": {
+        "tramos": [
+          {
+            "id": "V0-1 T1",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 5.0,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-1 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 5.0,
+            "x_fin": 10.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N1",
+        "cota_m": 3.0,
+        "voladizos_m": {}
+      }
+    },
+    "columnas": [
+      "C0-1",
+      "C0-2",
+      "C0-3"
+    ],
+    "bases": [
+      "BASE-001",
+      "BASE-002",
+      "BASE-003"
+    ],
+    "cargas_puntuales": [],
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "401c172e-b8dd-423f-9af5-755b9fb685e6",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "desfase_longitudinal_m": 0.0,
+      "origen_longitudinal_m": 0.0,
+      "niveles": [
+        {
+          "nombre": "PB",
+          "cota_m": 0.0,
+          "cota_origen_m": 0.0
+        },
+        {
+          "nombre": "N1",
+          "cota_m": 3.0,
+          "cota_origen_m": 3.0
+        }
+      ],
+      "columnas_por_nivel": [
+        {
+          "nivel": "PB",
+          "cota_m": 0.0,
+          "eje_ids": [
+            "17fb2b90-bde9-4038-99a8-994787614b7e",
+            "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+            "bedc01a4-77bb-4b63-ad82-38097220068a"
+          ]
+        }
+      ]
+    },
+    "posicion_planta_m": 0.0,
+    "niveles_geometria": [
+      {
+        "nombre": "PB",
+        "cota_m": 0.0,
+        "cota_origen_m": 0.0
+      },
+      {
+        "nombre": "N1",
+        "cota_m": 3.0,
+        "cota_origen_m": 3.0
+      }
+    ]
+  },
+  "Pórtico 2": {
+    "vigas": {
+      "V0-2": {
+        "tramos": [
+          {
+            "id": "V0-2 T1",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 5.0,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-2 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 5.0,
+            "x_fin": 10.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N1",
+        "cota_m": 3.0,
+        "voladizos_m": {},
+        "h_cm": 48.0,
+        "h_ajustado_por_flecha": true
+      },
+      "V1-2": {
+        "tramos": [
+          {
+            "id": "V1-2 T1",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 5.0,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V1-2 T2",
+            "longitud_m": 5.0,
+            "es_voladizo": false,
+            "x_inicio": 5.0,
+            "x_fin": 10.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N2",
+        "cota_m": 6.0,
+        "voladizos_m": {}
+      }
+    },
+    "columnas": [
+      "C0-4",
+      "C0-5",
+      "C0-6",
+      "C1-1",
+      "C1-2",
+      "C1-3"
+    ],
+    "bases": [
+      "BASE-004",
+      "BASE-005",
+      "BASE-006"
+    ],
+    "cargas_puntuales": [],
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "900a0944-a5cc-4683-b55a-fd2a9d961ffc",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "desfase_longitudinal_m": 0.0,
+      "origen_longitudinal_m": 0.0,
+      "niveles": [
+        {
+          "nombre": "PB",
+          "cota_m": 0.0,
+          "cota_origen_m": 0.0
+        },
+        {
+          "nombre": "N1",
+          "cota_m": 3.0,
+          "cota_origen_m": 3.0
+        },
+        {
+          "nombre": "N2",
+          "cota_m": 6.0,
+          "cota_origen_m": 6.0
+        }
+      ],
+      "columnas_por_nivel": [
+        {
+          "nivel": "PB",
+          "cota_m": 0.0,
+          "eje_ids": [
+            "17fb2b90-bde9-4038-99a8-994787614b7e",
+            "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+            "bedc01a4-77bb-4b63-ad82-38097220068a"
+          ]
+        },
+        {
+          "nivel": "N1",
+          "cota_m": 3.0,
+          "eje_ids": [
+            "17fb2b90-bde9-4038-99a8-994787614b7e",
+            "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+            "bedc01a4-77bb-4b63-ad82-38097220068a"
+          ]
+        }
+      ]
+    },
+    "posicion_planta_m": 3.0,
+    "niveles_geometria": [
+      {
+        "nombre": "PB",
+        "cota_m": 0.0,
+        "cota_origen_m": 0.0
+      },
+      {
+        "nombre": "N1",
+        "cota_m": 3.0,
+        "cota_origen_m": 3.0
+      },
+      {
+        "nombre": "N2",
+        "cota_m": 6.0,
+        "cota_origen_m": 6.0
+      }
+    ]
+  },
+  "Muro 1": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "y",
+      "eje_id": "d407f183-7490-476f-b91f-7cfd34a207ed",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "17fb2b90-bde9-4038-99a8-994787614b7e",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 6.0,
+    "x_inicio": 0.0,
+    "x_fin": 10.0,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 6.0,
+    "espesor_m": 0.24,
+    "offset": 0.0,
+    "longitud_m": 10.0,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.24
+      }
+    ],
+    "altura_m": 6.0,
+    "peso_propio_kN_m2": 4.08,
+    "peso_lineal_kN_m": 24.48,
+    "resultado_calculo": {
+      "resistencia_termica": {
+        "capas": [
+          {
+            "clave": "ladrillo_comun",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.24,
+            "lambda_w_mk": 0.81,
+            "R_m2K_W": 0.2962962962962963
+          }
+        ],
+        "R_si_m2K_W": 0.13,
+        "R_se_m2K_W": 0.04,
+        "R_capas_m2K_W": 0.2962962962962963,
+        "R_total_m2K_W": 0.46629629629629626,
+        "U_W_m2K": 2.144559173947578
+      },
+      "cargas_losas": {
+        "D_kN_m": 6.054727670783234,
+        "L_kN_m": 2.0352025784145793,
+        "losas": [
+          {
+            "nombre": "LX1",
+            "D_kN_m": 6.054727670783234,
+            "L_kN_m": 2.0352025784145793,
+            "cota_m": 3.0
+          }
+        ],
+        "avisos": []
+      },
+      "combinaciones_axiales": {
+        "D_kN_m": 30.534727670783234,
+        "L_kN_m": 2.0352025784145793,
+        "combinaciones_kN_m": {
+          "1.4D": 42.74861873909652,
+          "1.2D + 1.6L": 39.89799733040321
+        },
+        "combinacion_critica": "1.4D",
+        "Pu_kN_m": 42.74861873909652
+      },
+      "diseno_estructural": {
+        "ok": true,
+        "hoja_portante": {
+          "clave": "ladrillo_comun",
+          "fm_mpa": 1.75,
+          "espesor_m": 0.24,
+          "mortero": "mortero_normal_n"
+        },
+        "esbeltez_hr": 86.60254037844386,
+        "es_esbelta": false,
+        "area_franja_m2": 0.24,
+        "compresion": {
+          "Pn_kN": 165.94285714285715,
+          "phi": 0.6,
+          "phi_Pn_kN": 99.5657142857143,
+          "rama": "h/r <= 99",
+          "factor_reduccion": 0.6173469387755102,
+          "carga_axial_kN_m": 42.74861873909652,
+          "pasa": true
+        },
+        "corte": {
+          "Vn_kN": 116.09388691758743,
+          "phi": 0.8,
+          "phi_Vn_kN": 92.87510953406995
+        },
+        "armada": false,
+        "fy_mpa": 420.0,
+        "recomendaciones": [
+          "Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.",
+          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 6.00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
+          "Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.",
+          "Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano."
+        ],
+        "pendiente": null
+      },
+      "cimiento": {
+        "ok": true,
+        "carga_servicio_kN_m": 32.56993024919781,
+        "q_adm_kPa": 85.32,
+        "ancho_minimo_m": 0.3817385167510292,
+        "profundidad_m": 0.8,
+        "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."
+      }
+    }
+  },
+  "Muro 2": {
+    "tipo": "muro",
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "bedc01a4-77bb-4b63-ad82-38097220068a",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "900a0944-a5cc-4683-b55a-fd2a9d961ffc",
+      "desfase_longitudinal_m": 0.0,
+      "desfase_inicio_m": 0.0,
+      "desfase_fin_m": 0.0
+    },
+    "posicion_planta_m": 10.0,
+    "x_inicio": 3.0,
+    "x_fin": 6.0,
+    "nivel_inicio": 0.0,
+    "nivel_fin": 3.0,
+    "espesor_m": 0.22499999999999998,
+    "offset": 0.0,
+    "longitud_m": 3.0,
+    "capas": [
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_comun",
+        "espesor_m": 0.12
+      },
+      {
+        "grupo": "Aislantes",
+        "clave": "eps",
+        "espesor_m": 0.02
+      },
+      {
+        "grupo": "Mamposteria",
+        "clave": "ladrillo_hueco",
+        "espesor_m": 0.085
+      }
+    ],
+    "altura_m": 3.0,
+    "peso_propio_kN_m2": 2.9365,
+    "peso_lineal_kN_m": 8.8095,
+    "resultado_calculo": {
+      "resistencia_termica": {
+        "capas": [
+          {
+            "clave": "ladrillo_comun",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.12,
+            "lambda_w_mk": 0.81,
+            "R_m2K_W": 0.14814814814814814
+          },
+          {
+            "clave": "eps",
+            "grupo": "Aislantes",
+            "espesor_m": 0.02,
+            "lambda_w_mk": 0.037,
+            "R_m2K_W": 0.5405405405405406
+          },
+          {
+            "clave": "ladrillo_hueco",
+            "grupo": "Mamposteria",
+            "espesor_m": 0.085,
+            "lambda_w_mk": 0.48,
+            "R_m2K_W": 0.17708333333333334
+          }
+        ],
+        "R_si_m2K_W": 0.13,
+        "R_se_m2K_W": 0.04,
+        "R_capas_m2K_W": 0.8657720220220221,
+        "R_total_m2K_W": 1.0357720220220221,
+        "U_W_m2K": 0.965463421234155
+      },
+      "cargas_losas": {
+        "D_kN_m": 4.759939662451945,
+        "L_kN_m": 1.5999797184712552,
+        "losas": [
+          {
+            "nombre": "LX1",
+            "D_kN_m": 4.759939662451945,
+            "L_kN_m": 1.5999797184712552,
+            "cota_m": 3.0
+          }
+        ],
+        "avisos": []
+      },
+      "combinaciones_axiales": {
+        "D_kN_m": 13.569439662451945,
+        "L_kN_m": 1.5999797184712552,
+        "combinaciones_kN_m": {
+          "1.4D": 18.997215527432722,
+          "1.2D + 1.6L": 18.84329514449634
+        },
+        "combinacion_critica": "1.4D",
+        "Pu_kN_m": 18.997215527432722
+      },
+      "diseno_estructural": {
+        "ok": true,
+        "hoja_portante": {
+          "clave": "ladrillo_comun",
+          "fm_mpa": 1.75,
+          "espesor_m": 0.12,
+          "mortero": "mortero_normal_n"
+        },
+        "esbeltez_hr": 86.60254037844386,
+        "es_esbelta": false,
+        "area_franja_m2": 0.12,
+        "compresion": {
+          "Pn_kN": 82.97142857142858,
+          "phi": 0.6,
+          "phi_Pn_kN": 49.78285714285715,
+          "rama": "h/r <= 99",
+          "factor_reduccion": 0.6173469387755102,
+          "carga_axial_kN_m": 18.997215527432722,
+          "pasa": true
+        },
+        "corte": {
+          "Vn_kN": 57.45266999826483,
+          "phi": 0.8,
+          "phi_Vn_kN": 45.96213599861187
+        },
+        "armada": false,
+        "fy_mpa": 420.0,
+        "recomendaciones": [
+          "Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.",
+          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3.00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
+          "Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.",
+          "Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano."
+        ],
+        "pendiente": null
+      },
+      "cimiento": {
+        "ok": true,
+        "carga_servicio_kN_m": 15.1694193809232,
+        "q_adm_kPa": 85.32,
+        "ancho_minimo_m": 0.17779441374734178,
+        "profundidad_m": 0.8,
+        "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."
+      }
+    }
+  },
+  "Pórtico 3": {
+    "vigas": {
+      "V0-3": {
+        "tramos": [
+          {
+            "id": "V0-3 T1",
+            "longitud_m": 3.0,
+            "es_voladizo": false,
+            "x_inicio": 0.0,
+            "x_fin": 3.0,
+            "cargas_puntuales": []
+          },
+          {
+            "id": "V0-3 T2",
+            "longitud_m": 3.0,
+            "es_voladizo": false,
+            "x_inicio": 3.0,
+            "x_fin": 6.0,
+            "cargas_puntuales": []
+          }
+        ],
+        "nivel_nombre": "N1",
+        "cota_m": 3.0,
+        "voladizos_m": {}
+      }
+    },
+    "columnas": [
+      "C0-2",
+      "C0-5",
+      "C0-7"
+    ],
+    "bases": [
+      "BASE-002",
+      "BASE-005",
+      "BASE-007"
+    ],
+    "cargas_puntuales": [],
+    "referencia_planta": {
+      "direccion": "x",
+      "eje_id": "c98f9a0b-b7b9-461e-ab74-ad7bd1ced4b0",
+      "desfase_m": 0.0,
+      "eje_longitudinal_id": "401c172e-b8dd-423f-9af5-755b9fb685e6",
+      "desfase_longitudinal_m": 0.0,
+      "origen_longitudinal_m": 0.0,
+      "niveles": [
+        {
+          "nombre": "PB",
+          "cota_m": 0.0,
+          "cota_origen_m": 0.0
+        },
+        {
+          "nombre": "N1",
+          "cota_m": 3.0,
+          "cota_origen_m": 3.0
+        }
+      ],
+      "columnas_por_nivel": [
+        {
+          "nivel": "PB",
+          "cota_m": 0.0,
+          "eje_ids": [
+            "401c172e-b8dd-423f-9af5-755b9fb685e6",
+            "900a0944-a5cc-4683-b55a-fd2a9d961ffc",
+            "d407f183-7490-476f-b91f-7cfd34a207ed"
+          ]
+        }
+      ]
+    },
+    "posicion_planta_m": 5.0,
+    "niveles_geometria": [
+      {
+        "nombre": "PB",
+        "cota_m": 0.0,
+        "cota_origen_m": 0.0
+      },
+      {
+        "nombre": "N1",
+        "cota_m": 3.0,
+        "cota_origen_m": 3.0
+      }
+    ]
+  }
+}

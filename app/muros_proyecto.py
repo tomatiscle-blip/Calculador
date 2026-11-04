@@ -122,7 +122,8 @@ class EditorCapasMuro(QDialog):
         combo = QComboBox()
         for grupo, tabla in self._grupos.items():
             for clave, info in tabla.items():
-                combo.addItem(f"{info['nombre']} ({grupo})", (grupo, clave))
+                grupo_visible = "Morteros / revoques" if grupo == "Morteros" else grupo
+                combo.addItem(f"{info['nombre']} ({grupo_visible})", (grupo, clave))
         if capa:
             # findData con una tupla no matchea de forma confiable en PySide6,
             # así que buscamos el índice comparando el dato guardado a mano.
@@ -212,11 +213,12 @@ class EditorCapasMuro(QDialog):
         if termica:
             lineas += [
                 "",
-                "Resistencia térmica (ISO 6946, muro vertical):",
+                "Resistencia térmica (ISO 6946, muro vertical; valor informativo):",
                 f"  R de las capas: {termica['R_capas_m2K_W']:.3f} m²·K/W",
                 f"  R total (con Rsi={termica['R_si_m2K_W']:.2f}, Rse={termica['R_se_m2K_W']:.2f}): "
                 f"{termica['R_total_m2K_W']:.3f} m²·K/W",
                 f"  Transmitancia térmica U = 1/Rtotal: {termica['U_W_m2K']:.3f} W/m²·K",
+                "  Sin un límite U objetivo configurado, no corresponde marcarla como cumple/no cumple.",
             ]
         else:
             lineas += [
@@ -224,16 +226,17 @@ class EditorCapasMuro(QDialog):
                 "Resistencia térmica: pendiente (faltan conductividades λ de "
                 "alguna capa en materiales.json).",
             ]
-        lineas += [
-            "",
-            "Pendiente de implementar: cimiento (requiere reglamentación / datos "
-            "geotécnicos).",
-        ]
-
         # Verificación estructural (CIRSOC 501) con la altura del paño.
         try:
+            carga_losas = muros.cargas_losas_en_muro(self.nombre)
+            combinaciones_axiales = muros.combinaciones_axiales_basicas(
+                resultado["peso_lineal_kN_m"] + carga_losas["D_kN_m"],
+                carga_losas["L_kN_m"],
+            )
+            axial_servicio = combinaciones_axiales["D_kN_m"] + combinaciones_axiales["L_kN_m"]
             est = mamposteria.verificar_muro(
                 capas, altura_m=self.altura.value(), mortero="mortero_normal_n",
+                carga_axial_kN_m=combinaciones_axiales["Pu_kN_m"],
             )
         except (FileNotFoundError, KeyError):
             est = {"ok": False,
@@ -241,25 +244,66 @@ class EditorCapasMuro(QDialog):
         if est.get("ok"):
             comp = est["compresion"]
             cort = est["corte"]
+            zapata = muros.verificar_zapata_corrida(axial_servicio)
             lineas += [
                 "",
                 "Verificación estructural (CIRSOC 501) por metro de muro:",
+                "  Se toma como portante la hoja de mampostería más gruesa; "
+                "revoques y aislantes no aportan resistencia estructural.",
+                "  El estado PASA/NO PASA mostrado abajo es solo por compresión axial "
+                "con peso propio y losas; aún no incluye viento/sismo ni excentricidad.",
                 f"  Hoja portante: {est['hoja_portante']['clave']} "
                 f"(fm = {est['hoja_portante']['fm_mpa']:.2f} MPa, "
                 f"e = {est['hoja_portante']['espesor_m']:.2f} m)",
                 f"  Esbeltez h/r = {est['esbeltez_hr']:.1f}"
                 f"{'  ⚠ ESBELTO' if est['es_esbelta'] else ''}",
+                f"  Carga axial de servicio: propio={resultado['peso_lineal_kN_m']:.2f} + "
+                f"losa D={carga_losas['D_kN_m']:.2f} + L={carga_losas['L_kN_m']:.2f} "
+                f"= {axial_servicio:.2f} kN/m",
+                f"  Combinaciones gravitatorias: "
+                + ", ".join(f"{k}={v:.2f}" for k, v in combinaciones_axiales["combinaciones_kN_m"].items())
+                + f" kN/m; gobierna {combinaciones_axiales['combinacion_critica']} "
+                + f"→ Pu={combinaciones_axiales['Pu_kN_m']:.2f} kN/m",
                 f"  Compresión: φ·Pn = {comp['phi_Pn_kN']:.1f} kN "
-                f"(φ={comp['phi']:.2f}, {comp['rama']})",
+                f"(φ={comp['phi']:.2f}, {comp['rama']}) — "
+                f"{'PASA' if comp['pasa'] else 'NO PASA'}",
                 f"  Corte:      φ·Vn = {cort['phi_Vn_kN']:.1f} kN (φ={cort['phi']:.2f})",
+                (f"  Zapata corrida preliminar: B ≥ {zapata['ancho_minimo_m']:.2f} m, "
+                 f"q_adm={zapata['q_adm_kPa']:.1f} kPa, profundidad "
+                 f"{zapata['profundidad_m']} m. {zapata['pendiente']}"
+                 if zapata.get("ok") else f"  Zapata corrida: {zapata.get('pendiente')}"),
                 "  Recomendaciones:",
             ]
             lineas += [f"    · {r}" for r in est["recomendaciones"]]
         else:
+            capas_mamp = [c for c in capas if str(c.get("grupo", "")).lower() == "mamposteria"]
+            if capas_mamp:
+                portante = max(capas_mamp, key=lambda c: float(c.get("espesor_m", 0) or 0))
+                lineas += [
+                    "", f"Hoja considerada portante: {portante.get('clave')} "
+                    f"({float(portante.get('espesor_m', 0)):.3f} m).",
+                    "Revoques y aislaciones se consideran capas no portantes.",
+                ]
             lineas += [
                 "",
                 "Verificación estructural: " + str(est.get("pendiente", "no disponible.")),
             ]
+        self._ultimo["cargas_losas"] = carga_losas if "carga_losas" in locals() else None
+        self._ultimo["combinaciones_axiales"] = (
+            combinaciones_axiales if "combinaciones_axiales" in locals() else None
+        )
+        self._ultimo["diseno_estructural"] = est
+        self._ultimo["cimiento"] = (
+            muros.verificar_zapata_corrida(axial_servicio)
+            if "axial_servicio" in locals() else None
+        )
+        if 'carga_losas' in locals() and carga_losas.get("losas"):
+            lineas += ["", "Losas activas que descargan en este muro:"]
+            lineas += [f"  {l['nombre']}: D={l['D_kN_m']:.2f}, L={l['L_kN_m']:.2f} kN/m"
+                       for l in carga_losas["losas"]]
+        if 'carga_losas' in locals() and carga_losas.get("avisos"):
+            lineas += ["", "Avisos de reacciones de losas:"]
+            lineas += [f"  {aviso}" for aviso in carga_losas["avisos"]]
         self.resultado.setPlainText("\n".join(lineas))
 
     def datos_guardar(self) -> tuple[list[dict], float, float, dict]:
@@ -279,9 +323,8 @@ class PaginaMuros(QWidget):
             "Muros ESTRUCTURALES de esta obra (los creados sobre un pórtico en "
             "Inicio, estructura mixta). Los muros del catálogo de Cargas no son "
             "estructurales y no aparecen acá. Componé cada muro en capas para "
-            "calcular su peso propio; la resistencia térmica, el diseño "
-            "estructural y el cimiento se habilitan al cargar las "
-            "conductividades λ y la reglamentación de mampostería."
+            "calcular peso propio, reacciones de losas apoyadas, verificación axial "
+            "CIRSOC 501 y predimensionado inicial de zapata corrida."
         )
         self.intro.setWordWrap(True)
 
@@ -296,15 +339,28 @@ class PaginaMuros(QWidget):
         self.visor_muro.setMinimumHeight(300)
         self.visor_muro.setMinimumWidth(400)
 
-        self.tabla = QTableWidget(0, 5)
+        self.resumen_calculo = QTextEdit()
+        self.resumen_calculo.setReadOnly(True)
+        self.resumen_calculo.setMaximumHeight(155)
+        self.resumen_calculo.setPlaceholderText("Resumen guardado del cálculo del muro")
+
+        self.tabla = QTableWidget(0, 11)
         self.tabla.setHorizontalHeaderLabels((
-            "Muro", "Longitud (m)", "Espesor (m)", "Altura (m)", "Peso propio (kN/m)",
+            "Muro", "Longitud (m)", "Espesor (m)", "Altura (m)",
+            "Peso propio (kN/m)", "Composición", "U (W/m²·K)", "R (m²·K/W)",
+            "Compresión axial", "Zapata corrida sugerida", "Refuerzos / notas",
         ))
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabla.itemSelectionChanged.connect(self._actualizar_visor_muro)
+        self.tabla.setWordWrap(True)
+        self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.tabla.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.tabla.horizontalHeader().setSectionResizeMode(10, QHeaderView.ResizeMode.Stretch)
+        self.tabla.setColumnWidth(8, 165)
+        self.tabla.setColumnWidth(9, 210)
+        self.tabla.setColumnWidth(10, 270)
+        self.tabla.itemSelectionChanged.connect(self._seleccionar_muro_desde_tabla)
 
         self.boton_componer = QPushButton("Componer muro / calcular peso propio…")
         self.boton_componer.clicked.connect(self._componer)
@@ -325,6 +381,8 @@ class PaginaMuros(QWidget):
         caja.addWidget(self.intro)
         caja.addLayout(fila)
         caja.addWidget(self.visor_muro, 1)
+        caja.addWidget(QLabel("Resumen del último cálculo guardado:"))
+        caja.addWidget(self.resumen_calculo)
         caja.addWidget(self.tabla, 1)
         self.refrescar()
 
@@ -365,6 +423,7 @@ class PaginaMuros(QWidget):
         }
 
     def refrescar(self) -> None:
+        muro_activo_anterior = self.combo_muro_activo.currentText().strip()
         muros_est = self._muros_estructurales()
         self.tabla.setRowCount(len(muros_est))
         for fila, (nombre, datos) in enumerate(muros_est.items()):
@@ -380,25 +439,72 @@ class PaginaMuros(QWidget):
                     peso_lineal = peso_m2 * altura if altura else None
                 except ValueError:
                     peso_lineal = None
+            guardado = datos.get("resultado_calculo") or {}
+            termica = guardado.get("resistencia_termica") or {}
+            estructural = guardado.get("diseno_estructural") or {}
+            comp = estructural.get("compresion") or {}
+            if estructural.get("ok"):
+                demanda = comp.get("carga_axial_kN_m")
+                capacidad = comp.get("phi_Pn_kN")
+                estado = "PASA" if comp.get("pasa") else "NO PASA"
+                axial = f"{estado}\n{float(demanda or 0):.1f} / {float(capacidad or 0):.1f} kN/m"
+            else:
+                axial = "Sin verificar"
+            cimiento = guardado.get("cimiento") or {}
+            if cimiento.get("ok"):
+                base = (
+                    f"B ≥ {float(cimiento.get('ancho_minimo_m', 0)):.2f} m\n"
+                    f"qadm {float(cimiento.get('q_adm_kPa', 0)):.1f} kPa · "
+                    f"Df {cimiento.get('profundidad_m')} m"
+                )
+            else:
+                base = "Sin predimensionar"
+            capas_txt = "\n".join(
+                f"{c.get('clave', '?')} · {float(c.get('espesor_m', 0)) * 100:.1f} cm"
+                for c in capas
+            ) or "Sin composición"
+            recomendaciones = estructural.get("recomendaciones") or []
+            notas_refuerzo = (
+                "Orientaciones CIRSOC 501; detalle de armadura pendiente"
+                if recomendaciones else "Sin recomendación guardada"
+            )
             valores = (
-                nombre,
-                f"{longitud:.2f}",
-                f"{espesor:.3f}",
+                nombre, f"{longitud:.2f}", f"{espesor:.3f}",
                 f"{altura:.2f}" if altura else "—",
                 f"{peso_lineal:.3f}" if peso_lineal is not None else "—",
+                capas_txt,
+                f"{float(termica['U_W_m2K']):.3f}" if termica.get("U_W_m2K") is not None else "—",
+                f"{float(termica['R_total_m2K_W']):.3f}" if termica.get("R_total_m2K_W") is not None else "—",
+                axial, base, notas_refuerzo,
             )
             for col, valor in enumerate(valores):
-                self.tabla.setItem(fila, col, QTableWidgetItem(valor))
+                item = QTableWidgetItem(valor)
+                if col == 10 and recomendaciones:
+                    item.setToolTip("\n".join(recomendaciones))
+                elif col == 9 and cimiento.get("ok"):
+                    item.setToolTip(str(cimiento.get("pendiente", "")))
+                elif col == 8 and estructural.get("ok"):
+                    item.setToolTip(
+                        "Verificación por compresión axial solamente. No incluye "
+                        "viento/sismo ni excentricidad."
+                    )
+                elif col == 5:
+                    item.setToolTip(capas_txt)
+                self.tabla.setItem(fila, col, item)
         if not muros_est:
             self.tabla.setRowCount(1)
             self.tabla.setItem(
                 0, 0,
                 QTableWidgetItem("Todavía no hay muros estructurales en esta obra."),
             )
+        self.tabla.resizeRowsToContents()
         # Llenar combo de muro activo
         self.combo_muro_activo.blockSignals(True)
         self.combo_muro_activo.clear()
         self.combo_muro_activo.addItems(list(muros_est.keys()))
+        indice_activo = self.combo_muro_activo.findText(muro_activo_anterior)
+        if indice_activo >= 0:
+            self.combo_muro_activo.setCurrentIndex(indice_activo)
         self.combo_muro_activo.blockSignals(False)
         self._actualizar_visor_muro()
 
@@ -407,10 +513,23 @@ class PaginaMuros(QWidget):
         nombre = self.combo_muro_activo.currentText().strip()
         if not nombre:
             return
+        fila_activa = next(
+            (
+                fila for fila in range(self.tabla.rowCount())
+                if self.tabla.item(fila, 0)
+                and self.tabla.item(fila, 0).text() == nombre
+            ),
+            -1,
+        )
+        if fila_activa >= 0 and self.tabla.currentRow() != fila_activa:
+            self.tabla.blockSignals(True)
+            self.tabla.selectRow(fila_activa)
+            self.tabla.blockSignals(False)
         muros_est = self._muros_estructurales()
         datos = muros_est.get(nombre)
         if not datos:
             return
+        self.resumen_calculo.setPlainText(self._texto_resumen_calculo(nombre, datos))
 
         # Configurar el visor para el muro
         self.visor_muro.tipo = "muro"
@@ -426,6 +545,27 @@ class PaginaMuros(QWidget):
 
         # Cargar cargas aplicadas al muro desde cargas.json
         self.visor_muro.cargas = self._cargar_cargas_muro(nombre)
+        # Las reacciones de losas se transfieren por el vínculo geométrico
+        # apoya_en y no necesariamente tienen una aplicación manual asociada.
+        try:
+            reacciones = muros.cargas_losas_en_muro(nombre)
+            for indice, losa in enumerate(reacciones.get("losas", [])):
+                for tipo, campo in (("D", "D_kN_m"), ("L", "L_kN_m")):
+                    valor = float(losa.get(campo, 0.0))
+                    if valor <= 0:
+                        continue
+                    self.visor_muro.cargas.setdefault("MURO", []).append({
+                        "aplicacion_id": f"reaccion_losa_{indice}_{tipo}",
+                        "carga_id": f"reaccion_losa_{indice}_{tipo}",
+                        "nombre": f"{losa['nombre']} · reacción de losa",
+                        "x_inicio_m": 0.0,
+                        "x_fin_m": float(datos.get("longitud_m", 0.0)),
+                        "valor_kN_m": valor,
+                        "tipo": tipo,
+                        "cota_m": losa.get("cota_m"),
+                    })
+        except (FileNotFoundError, KeyError, ValueError):
+            pass
         self.visor_muro.capas_carga = max(
             (len({c.get("aplicacion_id", "") for c in cargas_tramo})
              for cargas_tramo in self.visor_muro.cargas.values()),
@@ -433,6 +573,68 @@ class PaginaMuros(QWidget):
         )
         self.visor_muro.setMinimumHeight(max(250, 190 + self.visor_muro.capas_carga * 24))
         self.visor_muro.update()
+
+    def _seleccionar_muro_desde_tabla(self) -> None:
+        fila = self.tabla.currentRow()
+        item = self.tabla.item(fila, 0) if fila >= 0 else None
+        if item is None:
+            return
+        indice = self.combo_muro_activo.findText(item.text())
+        if indice >= 0 and indice != self.combo_muro_activo.currentIndex():
+            self.combo_muro_activo.blockSignals(True)
+            self.combo_muro_activo.setCurrentIndex(indice)
+            self.combo_muro_activo.blockSignals(False)
+        self._actualizar_visor_muro()
+
+    @staticmethod
+    def _texto_resumen_calculo(nombre: str, datos: dict) -> str:
+        """Resume en la pestaña el último cálculo que se guardó con el muro."""
+        resultado = datos.get("resultado_calculo") or {}
+        if not resultado:
+            return (
+                f"{nombre}: todavía no hay un resultado guardado. "
+                "Abrí ‘Componer muro / calcular peso propio…’ y guardá la composición."
+            )
+        lineas = []
+        termica = resultado.get("resistencia_termica") or {}
+        if termica:
+            lineas.append(
+                f"Térmica: U = {float(termica.get('U_W_m2K', 0)):.3f} W/m²·K "
+                "(informativo; sin límite U para dictamen)."
+            )
+        losas = resultado.get("cargas_losas") or {}
+        lineas.append(
+            f"Cargas de losas: D = {float(losas.get('D_kN_m', 0)):.2f}, "
+            f"L = {float(losas.get('L_kN_m', 0)):.2f} kN/m."
+        )
+        estructural = resultado.get("diseno_estructural") or {}
+        if estructural.get("ok"):
+            comp = estructural.get("compresion", {})
+            combos = resultado.get("combinaciones_axiales") or {}
+            combo_txt = (
+                f"; gobierna {combos.get('combinacion_critica')} "
+                f"(Pu={float(combos.get('Pu_kN_m') or 0):.2f} kN/m)"
+                if combos else ""
+            )
+            lineas.append(
+                f"Estructural, compresión axial: {'PASA' if comp.get('pasa') else 'NO PASA'}; "
+                f"demanda {float(comp.get('carga_axial_kN_m') or 0):.2f} / "
+                f"capacidad φPn {float(comp.get('phi_Pn_kN') or 0):.2f} kN/m{combo_txt}. "
+                "No incluye viento/sismo ni excentricidad."
+            )
+        else:
+            lineas.append("Estructural: " + str(estructural.get("pendiente", "sin verificación disponible.")))
+        cimiento = resultado.get("cimiento") or {}
+        if cimiento.get("ok"):
+            lineas.append(
+                f"Zapata corrida preliminar: B ≥ {float(cimiento.get('ancho_minimo_m', 0)):.2f} m, "
+                f"q_adm = {float(cimiento.get('q_adm_kPa', 0)):.1f} kPa, "
+                f"profundidad {cimiento.get('profundidad_m')} m. "
+                "Faltan excentricidad, flexión, corte, asentamiento y acciones accidentales."
+            )
+        else:
+            lineas.append("Cimiento: " + str(cimiento.get("pendiente", "sin predimensionado guardado.")))
+        return "\n".join(lineas)
 
     def _cargar_cargas_muro(self, nombre_muro: str) -> dict:
         """Lee las cargas activas destinadas a un muro desde datos/cargas.json."""
@@ -484,6 +686,16 @@ class PaginaMuros(QWidget):
         except Exception:
             return 0.0
 
+    def _nombre_muro_a_componer(self, muros_est: dict[str, dict]) -> str | None:
+        fila = self.tabla.currentRow()
+        item_nombre = self.tabla.item(fila, 0) if fila >= 0 else None
+        nombre = (
+            item_nombre.text().strip()
+            if item_nombre is not None
+            else self.combo_muro_activo.currentText().strip()
+        )
+        return nombre if nombre in muros_est else None
+
     def _componer(self) -> None:
         muros_est = self._muros_estructurales()
         if not muros_est:
@@ -493,9 +705,13 @@ class PaginaMuros(QWidget):
                 "para poder calcularlo acá.",
             )
             return
-        nombre = self.tabla.currentItem().text() if self.tabla.currentItem() else None
-        if nombre not in muros_est:
-            nombre = next(iter(muros_est))
+        nombre = self._nombre_muro_a_componer(muros_est)
+        if nombre is None:
+            QMessageBox.information(
+                self, "Seleccioná un muro",
+                "Elegí un muro de la tabla o del selector de muro activo.",
+            )
+            return
         datos = muros_est[nombre]
         capas = datos.get("capas", []) or []
         # La altura sale de los niveles definidos en el editor de muros
@@ -520,6 +736,15 @@ class PaginaMuros(QWidget):
         muro["espesor_m"] = resultado.get("espesor_total_m", muro.get("espesor_m", 0.0))
         muro["peso_propio_kN_m2"] = resultado.get("peso_propio_kN_m2")
         muro["peso_lineal_kN_m"] = resultado.get("peso_lineal_kN_m")
+        # Guardar la memoria resumida junto con la composición en estructura.json
+        # para que el último resultado no dependa de mantener abierto el diálogo.
+        muro["resultado_calculo"] = {
+            "resistencia_termica": resultado.get("resistencia_termica"),
+            "cargas_losas": resultado.get("cargas_losas"),
+            "combinaciones_axiales": resultado.get("combinaciones_axiales"),
+            "diseno_estructural": resultado.get("diseno_estructural"),
+            "cimiento": resultado.get("cimiento"),
+        }
         # La longitud en planta se conserva (la define la estructura mixta).
         estructura[nombre] = muro
         try:
@@ -527,12 +752,18 @@ class PaginaMuros(QWidget):
         except OSError as exc:
             QMessageBox.critical(self, "No se pudo guardar", str(exc))
             return
+        indice_activo = self.combo_muro_activo.findText(nombre)
+        if indice_activo >= 0:
+            self.combo_muro_activo.setCurrentIndex(indice_activo)
         self.refrescar()
+        for fila in range(self.tabla.rowCount()):
+            item = self.tabla.item(fila, 0)
+            if item is not None and item.text() == nombre:
+                self.tabla.selectRow(fila)
+                break
         QMessageBox.information(
             self, "Muro actualizado",
             f"Se guardó la composición de «{nombre}». "
             f"Espesor {muro['espesor_m']:.3f} m · peso propio "
             f"{(muro.get('peso_propio_kN_m2') or 0):.3f} kN/m².",
         )
-
-

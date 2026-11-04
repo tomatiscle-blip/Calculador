@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen, QPolygonF
@@ -799,7 +800,9 @@ class VistaPortico(QWidget):
                 d = punto(x0 + offset, y1)
 
                 # dibujar rectángulo del muro (relleno suave + borde)
-                painter.setBrush(QColor("#0f766e"))
+                # El relleno semitransparente deja visibles las flechas de carga
+                # que se dibujan encima del paño.
+                painter.setBrush(QColor(15, 118, 110, 62))
                 painter.setPen(QPen(QColor("#0f766e"), 3))
                 painter.drawPolygon(QPolygonF([a, b, c, d]))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -1049,33 +1052,42 @@ class VistaPortico(QWidget):
         if longitud <= 0:
             return
 
-        # Escala vertical: dibujar las cargas en la parte superior del muro
+        # La carga de losa se representa en su nivel de apoyo; las cargas sin
+        # cota explícita conservan la representación superior histórica.
         altura_pantalla = abs(punto_fn(x0, y1).y() - punto_fn(x0, y0).y())
         if altura_pantalla <= 0:
             return
 
         for tramo_id, cargas_tramo in self.cargas.items():
-            for carga in cargas_tramo:
+            cantidad = len(cargas_tramo)
+            for indice_carga, carga in enumerate(cargas_tramo):
                 cx0 = float(carga.get("x_inicio_m", 0.0))
                 cx1 = float(carga.get("x_fin_m", longitud))
                 valor = float(carga.get("valor_kN_m", 0.0))
                 tipo = str(carga.get("tipo", "D"))
+                cota_carga = carga.get("cota_m")
+                cota_carga = y1 if cota_carga is None else float(cota_carga)
                 # Clamp al rango del muro
                 cx0 = max(0.0, min(cx0, longitud))
                 cx1 = max(0.0, min(cx1, longitud))
                 if cx1 <= cx0:
                     continue
                 # Convertir coordenadas del muro a pantalla
-                p_inicio = punto_fn(x0 + cx0, y1)
-                p_fin = punto_fn(x0 + cx1, y1)
+                p_inicio = punto_fn(x0 + cx0, cota_carga)
+                p_fin = punto_fn(x0 + cx1, cota_carga)
                 # Flecha hacia abajo (carga vertical): en coordenadas de pantalla
                 # de Qt, y crece hacia abajo, así que y_flecha debe ser mayor.
-                y_flecha = p_inicio.y() + 12
-                painter.setPen(QPen(QColor("#b91c1c"), 2))
+                # Separar verticalmente los aportes D/L del mismo tramo para
+                # que etiquetas y flechas no queden dibujadas una sobre otra.
+                y_flecha = p_inicio.y() + 12 + indice_carga * 22
+                color_carga = {"D": QColor("#b91c1c"), "L": QColor("#2563eb")}.get(
+                    tipo, QColor("#d97706")
+                )
+                painter.setPen(QPen(color_carga, 2))
                 painter.drawLine(QPointF((p_inicio.x() + p_fin.x()) / 2, p_inicio.y()),
                                  QPointF((p_inicio.x() + p_fin.x()) / 2, y_flecha))
                 # Punta de flecha: apunta hacia abajo (y_flecha es la punta más abajo).
-                painter.setBrush(QColor("#b91c1c"))
+                painter.setBrush(color_carga)
                 painter.drawPolygon(QPolygonF([
                     QPointF((p_inicio.x() + p_fin.x()) / 2, y_flecha),
                     QPointF((p_inicio.x() + p_fin.x()) / 2 - 4, y_flecha - 6),
@@ -1085,7 +1097,7 @@ class VistaPortico(QWidget):
                 etiqueta = f"{valor:.2f} kN/m ({tipo})"
                 ancho_txt = painter.fontMetrics().horizontalAdvance(etiqueta)
                 x_txt = (p_inicio.x() + p_fin.x()) / 2 - ancho_txt / 2
-                painter.setPen(QColor("#b91c1c"))
+                painter.setPen(color_carga)
                 painter.drawText(QPointF(x_txt, y_flecha + 14), etiqueta)
 
 # ---------------------------------------------------------------------------
@@ -1143,6 +1155,7 @@ class VistaPlantaPorticos(QWidget):
         self.viento_lineal_kN_m: float = 0.0
         self.ancho_viento_m: float = 0.0
         self.viento_configurado = False
+        self._cache_resultados_bases: dict[str, tuple[tuple[int, int] | None, object]] = {}
 
     # ------------------------------------------------------------------
     # Vista: zoom, paneo y reencuadre
@@ -1193,6 +1206,25 @@ class VistaPlantaPorticos(QWidget):
         self.niveles = niveles or []
         self.estructura = estructura or {}
         self.update()
+
+    def _leer_resultado_bases(self, ruta, por_defecto):
+        camino = Path(ruta)
+        try:
+            stat = camino.stat()
+            firma = (stat.st_mtime_ns, stat.st_size)
+        except FileNotFoundError:
+            firma = None
+        except OSError:
+            return rutas.leer_json(camino, por_defecto)
+
+        clave = str(camino)
+        cache = self._cache_resultados_bases.get(clave)
+        if cache is not None and cache[0] == firma:
+            return cache[1]
+
+        resultado = rutas.leer_json(camino, por_defecto)
+        self._cache_resultados_bases[clave] = (firma, resultado)
+        return resultado
 
     def set_losas(self, elementos_carga):
         """Recibe los elementos de cargas.json; filtra los tipo losa/cubierta."""
@@ -1602,15 +1634,7 @@ class VistaPlantaPorticos(QWidget):
             painter.restore()
 
     def _apoyo_losa(self, datos_losa, panel, rect, lado):
-        """Punto de planta (x, y) y texto de un apoyo de losa (izq/der).
-
-        La losa tiene dos bordes de apoyo, dados por la dirección de la luz:
-        con luz en X los apoyos están sobre los bordes X del paño y con luz en
-        Y sobre los bordes Y. El punto devuelto está en el medio del borde, que
-        es donde se apoya la losa. Se devuelve ``None`` si el apoyo no está
-        declarado o si no se puede verificar (pórtico inexistente, viga que no
-        cubre el borde, muro sin posición).
-        """
+        """Punto medio y texto de un borde apoyado, si se puede verificar."""
         apoyos = datos_losa.get("apoya_en") or {}
         destino = apoyos.get(lado) or {}
         if not isinstance(destino, dict) or not destino:
@@ -1619,14 +1643,20 @@ class VistaPlantaPorticos(QWidget):
         direccion = str((panel.get("direccion_luz", "x"))).lower()
         if direccion not in ("x", "y"):
             direccion = "x"
-        centro_x, centro_y = (x0 + x1) / 2, (y0 + y1) / 2
-        if direccion == "x":
+        if lado in ("izq", "der"):
             borde = x0 if lado == "izq" else x1
-            punto = (borde, centro_y)
+            eje_borde, coordenada_borde = "x", borde
+            inicio_borde, fin_borde = y0, y1
+            punto = (borde, (y0 + y1) / 2)
+        elif lado in ("inf", "sup"):
+            borde = y0 if lado == "inf" else y1
+            eje_borde, coordenada_borde = "y", borde
+            inicio_borde, fin_borde = x0, x1
+            punto = ((x0 + x1) / 2, borde)
         else:
-            borde = y0 if lado == "izq" else y1
-            punto = (centro_x, borde)
+            return None
 
+        direccion_borde = "y" if eje_borde == "x" else "x"
         tipo = str(destino.get("tipo", "")).lower()
         if tipo == "muro":
             nombre_m = str(destino.get("nombre", ""))
@@ -1636,19 +1666,15 @@ class VistaPlantaPorticos(QWidget):
             geom = self._geometria(datos_m)
             if geom is None:
                 return None
-            # El muro debe contener el borde del paño (dentro de tolerancia).
             x_ini = self._numero(datos_m.get("x_inicio"))
             x_fin = self._numero(datos_m.get("x_fin"))
             if x_ini is None or x_fin is None:
                 return None
-            muro_direccion, muro_posicion, _ = geom
-            if muro_direccion == "x":
-                if not (min(x_ini, x_fin) - 0.5 <= borde <= max(x_ini, x_fin) + 0.5):
-                    return None
-                return muro_posicion, punto[1], nombre_m
-            if not (min(x_ini, x_fin) - 0.5 <= borde <= max(x_ini, x_fin) + 0.5):
+            if geom[0] != direccion_borde or abs(geom[1] - coordenada_borde) > 0.5:
                 return None
-            return punto[0], muro_posicion, nombre_m
+            if min(x_ini, x_fin) > inicio_borde + 0.5 or max(x_ini, x_fin) < fin_borde - 0.5:
+                return None
+            return punto[0], punto[1], nombre_m
         if tipo == "portico":
             nombre_p = str(destino.get("portico", ""))
             viga_id = str(destino.get("viga", ""))
@@ -1661,12 +1687,11 @@ class VistaPlantaPorticos(QWidget):
             geom = self._geometria(datos_p)
             if geom is None:
                 return None
-            # La viga de apoyo corre perpendicular a la luz de la losa.
-            esperado = "y" if direccion == "x" else "x"
-            if geom[0] != esperado:
+            if geom[0] != direccion_borde or abs(geom[1] - coordenada_borde) > 0.5:
                 return None
-            # La viga debe tener un tramo que cubra el borde del paño.
-            cubre = False
+            inicio_local = inicio_borde - geom[2]
+            fin_local = fin_borde - geom[2]
+            intervalos = []
             for tramo in (viga.get("tramos") or []):
                 if not isinstance(tramo, dict):
                     continue
@@ -1674,10 +1699,16 @@ class VistaPlantaPorticos(QWidget):
                 b = self._numero(tramo.get("x_fin"))
                 if a is None or b is None:
                     continue
-                if min(a, b) - 0.5 <= borde <= max(a, b) + 0.5:
-                    cubre = True
+                intervalos.append((min(a, b), max(a, b)))
+            cursor = inicio_local
+            for inicio_tramo, fin_tramo in sorted(intervalos):
+                if inicio_tramo > cursor + 0.5:
                     break
-            if not cubre:
+                if fin_tramo >= cursor - 0.5:
+                    cursor = max(cursor, fin_tramo)
+                if cursor >= fin_local - 0.5:
+                    break
+            if cursor < fin_local - 0.5:
                 return None
             texto = f"{nombre_p} · {viga_id}" if viga_id else nombre_p
             return punto[0], punto[1], texto
@@ -1707,7 +1738,7 @@ class VistaPlantaPorticos(QWidget):
         bases_globales: dict[tuple[float, float], list[dict]] = {}
         dimensiones_bases: dict[str, tuple[float, float]] = {}
         try:
-            resultados_bases = rutas.leer_json(
+            resultados_bases = self._leer_resultado_bases(
                 rutas.SAL_BASES / "resultados_bases_globales.json", []
             ) or []
             for resultado_base in resultados_bases:
@@ -1754,6 +1785,8 @@ class VistaPlantaPorticos(QWidget):
                 continue
             es_muro = str(datos.get("tipo", "")).lower() == "muro"
             referencia = datos.get("referencia_planta") or {}
+            if nombre in ("columnas", "bases") and not referencia:
+                continue
             # estructura.json también contiene catálogos globales llamados
             # "columnas" y "bases". No son elementos de planta; si se tratan
             # como pórticos sin geometría aparecen rotulados sobre el origen.
@@ -1767,6 +1800,7 @@ class VistaPlantaPorticos(QWidget):
             if geom is None:
                 continue
             direccion, posicion, _ = geom
+            ref = datos.get("referencia_planta", {}) or {}
 
             if es_muro:
                 # ---------------- muros ----------------
@@ -1844,16 +1878,68 @@ class VistaPlantaPorticos(QWidget):
             # el catálogo global de la estructura.
             if isinstance(columnas_datos, (list, tuple)):
                 cat_col = self.estructura.get("columnas", {}) if isinstance(self.estructura, dict) else {}
-                columnas_datos = {
-                    gid: (cat_col.get(gid, {}) if isinstance(cat_col, dict) else {})
-                    for gid in columnas_datos
-                }
+                columnas_resueltas = {}
+                origen = self._numero(
+                    ref.get("origen_longitudinal_m")
+                )
+                if origen is None:
+                    eje_origen = self._buscar_eje(
+                        self.ejes, direccion, ref.get("eje_longitudinal_id")
+                    )
+                    origen = (
+                        self._numero(eje_origen.get("coordenada_m"))
+                        if eje_origen is not None else 0.0
+                    )
+                desfase = self._numero(ref.get("desfase_longitudinal_m")) or 0.0
+                for gid in columnas_datos:
+                    columna = cat_col.get(gid, {}) if isinstance(cat_col, dict) else {}
+                    if not isinstance(columna, dict):
+                        continue
+                    columna = dict(columna)
+                    coordenada_global = self._numero(
+                        columna.get("X" if direccion == "x" else "Y")
+                    )
+                    if coordenada_global is not None:
+                        columna["x"] = coordenada_global - origen - desfase
+                    columnas_resueltas[gid] = columna
+                columnas_datos = columnas_resueltas
             if isinstance(bases_datos, (list, tuple)):
                 cat_base = self.estructura.get("bases", {}) if isinstance(self.estructura, dict) else {}
                 bases_datos = {
                     bid: (cat_base.get(bid, {}) if isinstance(cat_base, dict) else {})
                     for bid in bases_datos
                 }
+            bases_sin_dimension = [
+                str(bid) for bid in bases_datos
+                if str(bid) not in dimensiones_bases
+            ]
+            if bases_sin_dimension:
+                resultados_portico = self._leer_resultado_bases(
+                    rutas.SAL_BASES
+                    / f"bases_{rutas.nombre_seguro(nombre)}.json",
+                    {},
+                ) or {}
+                if isinstance(resultados_portico, dict):
+                    for bid in bases_sin_dimension:
+                        resultado = resultados_portico.get(bid)
+                        if not isinstance(resultado, dict):
+                            continue
+                        geotecnia = resultado.get("geotecnia", {})
+                        if not isinstance(geotecnia, dict):
+                            geotecnia = {}
+                        lado_x = self._numero(
+                            geotecnia.get("Bx_m", resultado.get("Bx"))
+                        )
+                        lado_y = self._numero(
+                            geotecnia.get("By_m", resultado.get("By"))
+                        )
+                        lado = self._numero(geotecnia.get("lado_m"))
+                        if lado_x is None:
+                            lado_x = lado
+                        if lado_y is None:
+                            lado_y = lado
+                        if lado_x and lado_y and lado_x > 0 and lado_y > 0:
+                            dimensiones_bases[bid] = (lado_x, lado_y)
             eje_nombre = _nombre_eje_aplicacion(datos, direccion)
             # Nombre del eje longitudinal inicial (X1, Y2...): dice desde
             # dónde se miden las x locales de columnas/vigas.
@@ -2017,7 +2103,7 @@ class VistaPlantaPorticos(QWidget):
                 x=eje_p0[0] + 0.35 * (eje_p1[0] - eje_p0[0]),
                 y=eje_p0[1] + 0.35 * (eje_p1[1] - eje_p0[1]),
                 texto=f"{nombre} - sobre {eje_nombre}" if eje_nombre else str(nombre),
-                direccion=direccion,
+                direccion="x",
                 color="#1d4ed8" if str(nombre) == str(self.portico_activo) else "#475569",
                 prioridad=0,
                 desplazamiento=14.0,
@@ -2228,18 +2314,26 @@ class VistaPlantaPorticos(QWidget):
             losas.append((str(nombre), rect, tipo_losa))
             # Nombre de la losa al centro del paño, con tipo y apoyos.
             apoyos_txt = []
-            for lado in ("izq", "der"):
+            for lado in ("izq", "der", "inf", "sup"):
                 apoyo = self._apoyo_losa(datos, panel_datos, rect, lado)
                 if apoyo is None:
                     continue
                 ax, ay, texto = apoyo
                 apoyos_txt.append(texto)
+                if lado in ("izq", "der"):
+                    eje_borde = "x"
+                    coordenada_borde = x0 if lado == "izq" else x1
+                else:
+                    eje_borde = "y"
+                    coordenada_borde = y0 if lado == "inf" else y1
                 apoyos_losa.append({
                     "x": ax,
                     "y": ay,
                     "texto": texto,
                     "lado": lado,
                     "direccion_luz": direccion_luz,
+                    "eje_borde": eje_borde,
+                    "coordenada_borde": coordenada_borde,
                     "rect": rect,
                 })
             detalle_apoyos = (
@@ -2424,6 +2518,7 @@ class VistaPlantaPorticos(QWidget):
         color_por_tipo = {
             "alivianada": QColor("#059669"),
             "maciza": QColor("#0f766e"),
+            "maciza_cruzada": QColor("#0d9488"),
             "casetonada": QColor("#0891b2"),
             "cruzada": QColor("#0d9488"),
         }
@@ -2471,7 +2566,8 @@ class VistaPlantaPorticos(QWidget):
             punt = 4
             painter.setPen(QPen(QColor("#047857"), 1.5))
             painter.setBrush(QColor("#047857"))
-            if direccion_luz == "x":
+            cruzada = tipo_losa in ("maciza_cruzada", "cruzada")
+            if direccion_luz == "x" or cruzada:
                 # Flecha horizontal doble (carga en sentido X)
                 painter.drawLine(QPointF(cx - largo, cy), QPointF(cx + largo, cy))
                 painter.drawPolygon(QPolygonF([
@@ -2484,7 +2580,7 @@ class VistaPlantaPorticos(QWidget):
                     QPointF(cx + largo - punt, cy - punt / 2),
                     QPointF(cx + largo - punt, cy + punt / 2),
                 ]))
-            else:
+            if direccion_luz == "y" or cruzada:
                 # Flecha vertical doble (carga en sentido Y)
                 painter.drawLine(QPointF(cx, cy - largo), QPointF(cx, cy + largo))
                 painter.drawPolygon(QPolygonF([
@@ -2502,29 +2598,35 @@ class VistaPlantaPorticos(QWidget):
         painter.setPen(QPen(QColor("#475569"), 1.0))
         for apoyo in escena.get("apoyos_losa", []):
             x0, y0, x1, y1 = apoyo["rect"]
-            direccion = apoyo["direccion_luz"]
-            lado = apoyo["lado"]
-            if direccion == "x":
-                borde_x = x0 if lado == "izq" else x1
+            eje_borde = apoyo["eje_borde"]
+            coordenada_borde = apoyo["coordenada_borde"]
+            if eje_borde == "x":
                 profundidad = min(0.18, (x1 - x0) * 0.15)
-                interior_x = x0 + profundidad if lado == "izq" else x1 - profundidad
+                interior_x = (
+                    x0 + profundidad
+                    if coordenada_borde <= (x0 + x1) / 2
+                    else x1 - profundidad
+                )
                 arriba, abajo = py(y1) + 4.0, py(y0) - 4.0
                 y_pixel = arriba
                 while y_pixel <= abajo:
                     painter.drawLine(
-                        QPointF(px(borde_x), y_pixel),
+                        QPointF(px(coordenada_borde), y_pixel),
                         QPointF(px(interior_x), y_pixel - 5.0),
                     )
                     y_pixel += 12.0
             else:
-                borde_y = y0 if lado == "izq" else y1
                 profundidad = min(0.18, (y1 - y0) * 0.15)
-                interior_y = y0 + profundidad if lado == "izq" else y1 - profundidad
+                interior_y = (
+                    y0 + profundidad
+                    if coordenada_borde <= (y0 + y1) / 2
+                    else y1 - profundidad
+                )
                 izquierda, derecha = px(x0) + 4.0, px(x1) - 4.0
                 x_pixel = izquierda
                 while x_pixel <= derecha:
                     painter.drawLine(
-                        QPointF(x_pixel, py(borde_y)),
+                        QPointF(x_pixel, py(coordenada_borde)),
                         QPointF(x_pixel + 5.0, py(interior_y)),
                     )
                     x_pixel += 12.0
@@ -2817,11 +2919,3 @@ class VistaPlantaPorticos(QWidget):
         else:
             self.zoom_factor = max(self.zoom_factor / 1.15, 0.25)
         self.update()
-
-
-
-
-
-
-
-

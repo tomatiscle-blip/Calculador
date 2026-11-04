@@ -1251,7 +1251,13 @@ class VentanaPrincipal(QMainWindow):
             "Capas del informe, una por línea (descripción; espesor m; γ kN/m³)."
         )
         self.txt_perfil_suelo.setMaximumHeight(100)
+        self.selector_terreno_anterior = QComboBox()
+        self.selector_terreno_anterior.addItem("Elegir obra anterior…", None)
+        self.selector_terreno_anterior.currentIndexChanged.connect(
+            self._aplicar_terreno_anterior
+        )
 
+        form.addRow("Copiar datos desde una obra anterior:", self.selector_terreno_anterior)
         form.addRow("Profundidad activa · bases aisladas de pórticos:", self.spin_profundidad_fundacion)
         form.addRow("q_adm activa · bases aisladas de pórticos [kPa]:", self.txt_q_adm)
         form.addRow("Informe / fuente geotécnica:", self.txt_fuente_terreno)
@@ -1261,7 +1267,9 @@ class VentanaPrincipal(QMainWindow):
         caja.addWidget(QLabel(
             "La tabla inferior transcribe las recomendaciones del informe por tipo de fundación y profundidad. "
             "El cálculo actual de bases de pórticos usa únicamente la profundidad y q_adm activas; "
-            "el balasto, la napa y el perfil son referencias y no intervienen todavía."
+            "el balasto, la napa y el perfil son referencias y no intervienen todavía. "
+            "Al elegir una obra anterior se copian sus datos a estos campos: podés editarlos y "
+            "solo se guardan en la obra actual al presionar Guardar."
         ))
 
         grupo_recomendaciones = QGroupBox("Recomendaciones precargadas del informe geotécnico")
@@ -1299,8 +1307,77 @@ class VentanaPrincipal(QMainWindow):
         caja.addWidget(grupo)
         caja.addWidget(btn)
         caja.addStretch(1)
+        self._actualizar_selector_terreno()
         self._cargar_terreno()
         return pagina
+
+    def _actualizar_selector_terreno(self) -> None:
+        selector = getattr(self, "selector_terreno_anterior", None)
+        if selector is None:
+            return
+        seleccion_previa = selector.currentData()
+        obra_actual = rutas.CARPETA_OBRA
+        selector.blockSignals(True)
+        selector.clear()
+        selector.addItem("Elegir obra anterior…", None)
+        for carpeta in rutas.listar_obras():
+            if obra_actual is not None and carpeta.resolve() == obra_actual.resolve():
+                continue
+            archivo = carpeta / "datos" / "terreno.json"
+            if not archivo.is_file():
+                continue
+            datos = rutas.leer_json(archivo, {}) or {}
+            if not isinstance(datos, dict) or not any(
+                datos.get(clave) not in (None, "")
+                for clave in (
+                    "profundidad_fundacion_m", "q_adm_kPa", "perfil_suelo",
+                    "recomendaciones_fundacion",
+                )
+            ):
+                continue
+            q_adm = datos.get("q_adm_kPa")
+            etiqueta = carpeta.name
+            if q_adm not in (None, ""):
+                etiqueta += f" · q_adm {q_adm} kPa"
+            selector.addItem(etiqueta, str(archivo))
+        indice = selector.findData(seleccion_previa)
+        selector.setCurrentIndex(indice if indice >= 0 else 0)
+        selector.blockSignals(False)
+
+    def _aplicar_terreno_anterior(self, indice: int) -> None:
+        selector = getattr(self, "selector_terreno_anterior", None)
+        archivo = selector.itemData(indice) if selector is not None and indice >= 0 else None
+        if not archivo:
+            return
+        datos = rutas.leer_json(Path(archivo), {}) or {}
+        if not isinstance(datos, dict):
+            QMessageBox.warning(
+                self, "Datos de terreno", "El archivo de terreno seleccionado no es válido."
+            )
+            return
+        profundidad = datos.get("profundidad_fundacion_m")
+        if profundidad not in (None, ""):
+            try:
+                self.spin_profundidad_fundacion.setValue(float(profundidad))
+            except (TypeError, ValueError):
+                QMessageBox.warning(
+                    self, "Datos de terreno",
+                    "La profundidad de fundación del archivo seleccionado no es numérica.",
+                )
+                return
+        q_adm = datos.get("q_adm_kPa")
+        self.txt_q_adm.setText("" if q_adm in (None, "") else str(q_adm))
+        self.txt_fuente_terreno.setText(str(datos.get("fuente_geotecnica", "")))
+        napa = datos.get("nivel_freatico_m")
+        balasto = datos.get("modulo_balasto_kN_m3")
+        self.txt_napa.setText("" if napa in (None, "") else str(napa))
+        self.txt_balasto.setText("" if balasto in (None, "") else str(balasto))
+        self.txt_perfil_suelo.setPlainText(str(datos.get("perfil_suelo", "")))
+        self.recomendaciones_terreno = [
+            dict(item) for item in (datos.get("recomendaciones_fundacion", []) or [])
+            if isinstance(item, dict)
+        ]
+        self._mostrar_recomendaciones_terreno(self.recomendaciones_terreno)
 
     def _cargar_terreno(self) -> None:
         datos = rutas.leer_json(rutas.TERRENO, {}) or {}
@@ -1313,7 +1390,13 @@ class VentanaPrincipal(QMainWindow):
         self.txt_napa.setText("" if nivel_freatico in (None, "") else str(nivel_freatico))
         self.txt_balasto.setText("" if balasto in (None, "") else str(balasto))
         self.txt_perfil_suelo.setPlainText(str(datos.get("perfil_suelo", "")))
-        recomendaciones = datos.get("recomendaciones_fundacion", []) or []
+        self.recomendaciones_terreno = [
+            dict(item) for item in (datos.get("recomendaciones_fundacion", []) or [])
+            if isinstance(item, dict)
+        ]
+        self._mostrar_recomendaciones_terreno(self.recomendaciones_terreno)
+
+    def _mostrar_recomendaciones_terreno(self, recomendaciones: list[dict]) -> None:
         tabla = getattr(self, "tabla_recomendaciones_terreno", None)
         if tabla is not None:
             tabla.setRowCount(len(recomendaciones))
@@ -1368,6 +1451,7 @@ class VentanaPrincipal(QMainWindow):
             "nivel_freatico_m": napa,
             "modulo_balasto_kN_m3": balasto,
             "perfil_suelo": self.txt_perfil_suelo.toPlainText().strip(),
+            "recomendaciones_fundacion": self.recomendaciones_terreno,
         })
         rutas.guardar_json(rutas.TERRENO, datos)
         QMessageBox.information(self, "Terreno", "Datos de terreno guardados en esta obra.")
@@ -1757,6 +1841,9 @@ class VentanaPrincipal(QMainWindow):
         # pórtico/muro, la planta tiene que mostrar el estado real y no la
         # copia que quedó en memoria.
         self.estructura = rutas.cargar_estructura()
+        if hasattr(self, "selector_terreno_anterior"):
+            self._actualizar_selector_terreno()
+            self._cargar_terreno()
         self.vista_planta.set_datos(self.ejes, self.niveles, self.estructura)
         # Datos de viento para dibujar la flecha direccional en la planta
         try:
@@ -2859,31 +2946,77 @@ class VentanaPrincipal(QMainWindow):
     def _mostrar_diagrama_momentos(self) -> None:
         portico = self._portico()
         _, datos, _ = datos_solicitaciones(portico)
-        diagrama = (datos or {}).get("diagrama_momentos")
-        if not diagrama or not diagrama.get("barras"):
+        diagramas = (datos or {}).get("diagramas_momentos") or {}
+        if not diagramas:
+            diagrama_guardado = (datos or {}).get("diagrama_momentos")
+            if diagrama_guardado and diagrama_guardado.get("barras"):
+                diagramas = {
+                    diagrama_guardado.get("combinacion", "Combinación gobernante"):
+                    diagrama_guardado
+                }
+        if not diagramas:
             self._aviso(
                 "Sin diagrama de momentos",
                 "Recalculá las solicitaciones para generar los diagramas de momento.",
             )
             return
+        diagrama_gobernante = (datos or {}).get("diagrama_momentos") or {}
+        combinacion_gobernante = diagrama_gobernante.get("combinacion")
+        combinaciones_disponibles = [
+            nombre for nombre in (datos or {}).get("combinaciones", [])
+            if nombre in diagramas
+        ]
+        if not combinaciones_disponibles:
+            combinaciones_disponibles = list(diagramas)
         estado = pipeline.estado_etapa("portico", portico)
         dialogo = QDialog(self)
         dialogo.setWindowTitle(f"Diagrama de momentos — {portico}")
         dialogo.resize(980, 660)
         caja = QVBoxLayout(dialogo)
+        selector_combinacion = QComboBox()
+        for nombre_combinacion in combinaciones_disponibles:
+            selector_combinacion.addItem(nombre_combinacion, nombre_combinacion)
+        if combinacion_gobernante in combinaciones_disponibles:
+            selector_combinacion.setCurrentIndex(
+                combinaciones_disponibles.index(combinacion_gobernante)
+            )
+        if len(combinaciones_disponibles) == 1 and len((datos or {}).get("combinaciones", [])) > 1:
+            selector_combinacion.setToolTip(
+                "Este resultado solo contiene el diagrama gobernante. "
+                "Recalculá las solicitaciones para guardar todas las combinaciones."
+            )
         referencia_apoyos = (
             "â–² Apoyo articulado · rayado: empotramiento."
-            if diagrama.get("apoyos")
+            if diagramas[combinaciones_disponibles[0]].get("apoyos")
             else "Recalculá las solicitaciones para mostrar los apoyos."
         )
-        detalle = QLabel(
-            f"Combinación más solicitante: {diagrama['combinacion']}. "
-            "Hacé clic en una curva para consultar su valor."
-            f"\n{referencia_apoyos} "
-            "Escala normalizada; el signo mostrado se invierte respecto de Pynite."
-        )
+        detalle = QLabel("")
+
+        def actualizar_detalle() -> None:
+            seleccionada = selector_combinacion.currentData()
+            gobernante = (
+                f" Combinación de mayor momento global: {combinacion_gobernante}."
+                if combinacion_gobernante
+                else ""
+            )
+            detalle.setText(
+                f"Combinación mostrada: {seleccionada}."
+                f"{gobernante} "
+                "Hacé clic en una curva para consultar su valor."
+                f"\n{referencia_apoyos} "
+                "Escala normalizada; el signo mostrado se invierte respecto de Pynite."
+            )
+
         detalle.setWordWrap(True)
+        caja.addWidget(selector_combinacion)
         caja.addWidget(detalle)
+        if len(combinaciones_disponibles) == 1 and len((datos or {}).get("combinaciones", [])) > 1:
+            aviso_combinaciones = QLabel(
+                "Este archivo se generó antes de guardar diagramas por combinación. "
+                "Recalculá las solicitaciones para poder elegir entre todas."
+            )
+            aviso_combinaciones.setWordWrap(True)
+            caja.addWidget(aviso_combinaciones)
         if estado["estado"] != "ok":
             aviso = QLabel(
                 "El resultado guardado puede estar desactualizado respecto de la geometría o las cargas."
@@ -2891,11 +3024,21 @@ class VentanaPrincipal(QMainWindow):
             aviso.setWordWrap(True)
             caja.addWidget(aviso)
         vista = VistaDiagramaMomentos()
-        vista.establecer_diagrama(diagrama)
+        vista.establecer_diagrama(diagramas[selector_combinacion.currentData()])
+        selector_combinacion.currentIndexChanged.connect(
+            lambda _indice: (
+                vista.establecer_diagrama(
+                    diagramas[selector_combinacion.currentData()]
+                ),
+                actualizar_detalle(),
+            )
+        )
+        actualizar_detalle()
         selector = QComboBox()
         selector.addItem("Momento", "momento")
         selector.addItem("Corte", "corte")
-        hay_corte = all(barra.get("V_kN") for barra in diagrama["barras"])
+        diagrama_actual = diagramas[selector_combinacion.currentData()]
+        hay_corte = all(barra.get("V_kN") for barra in diagrama_actual["barras"])
         if not hay_corte:
             selector.setItemData(
                 1,

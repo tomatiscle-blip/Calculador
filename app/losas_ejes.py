@@ -23,7 +23,7 @@ from app.ejes import VistaPlantaPorticos
 
 
 class VistaPanelLosa(QWidget):
-    """Vista de planta para elegir cuatro ejes y revisar apoyos unidireccionales."""
+    """Vista de planta para elegir cuatro ejes y revisar los apoyos del paño."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -387,11 +387,22 @@ class EditorLosaDesdeEjes(QDialog):
         self.nombre.setPlaceholderText("Nombre del paño")
         self.tipologia = QComboBox()
         self.tipologia.addItem("Alivianada unidireccional", "alivianada")
-        self.tipologia.addItem("Maciza", "maciza")
-        self.tipologia.addItem("Casetonada (cálculo pendiente)", "casetonada")
+        self.tipologia.addItem("Maciza unidireccional", "maciza")
+        self.tipologia.addItem("Maciza cruzada", "maciza_cruzada")
+        self.tipologia.addItem("Casetonada ortótropa", "casetonada")
         tipo_actual = str(self.elemento.get("tipologia", "alivianada"))
+        panel_previo = self.elemento.get("panel_ejes") or {}
         indice_tipo = self.tipologia.findData(tipo_actual)
         self.tipologia.setCurrentIndex(max(indice_tipo, 0))
+        tipo_base_previo = str(
+            panel_previo.get("tipologia_base_automatica", self.tipologia.currentData())
+        )
+        self._tipologia_base = (
+            tipo_base_previo
+            if self.tipologia.findData(tipo_base_previo) >= 0
+            else str(self.tipologia.currentData())
+        )
+        self._actualizando_tipologia = False
         self.direccion_luz = QComboBox()
         self.direccion_luz.addItem("Luz en X Â· apoyos en ejes X", "x")
         self.direccion_luz.addItem("Luz en Y Â· apoyos en ejes Y", "y")
@@ -412,13 +423,24 @@ class EditorLosaDesdeEjes(QDialog):
 
         self.desfase_inicio = self._spin()
         self.desfase_fin = self._spin()
-        panel_previo = self.elemento.get("panel_ejes") or {}
         self.desfase_inicio.setValue(float(panel_previo.get("desfase_inicio_m", 0.0)))
         self.desfase_fin.setValue(float(panel_previo.get("desfase_fin_m", 0.0)))
         self.selector_vigas = {
             "izq": QComboBox(),
             "der": QComboBox(),
+            "inf": QComboBox(),
+            "sup": QComboBox(),
         }
+        self._apoyos_previos = {}
+        for lado, apoyo in (self.elemento.get("apoya_en", {}) or {}).items():
+            if not isinstance(apoyo, dict):
+                continue
+            if apoyo.get("tipo") == "portico":
+                self._apoyos_previos[lado] = (
+                    f"portico:{apoyo.get('portico', '')}:{apoyo.get('viga', '')}"
+                )
+            elif apoyo.get("tipo") == "muro":
+                self._apoyos_previos[lado] = f"muro:{apoyo.get('nombre', '')}"
         self.etiqueta_apoyos = QLabel()
         self.etiqueta_apoyos.setWordWrap(True)
         self.estado = QLabel()
@@ -441,11 +463,19 @@ class EditorLosaDesdeEjes(QDialog):
         self.formulario.addRow("Nivel de las vigas de apoyo:", self.nivel_apoyo)
         self.formulario.addRow("Apoyo en el primer borde:", self.selector_vigas["izq"])
         self.formulario.addRow("Apoyo en el segundo borde:", self.selector_vigas["der"])
+        self.filas_apoyos_cruzados = []
+        for lado, etiqueta in (
+            ("inf", "Apoyo en tercer borde (perpendicular, opcional):"),
+            ("sup", "Apoyo en cuarto borde (perpendicular, opcional):"),
+        ):
+            self.formulario.addRow(etiqueta, self.selector_vigas[lado])
+            self.filas_apoyos_cruzados.append((etiqueta, self.selector_vigas[lado]))
         self.formulario.addRow("Desfase del borde libre inicial (m):", self.desfase_inicio)
         self.formulario.addRow("Desfase del borde libre final (m):", self.desfase_fin)
         self.formulario.addRow("Apoyos encontrados:", self.etiqueta_apoyos)
         self.formulario.addRow(self.estado)
         self.direccion_luz.currentIndexChanged.connect(self._actualizar)
+        self.tipologia.currentIndexChanged.connect(self._al_cambiar_tipologia)
         self.nivel_apoyo.currentIndexChanged.connect(self._actualizar)
         for selector in self.selector_vigas.values():
             selector.currentIndexChanged.connect(self._actualizar)
@@ -460,9 +490,9 @@ class EditorLosaDesdeEjes(QDialog):
         caja = QVBoxLayout(self)
         instrucciones = QLabel(
             "Hacé clic en dos ejes X y dos ejes Y para dibujar el paño. Elegí la dirección "
-            "de trabajo: los bordes de apoyo (izq/der) se detectan automáticamente según "
-            "lo que haya en esos ejes (muro estructural o pórtico con viga). Los bordes "
-            "libres pueden desplazarse con los desfases."
+            "de luz y los apoyos en sus bordes. Con tres o cuatro bordes apoyados se usa "
+            "el modelo cruzado; para una luz unidireccional mayor a 7 m se selecciona "
+            "casetonada. Los bordes libres pueden desplazarse con los desfases."
         )
         instrucciones.setWordWrap(True)
         caja.addLayout(self.formulario)
@@ -480,6 +510,34 @@ class EditorLosaDesdeEjes(QDialog):
         control.setSingleStep(0.1)
         control.setSuffix(" m")
         return control
+
+    @staticmethod
+    def _tipologia_segun_apoyos(
+        tipologia_base: str, cantidad_apoyos: int, luz_m: float
+    ) -> str:
+        if cantidad_apoyos >= 3 and tipologia_base in ("alivianada", "maciza"):
+            return "maciza_cruzada"
+        if (
+            cantidad_apoyos == 2
+            and luz_m > 7.0
+            and tipologia_base in ("alivianada", "maciza")
+        ):
+            return "casetonada"
+        return tipologia_base
+
+    def _al_cambiar_tipologia(self, *_args) -> None:
+        if self._actualizando_tipologia:
+            return
+        self._tipologia_base = str(self.tipologia.currentData())
+        self._actualizar()
+
+    def _establecer_tipologia_efectiva(self, tipologia: str) -> None:
+        indice = self.tipologia.findData(tipologia)
+        if indice < 0 or indice == self.tipologia.currentIndex():
+            return
+        self._actualizando_tipologia = True
+        self.tipologia.setCurrentIndex(indice)
+        self._actualizando_tipologia = False
 
     def _niveles_de_vigas(self) -> list[tuple[float, str]]:
         niveles: dict[float, str] = {}
@@ -516,11 +574,17 @@ class EditorLosaDesdeEjes(QDialog):
                 return {"nombre": str(nombre), "datos": datos, "tipo": str(datos.get("tipo", "portico"))}
         return None
 
-    def _poblar_vigas(self, lado: str, eje: dict, direccion: str, cota: float) -> str | None:
+    def _poblar_vigas(
+        self, lado: str, eje: dict, direccion: str, cota: float,
+        opcional: bool = False,
+    ) -> str | None:
         selector = self.selector_vigas[lado]
-        previo = str(selector.currentData() or "")
+        apoyo_previo = self._apoyos_previos.pop(lado, "")
+        previo = str(selector.currentData() or apoyo_previo)
         selector.blockSignals(True)
         selector.clear()
+        if opcional:
+            selector.addItem("Sin apoyo", "")
         elemento = self._elemento_en_eje(eje, direccion)
         if elemento and str(elemento["tipo"]).lower() == "portico":
             portico_nombre = str(elemento["nombre"])
@@ -540,16 +604,25 @@ class EditorLosaDesdeEjes(QDialog):
                     f"portico:{portico_nombre}:{viga_id}",
                 )
             indice = selector.findData(previo)
-            selector.setCurrentIndex(indice if indice >= 0 else (0 if selector.count() else -1))
+            selector.setCurrentIndex(
+                indice if indice >= 0 else (0 if opcional else (0 if selector.count() else -1))
+            )
+        elif opcional:
+            selector.setCurrentIndex(0)
         selector.blockSignals(False)
         return portico_nombre if (elemento and str(elemento["tipo"]).lower() == "portico") else None
 
-    def _poblar_muro(self, lado: str, eje: dict, direccion: str) -> str | None:
+    def _poblar_muro(
+        self, lado: str, eje: dict, direccion: str, opcional: bool = False
+    ) -> str | None:
         """Si en el eje hay un muro estructural, lo agrega al selector como única opción."""
         selector = self.selector_vigas[lado]
-        previo = str(selector.currentData() or "")
+        apoyo_previo = self._apoyos_previos.pop(lado, "")
+        previo = str(selector.currentData() or apoyo_previo)
         selector.blockSignals(True)
         selector.clear()
+        if opcional:
+            selector.addItem("Sin apoyo", "")
         elemento = self._elemento_en_eje(eje, direccion)
         if elemento and str(elemento["tipo"]).lower() == "muro":
             datos = elemento["datos"]
@@ -561,7 +634,10 @@ class EditorLosaDesdeEjes(QDialog):
                 f"Muro {str(elemento['nombre'])} ({ref_direccion}, {espesor:.2f}Ã—{altura:.2f} m)",
                 f"muro:{str(elemento['nombre'])}",
             )
-            selector.setCurrentIndex(0 if selector.count() else -1)
+            indice = selector.findData(previo)
+            selector.setCurrentIndex(indice if indice >= 0 else (1 if opcional else 0))
+        elif opcional:
+            selector.setCurrentIndex(0)
         selector.blockSignals(False)
         return str(elemento["nombre"]) if (elemento and str(elemento["tipo"]).lower() == "muro") else None
 
@@ -687,16 +763,40 @@ class EditorLosaDesdeEjes(QDialog):
                 elemento = self._elemento_en_eje(eje, direccion_apoyo)
                 tipo_el = str((elemento or {}).get("tipo", "")).lower()
                 if tipo_el == "portico":
-                    portico = self._poblar_vigas(lado, eje, direccion_apoyo, float(nivel_data))
+                    self._poblar_vigas(lado, eje, direccion_apoyo, float(nivel_data))
                     dato = str(self.selector_vigas[lado].currentData() or "")
                     if dato.startswith("portico:"):
                         partes = dato.split(":")
                         apoyos[lado] = {"tipo": "portico", "portico": partes[1], "viga": partes[2]}
                 elif tipo_el == "muro":
-                    nombre_muro = self._poblar_muro(lado, eje, direccion_apoyo)
+                    self._poblar_muro(lado, eje, direccion_apoyo)
                     dato = str(self.selector_vigas[lado].currentData() or "")
                     if dato.startswith("muro:"):
                         apoyos[lado] = {"tipo": "muro", "nombre": dato.split(":", 1)[1]}
+            ejes_perpendiculares = y_ejes if direccion == "x" else x_ejes
+            direccion_elemento = "x" if direccion == "x" else "y"
+            for lado, eje in zip(("inf", "sup"), ejes_perpendiculares):
+                elemento = self._elemento_en_eje(eje, direccion_elemento)
+                tipo_el = str((elemento or {}).get("tipo", "")).lower()
+                if tipo_el == "portico":
+                    self._poblar_vigas(
+                        lado, eje, direccion_elemento, float(nivel_data), opcional=True
+                    )
+                    dato = str(self.selector_vigas[lado].currentData() or "")
+                    if dato.startswith("portico:"):
+                        partes = dato.split(":")
+                        apoyos[lado] = {
+                            "tipo": "portico", "portico": partes[1], "viga": partes[2]
+                        }
+                elif tipo_el == "muro":
+                    self._poblar_muro(lado, eje, direccion_elemento, opcional=True)
+                    dato = str(self.selector_vigas[lado].currentData() or "")
+                    if dato.startswith("muro:"):
+                        apoyos[lado] = {"tipo": "muro", "nombre": dato.split(":", 1)[1]}
+                else:
+                    self._poblar_vigas(
+                        lado, eje, direccion_elemento, float(nivel_data), opcional=True
+                    )
 
         intervalo_comun = None
         if coordenadas and nivel_data is not None:
@@ -766,6 +866,20 @@ class EditorLosaDesdeEjes(QDialog):
         self.desfase_inicio.blockSignals(False)
         self.desfase_fin.blockSignals(False)
 
+        luz_m = (
+            abs(float(ejes_soporte[1]["coordenada_m"]) - float(ejes_soporte[0]["coordenada_m"]))
+            if len(ejes_soporte) == 2 else 0.0
+        )
+        tipologia = self._tipologia_segun_apoyos(
+            self._tipologia_base, len(apoyos), luz_m
+        )
+        self._establecer_tipologia_efectiva(tipologia)
+        casetonada_unidireccional = (
+            tipologia == "casetonada"
+            and len(apoyos) == 2
+            and luz_m > 7.0
+        )
+
         coordenadas_paño = None
         nombres_ejes = "Seleccioná dos ejes X y dos ejes Y."
         if coordenadas:
@@ -786,13 +900,17 @@ class EditorLosaDesdeEjes(QDialog):
             )
 
         self.etiqueta_apoyos.setText(" Â· ".join(
-            self._apoyo_texto(lado) for lado in ("izq", "der")
+            self._apoyo_texto(lado) for lado in ("izq", "der", "inf", "sup")
         ))
         if not coordenadas:
             estado = nombres_ejes
         elif not all(apoyos.get(lado) for lado in ("izq", "der")):
             faltan = [lado for lado in ("izq", "der") if not apoyos.get(lado)]
             estado = f"Falta apoyo en el borde {', '.join(faltan)} (no hay muro ni pórtico en ese eje)."
+        elif tipologia == "maciza_cruzada" and len(apoyos) < 3:
+            estado = "La losa cruzada necesita al menos tres bordes apoyados."
+        elif tipologia == "casetonada" and not casetonada_unidireccional and len(apoyos) < 3:
+            estado = "La casetonada cruzada necesita al menos tres bordes apoyados."
         elif intervalo_comun is None:
             ambos_muros = all(
                 apoyos.get(lado, {}).get("tipo") == "muro" for lado in ("izq", "der")
@@ -806,8 +924,12 @@ class EditorLosaDesdeEjes(QDialog):
         else:
             estado = (
                 f"{nombres_ejes} Â· luz {direccion.upper()} "
-                f"{abs(float(ejes_soporte[1]['coordenada_m']) - float(ejes_soporte[0]['coordenada_m'])):.3f} m"
+                f"{luz_m:.3f} m"
             )
+        if self._tipologia_base in ("alivianada", "maciza") and len(apoyos) >= 3:
+            estado += " · tipología cambiada automáticamente a maciza cruzada"
+        elif casetonada_unidireccional:
+            estado += " · casetonada seleccionada automáticamente por luz > 7 m"
         self.estado.setText(estado)
         self.vista.establecer_datos(
             self.ejes, self.estructura, self.vista.ejes_seleccionados,
@@ -843,10 +965,35 @@ class EditorLosaDesdeEjes(QDialog):
                 raise ValueError(
                     f"No hay apoyo válido en el borde {lado} (eje {eje['nombre']})."
                 )
+        ejes_perpendiculares = y_ejes if direccion == "x" else x_ejes
+        for lado, eje in zip(("inf", "sup"), ejes_perpendiculares):
+            tipo, nombre_el, viga_id = self._apoyo_dato(lado)
+            if tipo == "muro" and nombre_el:
+                apoyos[lado] = {"tipo": "muro", "nombre": nombre_el}
+            elif tipo == "portico" and nombre_el and viga_id:
+                apoyos[lado] = {"tipo": "portico", "portico": nombre_el, "viga": viga_id}
         span = abs(
             float(ejes_soporte[1]["coordenada_m"])
             - float(ejes_soporte[0]["coordenada_m"])
         )
+        tipologia = self._tipologia_segun_apoyos(
+            self._tipologia_base, len(apoyos), span
+        )
+        casetonada_unidireccional = (
+            tipologia == "casetonada"
+            and len(apoyos) == 2
+            and span > 7.0
+        )
+        if tipologia == "maciza_cruzada" and len(apoyos) < 3:
+            raise ValueError("La losa cruzada necesita al menos tres bordes apoyados.")
+        if (
+            tipologia == "casetonada"
+            and not casetonada_unidireccional
+            and len(apoyos) < 3
+        ):
+            raise ValueError(
+                "La casetonada cruzada necesita al menos tres bordes apoyados."
+            )
         ejes_libres = y_ejes if direccion == "x" else x_ejes
         eje_inicio, eje_fin = ejes_libres
         coord_inicio = float(eje_inicio["coordenada_m"]) - self.desfase_inicio.value()
@@ -867,51 +1014,80 @@ class EditorLosaDesdeEjes(QDialog):
                 raise ValueError(
                     "Las vigas de apoyo no cubren el ancho completo del paño y sus desfases."
                 )
+        inicio_luz = min(
+            float(ejes_soporte[0]["coordenada_m"]),
+            float(ejes_soporte[1]["coordenada_m"]),
+        )
+        fin_luz = max(
+            float(ejes_soporte[0]["coordenada_m"]),
+            float(ejes_soporte[1]["coordenada_m"]),
+        )
+        for lado in ("inf", "sup"):
+            if es_portico(lado) and not self._viga_cubre(
+                str(apoyos[lado]["portico"]),
+                str(apoyos[lado]["viga"]),
+                inicio_luz,
+                fin_luz,
+            ):
+                raise ValueError(
+                    f"La viga del apoyo {lado} no cubre toda la luz de la losa."
+                )
         ancho = coord_fin - coord_inicio
         if not math.isfinite(span) or not math.isfinite(ancho) or span <= 0 or ancho <= 0:
             raise ValueError("La luz y el ancho del paño deben ser positivos.")
         cota = float(self.nivel_apoyo.currentData())
         nivel_nombre = self.nivel_apoyo.currentText().split(" Â· ", 1)[0]
+        modelo_placa = (
+            "casetonada_unidireccional"
+            if casetonada_unidireccional
+            else "casetonada" if tipologia == "casetonada"
+            else "cruzada" if tipologia == "maciza_cruzada"
+            else "unidireccional"
+        )
+        panel_ejes = {
+            "direccion_luz": direccion,
+            "modelo_placa": modelo_placa,
+            "nivel_apoyo_nombre": nivel_nombre,
+            "cota_apoyo_m": cota,
+            "ejes": {
+                "x": {
+                    "inicio": {
+                        "id": str(x_ejes[0].get("id", "")),
+                        "nombre": str(x_ejes[0]["nombre"]),
+                        "coordenada_m": float(x_ejes[0]["coordenada_m"]),
+                    },
+                    "fin": {
+                        "id": str(x_ejes[1].get("id", "")),
+                        "nombre": str(x_ejes[1]["nombre"]),
+                        "coordenada_m": float(x_ejes[1]["coordenada_m"]),
+                    },
+                },
+                "y": {
+                    "inicio": {
+                        "id": str(y_ejes[0].get("id", "")),
+                        "nombre": str(y_ejes[0]["nombre"]),
+                        "coordenada_m": float(y_ejes[0]["coordenada_m"]),
+                    },
+                    "fin": {
+                        "id": str(y_ejes[1].get("id", "")),
+                        "nombre": str(y_ejes[1]["nombre"]),
+                        "coordenada_m": float(y_ejes[1]["coordenada_m"]),
+                    },
+                },
+            },
+            "desfase_inicio_m": float(self.desfase_inicio.value()),
+            "desfase_fin_m": float(self.desfase_fin.value()),
+            "coordenada_libre_inicio_m": coord_inicio,
+            "coordenada_libre_fin_m": coord_fin,
+        }
+        if tipologia != self._tipologia_base:
+            panel_ejes["tipologia_base_automatica"] = self._tipologia_base
         geometria = {
-            "tipologia": str(self.tipologia.currentData()),
+            "tipologia": tipologia,
             "luz_transversal_m": span,
             "ancho_losa_m": ancho,
             "apoya_en": apoyos,
-            "panel_ejes": {
-                "direccion_luz": direccion,
-                "nivel_apoyo_nombre": nivel_nombre,
-                "cota_apoyo_m": cota,
-                "ejes": {
-                    "x": {
-                        "inicio": {
-                            "id": str(x_ejes[0].get("id", "")),
-                            "nombre": str(x_ejes[0]["nombre"]),
-                            "coordenada_m": float(x_ejes[0]["coordenada_m"]),
-                        },
-                        "fin": {
-                            "id": str(x_ejes[1].get("id", "")),
-                            "nombre": str(x_ejes[1]["nombre"]),
-                            "coordenada_m": float(x_ejes[1]["coordenada_m"]),
-                        },
-                    },
-                    "y": {
-                        "inicio": {
-                            "id": str(y_ejes[0].get("id", "")),
-                            "nombre": str(y_ejes[0]["nombre"]),
-                            "coordenada_m": float(y_ejes[0]["coordenada_m"]),
-                        },
-                        "fin": {
-                            "id": str(y_ejes[1].get("id", "")),
-                            "nombre": str(y_ejes[1]["nombre"]),
-                            "coordenada_m": float(y_ejes[1]["coordenada_m"]),
-                        },
-                    },
-                },
-                "desfase_inicio_m": float(self.desfase_inicio.value()),
-                "desfase_fin_m": float(self.desfase_fin.value()),
-                "coordenada_libre_inicio_m": coord_inicio,
-                "coordenada_libre_fin_m": coord_fin,
-            },
+            "panel_ejes": panel_ejes,
         }
         return nombre, geometria
 

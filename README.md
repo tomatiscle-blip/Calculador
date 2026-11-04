@@ -55,6 +55,9 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
   - Las **losas delimitadas por ejes** (`panel_ejes`) se dibujan como rectángulo verde en
     planta; una losa sin datos de ejes se avisa como etiqueta en lugar de perderse, y una
     losa que apoya en otro nivel se omite sin avisar (no es un error de datos).
+    Las losas cruzadas muestran flechas en ambas direcciones y la trama en cada borde con
+    apoyo verificado (hasta cuatro); las columnas globales compartidas se proyectan según
+    las coordenadas del pórtico que se está dibujando.
   - La geometría de planta se calcula con la convención real del modelo: el eje de aplicación
     está en la familia opuesta a la dirección del elemento y las columnas/vigas se trasladan
     desde `origen_longitudinal_m` (los muros guardan extremos absolutos). Antes, por buscar
@@ -92,19 +95,19 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
     ya no se copia ni se mantiene en `datos/` de la raíz; las obras nuevas
     arrancan vacías.
   - **Losas desde ejes:** desde Inicio o Cargas se delimita el paño seleccionando dos ejes X
-    y dos Y; luego se define la dirección de luz, el nivel y las dos vigas de apoyo existentes
-    sobre los ejes correspondientes. La composición y las cargas se editan después. Las losas
-    unidireccionales transfieren automáticamente D/L como cargas lineales a las vigas de apoyo,
-    con ancho tributario igual a la mitad de la luz. No hay que asignarlas manualmente además.
-    En Cargas, la columna «Transferencia a apoyos» indica si la losa activa está aplicada
-    automáticamente a ambas vigas; Inicio también informa cuántos paños llegan al pórtico elegido.
-    Los apoyos deben coincidir exactamente con pórticos/vigas existentes; los bordes libres sí
-    pueden desplazarse dentro del alcance común de ambas vigas. Mientras una losa use sus ejes,
-    no se pueden mover ni borrar esos ejes: primero hay que editar o quitar el paño.
+    y dos Y; luego se define la dirección de luz, el nivel y los apoyos disponibles en cada
+    borde. Dos bordes opuestos forman el modelo unidireccional; agregar uno o ambos bordes
+    perpendiculares selecciona el modelo cruzado de tres o cuatro bordes. Para luces
+    unidireccionales mayores a 7 m, maciza/alivianada cambia automáticamente a casetonada.
+    Los apoyos deben coincidir con pórticos/vigas o muros existentes y cubrir el borde
+    correspondiente. Mientras una losa use sus ejes, no se pueden mover ni borrar esos ejes:
+    primero hay que editar o quitar el paño.
   - **Composición y cálculo:** cada losa conserva su composición y muestra D/L en kN/m².
-    La composición alimenta el cálculo existente de viguetas para losas alivianadas y las
-    solicitaciones de losas macizas. La tipología casetonada está disponible para definir
-    cargas, pero todavía no tiene motor de cálculo; su peso debe incluirse en la composición.
+    Las losas alivianadas unidireccionales transfieren sus reacciones a los dos apoyos; las
+    placas macizas/casetonadas transfieren las reacciones por cada borde apoyado. La losa
+    casetonada usa una placa equivalente ortótropa y requiere completar geometría y factores
+    kx/ky. Estos cálculos entregan solicitaciones y reacciones; no dimensionan armaduras ni
+    verifican flecha, fisuración o continuidad entre paños.
 - Trabajo anterior: conexión inicial de **P02 con el motor y la app** (05/10). El motor de
   `calc/portico.py` entrega los esfuerzos por combinación; `calc/diseno_vigas.py` adapta
   esos resultados al dimensionador conservado en `P02_Viga_portico.py`. Desde la pestaña
@@ -122,8 +125,12 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 - Trabajo anterior: **el MOTOR de cálculo quedó armado en `calc/portico.py`** (03/10).
   Resuelve el pórtico 2D con **Pynite** (casos base D, L, W y P + las 5 combinaciones, con
   viento) y devuelve **M, V, N, reacciones y desplazamientos por barra y por combinación**,
-  más una **envolvente** para el dimensionado. Es el reemplazo de `P01` (anaStruct).
+  más una **envolvente de máximos en módulo por magnitud** para el dimensionado; sus máximos
+  pueden corresponder a combinaciones distintas, no a una única combinación gobernante.
+  Es el reemplazo de `P01` (anaStruct).
   - Se usó con `py -m calc.portico "Portico 1" --guardar` → `salidas/solicitaciones/Portico 1.json`.
+  - El visor de momentos de Inicio permite elegir la combinación y comparar sus diagramas;
+    los resultados anteriores deben recalcularse para guardar los diagramas de todas las combinaciones.
   - **Validado contra anaStruct fresco por combinación**: coinciden las 5 combinaciones
     (reacciones, M, V y N; el momento de campo difiere ≤ 0,05 kN·m por la malla de 50).
     Antes ya se había validado Pynite contra anaStruct en <0,1 % (`tools/comparar_motores.py`).
@@ -187,6 +194,11 @@ puntual `q·L/2`. La planta filtra esta aplicación por el nivel de las vigas re
 muestra la doble flecha sobre el paño y rotula los dos puntos de reacción.
 La configuración guardada del viento muestra sus pórticos destinatarios; al restaurarla
 no vuelve a seleccionar automáticamente todos los pórticos de esa dirección.
+Cambiar la dirección tampoco marca pórticos ni guarda por sí solo: hay que seleccionar
+explícitamente los compatibles y guardar la configuración. Los datos de terreno pueden
+copiarse desde otra obra del selector y editarse antes de guardarlos en la obra actual.
+El espesor automático L/20 está limitado a la losa maciza unidireccional simplemente
+apoyada; la losa cruzada requiere espesor estructural ingresado manualmente.
 Para este modo y para el ancho tributario automático de losas/cubiertas, asociá los pórticos
 a sus ejes transversales desde **Asociar pórticos a ejes…**; no se pueden asociar dos pórticos
 paralelos al mismo plano. Sus coordenadas acumuladas definen las separaciones. El ancho tributario
@@ -256,7 +268,9 @@ campos hasta que un flujo los necesite.
 - **El MOTOR quedó armado: `calc/portico.py`.** Resuelve el pórtico 2D con Pynite con los
   casos base **D, L, W y P** y las **5 combinaciones** (servicio + las 4 de CIRSOC, con
   viento), y devuelve **M, V, N, reacciones y desplazamientos** por barra y por combinación,
-  más una **envolvente** (máximos en módulo) que es la que van a consumir los dimensionadores.
+  más una **envolvente** (máximos en módulo por magnitud, que pueden provenir de combinaciones
+  diferentes) que es la que van a consumir los dimensionadores. El visor de momentos permite
+  comparar diagramas de cada combinación guardada.
   - Se usa: `py -m calc.portico "Portico 1"` (informe) y `... --guardar` para escribir
     `salidas/solicitaciones/Portico 1.json`. `py -m calc.portico` lista qué hay.
   - Las 4 combinaciones de CIRSOC siguen viviendo en **un solo lugar**

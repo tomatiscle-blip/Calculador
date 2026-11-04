@@ -1,12 +1,13 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
 from calc import muros
-from app.muros_proyecto import EditorCapasMuro
+from app.muros_proyecto import EditorCapasMuro, PaginaMuros
 
 
 class MuroCompuestoTests(unittest.TestCase):
@@ -170,6 +171,34 @@ class EditorCapasMuroTests(unittest.TestCase):
         _capas_out, _alt, _lon, res = d.datos_guardar()
         self.assertIn("peso_propio_kN_m2", res)
         d.close()
+
+    def test_componer_usa_el_nombre_de_la_fila_aunque_se_seleccione_otra_columna(self):
+        estructura = {
+            "Muro 1": {"tipo": "muro", "longitud_m": 5.0},
+            "Muro 2": {"tipo": "muro", "longitud_m": 7.0},
+        }
+        with (
+            patch("app.muros_proyecto.rutas.cargar_estructura", return_value=estructura),
+            patch("app.muros_proyecto.muros.cargas_losas_en_muro", return_value={
+                "D_kN_m": 0.0, "L_kN_m": 0.0, "losas": [], "avisos": [],
+            }),
+        ):
+            pagina = PaginaMuros()
+        self.addCleanup(pagina.close)
+
+        pagina.combo_muro_activo.setCurrentText("Muro 2")
+        pagina.refrescar()
+        self.assertEqual(pagina.combo_muro_activo.currentText(), "Muro 2")
+        self.assertEqual(pagina.tabla.currentRow(), 1)
+        pagina.tabla.setCurrentCell(1, 1)
+
+        nombre = pagina._nombre_muro_a_componer({"Muro 1": {}, "Muro 2": {}})
+
+        self.assertEqual(nombre, "Muro 2")
+        self.assertEqual(pagina.tabla.item(pagina.tabla.currentRow(), 0).text(), "Muro 2")
+        pagina.tabla.setCurrentCell(0, 1)
+        self.assertEqual(pagina.combo_muro_activo.currentText(), "Muro 1")
+        self.assertEqual(pagina._nombre_muro_a_componer({"Muro 1": {}, "Muro 2": {}}), "Muro 1")
 
 
 if __name__ == "__main__":

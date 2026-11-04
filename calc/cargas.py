@@ -26,6 +26,7 @@ from math import cos, radians, tan
 from pathlib import Path
 
 from . import materiales, rutas, muros
+from .losas_seccion import componentes_con_hormigon_casetonada
 
 
 
@@ -107,7 +108,12 @@ def porticos_afectados_por_viento(estructura: dict, direccion_viento: str) -> li
     return [
         nombre
         for nombre, datos in estructura.items()
-        if isinstance(datos, dict) and "referencia_planta" in datos and direccion_portico(datos) == direccion_viento
+        if (
+            isinstance(datos, dict)
+            and str(datos.get("tipo", "portico")).lower() == "portico"
+            and "referencia_planta" in datos
+            and direccion_portico(datos) == direccion_viento
+        )
     ]
 
 
@@ -390,7 +396,12 @@ def valor_componente_superficial(
 
 
 def _componentes(elemento: dict, biblioteca: dict) -> list[tuple[str, float]]:
-    return [_componente_valor(c, biblioteca) for c in elemento.get("componentes", [])]
+    componentes = (
+        componentes_con_hormigon_casetonada(elemento)
+        if elemento.get("tipo") == "losa" and elemento.get("tipologia") == "casetonada"
+        else elemento.get("componentes", [])
+    )
+    return [_componente_valor(c, biblioteca) for c in componentes]
 
 
 def valores_superficiales(elemento: dict, biblioteca: dict | None = None) -> dict:
