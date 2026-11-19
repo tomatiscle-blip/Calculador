@@ -271,7 +271,11 @@ def cargas_losas_en_muro(nombre_muro: str, datos_cargas: dict | None = None) -> 
             try:
                 from . import losas_macizas
 
-                reacciones = losas_macizas.reacciones_y_anchos_por_borde(losa, bib)
+                reacciones = losas_macizas.reacciones_y_anchos_por_borde(
+                    losa,
+                    bib,
+                    datos_cargas.get("elementos", {}) or {},
+                )
             except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
                 resultado["avisos"].append(
                     f"{nombre}: no se calcularon reacciones para el muro {nombre_muro}: {exc}"

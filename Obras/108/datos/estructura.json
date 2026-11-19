@@ -551,6 +551,7 @@
     "peso_propio_kN_m2": 2.9365,
     "peso_lineal_kN_m": 8.8095,
     "resultado_calculo": {
+      "informe": "ANÁLISIS DE CARGAS DEL MURO «Muro 2»\nGeometría: longitud = 3,00 m · altura = 3,00 m · área = 9,00 m²\n\n1. Peso propio por capas (qᵢ = γᵢ · eᵢ; carga lineal = qᵢ · h):\n  ladrillo_comun (Mamposteria): 17,00 kN/m³ × 0,120 m = 2,040 kN/m²; × 3,00 m = 6,120 kN/m\n  eps (Aislantes): 0,20 kN/m³ × 0,020 m = 0,004 kN/m²; × 3,00 m = 0,012 kN/m\n  ladrillo_hueco (Mamposteria): 10,50 kN/m³ × 0,085 m = 0,893 kN/m²; × 3,00 m = 2,678 kN/m\n  Espesor total: 0,225 m\n  Peso propio: 2,937 kN/m²\n  Carga lineal propia: 8,809 kN/m\n  Peso total del paño: 26,43 kN\n\n2. Análisis térmico (ISO 6946, muro vertical; informativo):\n  R de cada capa = e/λ; para cámaras de aire se usa la tabla normativa.\n  ladrillo_comun: λ = 0,810 W/m·K; R = 0,120 / 0,810 = 0,148 m²·K/W\n  eps: λ = 0,037 W/m·K; R = 0,020 / 0,037 = 0,541 m²·K/W\n  ladrillo_hueco: λ = 0,480 W/m·K; R = 0,085 / 0,480 = 0,177 m²·K/W\n  R de las capas: 0,866 m²·K/W\n  R total = Rsi (0,13) + Rcapas (0,866) + Rse (0,04) = 1,036 m²·K/W\n  Transmitancia térmica U = 1/Rtotal = 0,965 W/m²·K\n  Sin un límite U objetivo configurado, no corresponde marcarla como cumple/no cumple.\n\n3. Cargas de losas/cubiertas y combinaciones:\n  LX1: D=4,71, L=1,59 kN/m\n  Total transferido: D=4,71, L=1,59 kN/m.\n  D total = propio 8,81 + losas/cubiertas 4,71 = 13,52 kN/m; L total = 1,59 kN/m; Nserv = D + L = 15,11 kN/m.\n  Combinaciones gravitatorias: 1.4D=18,93, 1.2D + 1.6L=18,76 kN/m; gobierna 1.4D → Pu=18,93 kN/m.\n\n4. Verificación estructural (CIRSOC 501) por metro de muro:\n  Se toma como portante la hoja de mampostería más gruesa; revoques y aislantes no aportan resistencia estructural.\n  El estado PASA/NO PASA mostrado abajo es solo por compresión axial con peso propio y losas; aún no incluye viento/sismo ni excentricidad.\n  Hoja portante: ladrillo_comun (fm = 1,75 MPa, e = 0,120 m)\n  Esbeltez h/r = 86,6\n  Compresión: φ·Pn = 49,78 kN (φ=0,60, h/r <= 99) — PASA\n  Corte: φ·Vn = 45,95 kN (φ=0,80); capacidad informativa, sin demanda lateral aplicada.\n  Recomendaciones:\n    · Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.\n    · Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3,00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.\n    · Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.\n    · Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano.\n\n5. Predimensionado de zapata corrida (presión admisible):\n  B = Nserv / qadm = 15,11 / 85,32 = 0,177 m; profundidad = 0,80 m.\n  Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales.\n  No se calcula momento flector ni se dimensiona la armadura de la zapata.\n\nAlcance: se incluyen el peso propio de las capas y las reacciones de las losas/cubiertas modeladas. Encadenados, dinteles u otras cargas solo se incluyen si se incorporan explícitamente al modelo.",
       "resistencia_termica": {
         "capas": [
           {
@@ -582,27 +583,27 @@
         "U_W_m2K": 0.965463421234155
       },
       "cargas_losas": {
-        "D_kN_m": 4.759939662451945,
-        "L_kN_m": 1.5999797184712552,
+        "D_kN_m": 4.713975341149772,
+        "L_kN_m": 1.585001492308783,
         "losas": [
           {
             "nombre": "LX1",
-            "D_kN_m": 4.759939662451945,
-            "L_kN_m": 1.5999797184712552,
+            "D_kN_m": 4.713975341149772,
+            "L_kN_m": 1.585001492308783,
             "cota_m": 3.0
           }
         ],
         "avisos": []
       },
       "combinaciones_axiales": {
-        "D_kN_m": 13.569439662451945,
-        "L_kN_m": 1.5999797184712552,
+        "D_kN_m": 13.523475341149773,
+        "L_kN_m": 1.585001492308783,
         "combinaciones_kN_m": {
-          "1.4D": 18.997215527432722,
-          "1.2D + 1.6L": 18.84329514449634
+          "1.4D": 18.93286547760968,
+          "1.2D + 1.6L": 18.764172797073776
         },
         "combinacion_critica": "1.4D",
-        "Pu_kN_m": 18.997215527432722
+        "Pu_kN_m": 18.93286547760968
       },
       "diseno_estructural": {
         "ok": true,
@@ -621,19 +622,19 @@
           "phi_Pn_kN": 49.78285714285715,
           "rama": "h/r <= 99",
           "factor_reduccion": 0.6173469387755102,
-          "carga_axial_kN_m": 18.997215527432722,
+          "carga_axial_kN_m": 18.93286547760968,
           "pasa": true
         },
         "corte": {
-          "Vn_kN": 57.45266999826483,
+          "Vn_kN": 57.43658248580907,
           "phi": 0.8,
-          "phi_Vn_kN": 45.96213599861187
+          "phi_Vn_kN": 45.949265988647255
         },
         "armada": false,
         "fy_mpa": 420.0,
         "recomendaciones": [
           "Refuerzo horizontal en juntas: Ø máximo 6 mm (no más de la mitad del espesor de junta). ρ/espaciamiento mínimo: pendiente dato.",
-          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3.00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
+          "Columnas de refuerzo (extremos y encuentros): cuantía 0.0025–0.04 de An → As mín ≳ 3,00 cm² por franja; mínimo 4 barras; estribos Ø ≥ 6 mm.",
           "Dintel sobre vanos: Se dimensionan a flexión con Mn >= 1.3 * Mcr (Art. 9.1.5.4.2.2.2). Luz libre máxima que dispara dintel: pendiente dato.",
           "Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano."
         ],
@@ -641,9 +642,9 @@
       },
       "cimiento": {
         "ok": true,
-        "carga_servicio_kN_m": 15.1694193809232,
+        "carga_servicio_kN_m": 15.108476833458555,
         "q_adm_kPa": 85.32,
-        "ancho_minimo_m": 0.17779441374734178,
+        "ancho_minimo_m": 0.17708013166266476,
         "profundidad_m": 0.8,
         "pendiente": "Predimensionado centrado por presión admisible. Falta verificar excentricidad, flexión, corte, asentamiento y estabilidad con acciones accidentales."
       }

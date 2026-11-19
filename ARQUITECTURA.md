@@ -63,11 +63,11 @@ el dimensionador. Y la losa maciza o casetonada es la misma "losa" con otro `tip
 7. **Salidas** — planilla, memoria de cálculo, planos (DXF) y cómputo, armados desde los
    resultados (no recalculados).
 
-**Estado de la interfaz:** Inicio permite crear geometría básica de un pórtico; se
-seleccionan las columnas en cada tramo entre niveles y se puede indicar hasta qué nivel
-llega el pórtico, aunque la obra tenga niveles superiores definidos. Todavía no incluye
-edición posterior ni cargas puntuales. `datos/crear_estructura.py` sigue disponible por
-consola; el selector de pórticos quedó dentro del bloque correspondiente en Inicio.
+**Estado de la interfaz:** Inicio permite definir ejes y niveles, crear pórticos y muros,
+y consultar la planta de la obra. El selector del pórtico activo y el esquema de elevación
+están en **Pórticos**. La app también contiene flujos de cargas, losas, muros, dimensionado,
+estructura global, estado de etapas y archivos. Los alcances específicos de cada pantalla
+y sus acciones se describen en `INTERFAZ.md`.
 
 ---
 
@@ -129,22 +129,38 @@ necesite. El análisis de cargas se comparte por obra y puede asignarse a varios
 las salidas se regeneran desde los datos fuente. Los cálculos existentes de losas y vigas
 aisladas se conectan desde la navegación, sin duplicar sus motores.
 
-## 6. Estado: qué está hecho y qué sigue
+### 5.1. Arranque y separación entre interfaz y cálculo
 
-| Paso | Estado | Cómo se ve hoy |
-|---|---|---|
-| 1. Obra | Parcial | La app guarda identidad de proyecto y referencia de viento en `datos/cargas.json`; aún falta el manejo de varias obras/archivos aislados |
-| 2. Materiales | **Hecho (30/09)** | `datos/materiales.json` es la única biblioteca y `calc/materiales.py` la reparte |
-| 3. Elementos que reciben carga | **Hecho (30/09)** | `datos/cargas.json` + `calc/cargas.py` (calcula el conjunto **o un elemento solo**); 01/10: la **losa entrega sus reacciones** (`calc/losas.py`) |
-| 4. Pórticos y asignación de cargas | Parcial | `datos/estructura.json` guarda geometría y `datos/cargas.json` ya guarda aplicaciones a pórtico/tramo/intervalo/ancho; falta crear y editar geometría desde la app |
-| 5. Solicitaciones | **Hecho (03/10)** | `calc/portico.py` (Pynite) escribe `salidas/solicitaciones/<pórtico>.json`; Inicio puede ejecutar el motor y visualizar geometría/cargas |
-| 6. Dimensionamiento | En marcha | Losas en `calc/losas.py`; vigas conectadas a la app mediante `calc/diseno_vigas.py`, que adapta solicitaciones al P02 legacy. Falta migrar la lógica P02 a `calc/vigas.py`; P04 columnas y P05 bases siguen pendientes |
-| 7. Salidas | A migrar | `P03` Excel, `P06` DXF; las memorias están dentro de cada script |
+`calculador.bat` cambia a la carpeta del proyecto y abre `app` con el ejecutable
+`.venv\Scripts\pythonw.exe` (sin consola). Para ver errores de arranque se puede usar
+`py -m app` desde una terminal. El flujo de `app.principal.main()` inicializa las obras,
+prepara directorios, crea `QApplication` y construye `VentanaPrincipal`.
 
-Lo siguiente para retomar es **crear/editar pórticos desde la app** y visualizar su
-geometría. Después, continuar la migración de dimensionadores (columnas y bases) y salidas.
-La aplicación de cargas a tramos ya está modelada; revisar especialmente combinaciones,
-cargas parciales y que no se dupliquen D/L.
+La construcción y el refresco inicial leen datos y salidas para poblar la interfaz; no
+deben lanzar el análisis del modelo de losas o de pórticos como trabajo de fondo implícito.
+El visor de pórtico difiere la obtención de cargas automáticas durante el refresco general,
+y el visor de muro calcula/consulta reacciones de losas al seleccionar el muro. Los cálculos
+estructurales se disparan desde una acción explícita de la pantalla correspondiente. Esta
+separación permite que abrir o refrescar la app no ejecute un análisis pesado sin que el
+usuario lo haya pedido.
+
+El refresco no invalida ni reemplaza resultados guardados. La validez se representa en el
+semáforo del pipeline; cuando una entrada cambió, el usuario decide recalcular la etapa.
+
+## 6. Funcionamiento implementado y evolución
+
+| Área | Funcionamiento actual |
+|---|---|
+| Obras | El selector permite trabajar con obras bajo `Obras/`; la obra activa determina las rutas de sus datos y resultados. La biblioteca de materiales sigue siendo global. |
+| Cargas | Los elementos y sus asignaciones se mantienen por obra. Se pueden consultar, editar y transferir cargas a pórticos, vigas o muros según el modelo. |
+| Geometría | Desde la app se gestionan ejes, niveles, pórticos y muros. Los datos globales estructurales permiten compartir elementos entre pórticos. |
+| Solicitaciones | `calc/portico.py` resuelve los pórticos con Pynite y genera resultados por pórtico que se usan en las vistas y dimensionadores. |
+| Dimensionamiento | La interfaz ofrece flujos para losas, muros, vigas, columnas y bases, además de herramientas globales. Parte de la lógica sigue adaptando o ejecutando cálculos legacy; la migración se realiza gradualmente. |
+| Resultados | La app muestra estados, memorias, planillas y otros archivos generados. Los resultados son salidas regenerables; las entradas permanecen en los datos de obra. |
+
+El detalle de pestañas y acciones está en `INTERFAZ.md`; las limitaciones vigentes
+de cada cálculo deben documentarse junto con su flujo y no inferirse de notas históricas
+fechadas de esta sección.
 
 ---
 

@@ -19,6 +19,23 @@ sigue funcionando igual que siempre.
 | Interfaz | **PySide6** (ventana de Windows, libre, ya instalada) | Programa de verdad: ícono, doble clic, sin navegador, empaquetable a `.exe`. |
 | Scripts viejos | No se borra ninguno | Quedan como "envoltorios" de consola hasta que su cálculo esté migrado a `calc/`. |
 
+### Cómo se abre la aplicación gráfica
+
+Para el uso normal, hacer doble clic en `calculador.bat`. El archivo cambia a la raíz del
+proyecto y ejecuta `-m app` con `.venv\Scripts\pythonw.exe`, por lo que la aplicación abre
+sin dejar una ventana de consola. Si no está creado ese entorno o falta `pythonw.exe`, el
+`.bat` muestra un aviso y espera una tecla en vez de cerrar silenciosamente.
+
+Para diagnosticar errores de inicio, abrir PowerShell en la carpeta del proyecto y ejecutar:
+
+```powershell
+py -m app
+```
+
+En ese modo la consola queda disponible para ver los mensajes de error. El comando usa el
+Python asociado a `py`; para garantizar el mismo entorno del doble clic se puede ejecutar
+`.venv\Scripts\python.exe -m app`.
+
 ---
 
 ## 2. Archivos nuevos y para qué sirve cada uno
@@ -47,9 +64,10 @@ py -m pip install -r requirements.txt
 py -m pip freeze > requirements.lock.txt
 ```
 
-Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
-(o simplemente con `py`, como hasta ahora). Si algo falla, el comando
-`py -m pip install -r requirements.txt` reinstala lo que falte.
+Con el entorno creado, los comandos que deban usarlo explícitamente se lanzan con
+`.venv\Scripts\python.exe` o activando `.venv`. `py` por sí solo puede seleccionar
+otro Python instalado en Windows; para reinstalar dependencias en el entorno virtual,
+usar `.venv\Scripts\python.exe -m pip install -r requirements.txt`.
 
 ---
 
@@ -57,6 +75,8 @@ Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
 
 | Para… | Hacer |
 |---|---|
+| Abrir la aplicación (sin consola) | Doble clic en **`calculador.bat`** |
+| Diagnosticar errores de inicio | PowerShell: `py -m app` |
 | Ver el estado de todo | Doble clic en **`estado.bat`** |
 | Ver el estado de un pórtico | `py -m calc.pipeline "Portico 1"` |
 | Guardar la foto de resultados actuales | `py tools\regresion.py congelar` |
@@ -86,8 +106,8 @@ Con el entorno creado, los programas se lanzan con el `py` de la carpeta `.venv`
 2. **Datos que faltan**: `datos/terreno.json` (capas, nivel freático, `q_adm`,
    módulo de balasto) y `datos/tipos_losa.json` (vigueta / maciza / casetonada),
    más los diagramas de interacción como dato canónico.
-3. **App PySide6**: pestañas por etapa, semáforo en color, tablas para cargar
-   datos y botones para calcular y exportar.
+3. **App PySide6**: ya implementada como interfaz principal; continuar mejorando sus
+   flujos y migrando a `calc/` los cálculos que todavía dependen de scripts legacy.
 4. **Migrar los scripts a `calc/`**: convertir `P00`, `P02`, `P04`, `P05`, `P06`
    y `L00` en funciones `calcular(datos)` — así se eliminan las 63 preguntas por
    teclado (`input()`) y las rutas relativas que hoy atan todo a una consola.
@@ -150,5 +170,3 @@ git reset --soft HEAD~1   # desarma la última foto y deja todo listo para rehac
 | Caja de mensaje vacía | Falta el título de la foto | Escribirlo y `Ctrl + Enter` |
 | `index.lock` | Un programa quedó a mitad de camino | Cerrar VS Code y borrar `D:\03 Ingenieria\Calculador\.git\index.lock` |
 | Pide usuario/contraseña | Es GitHub pidiendo permiso para subir | Completar esa ventana (no es un error) |
-
-

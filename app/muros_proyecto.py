@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from calc import cargas, mamposteria, muros, rutas
+from calc.formato import numero_local
 from app.visualizacion import VistaPortico
 
 
@@ -202,31 +203,72 @@ class EditorCapasMuro(QDialog):
             self._ultimo = {}
             return
         self._ultimo = resultado
+        formato = numero_local
         lineas = [
-            f"Espesor total: {resultado['espesor_total_m']:.3f} m",
-            f"Peso propio: {resultado['peso_propio_kN_m2']:.3f} kN/m²",
-            f"Carga lineal (por m de alto): {resultado['peso_lineal_kN_m']:.3f} kN/m",
-            f"Peso total del paño ({resultado['longitud_m']:.2f} m × {resultado['altura_m']:.2f} m): "
-            f"{resultado['peso_total_kN']:.2f} kN",
+            f"ANÁLISIS DE CARGAS DEL MURO «{self.nombre}»",
+            f"Geometría: longitud = {formato(resultado['longitud_m'])} m · "
+            f"altura = {formato(resultado['altura_m'])} m · "
+            f"área = {formato(resultado['longitud_m'] * resultado['altura_m'])} m²",
+            "",
+            "1. Peso propio por capas (qᵢ = γᵢ · eᵢ; carga lineal = qᵢ · h):",
+        ]
+        if resultado["capas"]:
+            for capa in resultado["capas"]:
+                carga_lineal_capa = capa["peso_kN_m2"] * resultado["altura_m"]
+                lineas.append(
+                    f"  {capa['clave']} ({capa['grupo']}): "
+                    f"{formato(capa['gamma_kN_m3'])} kN/m³ × "
+                    f"{formato(capa['espesor_m'], 3)} m = "
+                    f"{formato(capa['peso_kN_m2'], 3)} kN/m²; × "
+                    f"{formato(resultado['altura_m'])} m = "
+                    f"{formato(carga_lineal_capa, 3)} kN/m"
+                )
+        else:
+            lineas.append("  No se definieron capas con espesor.")
+        lineas += [
+            f"  Espesor total: {formato(resultado['espesor_total_m'], 3)} m",
+            f"  Peso propio: {formato(resultado['peso_propio_kN_m2'], 3)} kN/m²",
+            f"  Carga lineal propia: {formato(resultado['peso_lineal_kN_m'], 3)} kN/m",
+            f"  Peso total del paño: {formato(resultado['peso_total_kN'])} kN",
         ]
         termica = resultado.get("resistencia_termica")
         if termica:
             lineas += [
                 "",
-                "Resistencia térmica (ISO 6946, muro vertical; valor informativo):",
-                f"  R de las capas: {termica['R_capas_m2K_W']:.3f} m²·K/W",
-                f"  R total (con Rsi={termica['R_si_m2K_W']:.2f}, Rse={termica['R_se_m2K_W']:.2f}): "
-                f"{termica['R_total_m2K_W']:.3f} m²·K/W",
-                f"  Transmitancia térmica U = 1/Rtotal: {termica['U_W_m2K']:.3f} W/m²·K",
+                "2. Análisis térmico (ISO 6946, muro vertical; informativo):",
+                "  R de cada capa = e/λ; para cámaras de aire se usa la tabla normativa.",
+            ]
+            for capa in termica["capas"]:
+                if capa["lambda_w_mk"] is None:
+                    detalle_termico = (
+                        f"R tabulada = {formato(capa['R_m2K_W'], 3)} m²·K/W"
+                    )
+                else:
+                    detalle_termico = (
+                        f"λ = {formato(capa['lambda_w_mk'], 3)} W/m·K; "
+                        f"R = {formato(capa['espesor_m'], 3)} / "
+                        f"{formato(capa['lambda_w_mk'], 3)} = "
+                        f"{formato(capa['R_m2K_W'], 3)} m²·K/W"
+                    )
+                lineas.append(f"  {capa['clave']}: {detalle_termico}")
+            lineas += [
+                f"  R de las capas: {formato(termica['R_capas_m2K_W'], 3)} m²·K/W",
+                f"  R total = Rsi ({formato(termica['R_si_m2K_W'])}) + "
+                f"Rcapas ({formato(termica['R_capas_m2K_W'], 3)}) + "
+                f"Rse ({formato(termica['R_se_m2K_W'])}) = "
+                f"{formato(termica['R_total_m2K_W'], 3)} m²·K/W",
+                f"  Transmitancia térmica U = 1/Rtotal = "
+                f"{formato(termica['U_W_m2K'], 3)} W/m²·K",
                 "  Sin un límite U objetivo configurado, no corresponde marcarla como cumple/no cumple.",
             ]
         else:
             lineas += [
                 "",
-                "Resistencia térmica: pendiente (faltan conductividades λ de "
+                "2. Análisis térmico: pendiente (faltan conductividades λ de "
                 "alguna capa en materiales.json).",
             ]
         # Verificación estructural (CIRSOC 501) con la altura del paño.
+        error_calculo = None
         try:
             carga_losas = muros.cargas_losas_en_muro(self.nombre)
             combinaciones_axiales = muros.combinaciones_axiales_basicas(
@@ -238,40 +280,69 @@ class EditorCapasMuro(QDialog):
                 capas, altura_m=self.altura.value(), mortero="mortero_normal_n",
                 carga_axial_kN_m=combinaciones_axiales["Pu_kN_m"],
             )
-        except (FileNotFoundError, KeyError):
+        except (FileNotFoundError, KeyError) as exc:
+            error_calculo = str(exc)
             est = {"ok": False,
                    "pendiente": "Falta datos/mamposteria.json (biblioteca CIRSOC 501)."}
+        if "carga_losas" in locals():
+            lineas += [
+                "",
+                "3. Cargas de losas/cubiertas y combinaciones:",
+            ]
+            if carga_losas.get("losas"):
+                lineas += [
+                    f"  {losa['nombre']}: D={formato(losa['D_kN_m'])}, "
+                    f"L={formato(losa['L_kN_m'])} kN/m"
+                    for losa in carga_losas["losas"]
+                ]
+            else:
+                lineas.append("  No se detectaron losas/cubiertas activas apoyadas en este muro.")
+            lineas += [
+                f"  Total transferido: D={formato(carga_losas['D_kN_m'])}, "
+                f"L={formato(carga_losas['L_kN_m'])} kN/m.",
+            ]
+            if "combinaciones_axiales" in locals():
+                lineas += [
+                    f"  D total = propio {formato(resultado['peso_lineal_kN_m'])} + "
+                    f"losas/cubiertas {formato(carga_losas['D_kN_m'])} = "
+                    f"{formato(combinaciones_axiales['D_kN_m'])} kN/m; "
+                    f"L total = {formato(combinaciones_axiales['L_kN_m'])} kN/m; "
+                    f"Nserv = D + L = {formato(axial_servicio)} kN/m.",
+                    f"  Combinaciones gravitatorias: "
+                    + ", ".join(
+                        f"{nombre}={formato(valor)}"
+                        for nombre, valor in combinaciones_axiales["combinaciones_kN_m"].items()
+                    )
+                    + f" kN/m; gobierna {combinaciones_axiales['combinacion_critica']} "
+                    + f"→ Pu={formato(combinaciones_axiales['Pu_kN_m'])} kN/m.",
+                ]
+        else:
+            lineas += [
+                "",
+                "3. Cargas de losas/cubiertas: no calculadas.",
+                f"  Motivo: {error_calculo or 'faltan datos para completar el cálculo.'}",
+            ]
         if est.get("ok"):
             comp = est["compresion"]
             cort = est["corte"]
-            zapata = muros.verificar_zapata_corrida(axial_servicio)
             lineas += [
                 "",
-                "Verificación estructural (CIRSOC 501) por metro de muro:",
+                "4. Verificación estructural (CIRSOC 501) por metro de muro:",
                 "  Se toma como portante la hoja de mampostería más gruesa; "
                 "revoques y aislantes no aportan resistencia estructural.",
                 "  El estado PASA/NO PASA mostrado abajo es solo por compresión axial "
                 "con peso propio y losas; aún no incluye viento/sismo ni excentricidad.",
                 f"  Hoja portante: {est['hoja_portante']['clave']} "
-                f"(fm = {est['hoja_portante']['fm_mpa']:.2f} MPa, "
-                f"e = {est['hoja_portante']['espesor_m']:.2f} m)",
-                f"  Esbeltez h/r = {est['esbeltez_hr']:.1f}"
+                f"(fm = {formato(est['hoja_portante']['fm_mpa'])} MPa, "
+                f"e = {formato(est['hoja_portante']['espesor_m'], 3)} m)",
+                f"  Esbeltez h/r = {formato(est['esbeltez_hr'], 1)}"
                 f"{'  ⚠ ESBELTO' if est['es_esbelta'] else ''}",
-                f"  Carga axial de servicio: propio={resultado['peso_lineal_kN_m']:.2f} + "
-                f"losa D={carga_losas['D_kN_m']:.2f} + L={carga_losas['L_kN_m']:.2f} "
-                f"= {axial_servicio:.2f} kN/m",
-                f"  Combinaciones gravitatorias: "
-                + ", ".join(f"{k}={v:.2f}" for k, v in combinaciones_axiales["combinaciones_kN_m"].items())
-                + f" kN/m; gobierna {combinaciones_axiales['combinacion_critica']} "
-                + f"→ Pu={combinaciones_axiales['Pu_kN_m']:.2f} kN/m",
-                f"  Compresión: φ·Pn = {comp['phi_Pn_kN']:.1f} kN "
-                f"(φ={comp['phi']:.2f}, {comp['rama']}) — "
+                f"  Compresión: φ·Pn = {formato(comp['phi_Pn_kN'])} kN "
+                f"(φ={formato(comp['phi'])}, {comp['rama']}) — "
                 f"{'PASA' if comp['pasa'] else 'NO PASA'}",
-                f"  Corte:      φ·Vn = {cort['phi_Vn_kN']:.1f} kN (φ={cort['phi']:.2f})",
-                (f"  Zapata corrida preliminar: B ≥ {zapata['ancho_minimo_m']:.2f} m, "
-                 f"q_adm={zapata['q_adm_kPa']:.1f} kPa, profundidad "
-                 f"{zapata['profundidad_m']} m. {zapata['pendiente']}"
-                 if zapata.get("ok") else f"  Zapata corrida: {zapata.get('pendiente')}"),
+                f"  Corte: φ·Vn = {formato(cort['phi_Vn_kN'])} kN "
+                f"(φ={formato(cort['phi'])}); capacidad informativa, "
+                "sin demanda lateral aplicada.",
                 "  Recomendaciones:",
             ]
             lineas += [f"    · {r}" for r in est["recomendaciones"]]
@@ -281,12 +352,12 @@ class EditorCapasMuro(QDialog):
                 portante = max(capas_mamp, key=lambda c: float(c.get("espesor_m", 0) or 0))
                 lineas += [
                     "", f"Hoja considerada portante: {portante.get('clave')} "
-                    f"({float(portante.get('espesor_m', 0)):.3f} m).",
+                    f"({formato(float(portante.get('espesor_m', 0)), 3)} m).",
                     "Revoques y aislaciones se consideran capas no portantes.",
                 ]
             lineas += [
                 "",
-                "Verificación estructural: " + str(est.get("pendiente", "no disponible.")),
+                "4. Verificación estructural: " + str(est.get("pendiente", "no disponible.")),
             ]
         self._ultimo["cargas_losas"] = carga_losas if "carga_losas" in locals() else None
         self._ultimo["combinaciones_axiales"] = (
@@ -297,14 +368,39 @@ class EditorCapasMuro(QDialog):
             muros.verificar_zapata_corrida(axial_servicio)
             if "axial_servicio" in locals() else None
         )
-        if 'carga_losas' in locals() and carga_losas.get("losas"):
-            lineas += ["", "Losas activas que descargan en este muro:"]
-            lineas += [f"  {l['nombre']}: D={l['D_kN_m']:.2f}, L={l['L_kN_m']:.2f} kN/m"
-                       for l in carga_losas["losas"]]
+        cimiento = self._ultimo["cimiento"]
+        if cimiento and cimiento.get("ok"):
+            profundidad = cimiento.get("profundidad_m")
+            profundidad_txt = (
+                f"{formato(float(profundidad))} m" if profundidad is not None else "no informada"
+            )
+            lineas += [
+                "",
+                "5. Predimensionado de zapata corrida (presión admisible):",
+                f"  B = Nserv / qadm = {formato(cimiento['carga_servicio_kN_m'])} / "
+                f"{formato(cimiento['q_adm_kPa'])} = "
+                f"{formato(cimiento['ancho_minimo_m'], 3)} m; "
+                f"profundidad = {profundidad_txt}.",
+                f"  {cimiento['pendiente']}",
+                "  No se calcula momento flector ni se dimensiona la armadura de la zapata.",
+            ]
+        else:
+            lineas += [
+                "",
+                "5. Predimensionado de zapata corrida: "
+                + str((cimiento or {}).get("pendiente", "no disponible.")),
+            ]
         if 'carga_losas' in locals() and carga_losas.get("avisos"):
             lineas += ["", "Avisos de reacciones de losas:"]
             lineas += [f"  {aviso}" for aviso in carga_losas["avisos"]]
-        self.resultado.setPlainText("\n".join(lineas))
+        lineas += [
+            "",
+            "Alcance: se incluyen el peso propio de las capas y las reacciones "
+            "de las losas/cubiertas modeladas. Encadenados, dinteles u otras cargas "
+            "solo se incluyen si se incorporan explícitamente al modelo.",
+        ]
+        self._ultimo["informe"] = "\n".join(lineas)
+        self.resultado.setPlainText(self._ultimo["informe"])
 
     def datos_guardar(self) -> tuple[list[dict], float, float, dict]:
         return (
@@ -384,7 +480,6 @@ class PaginaMuros(QWidget):
         caja.addWidget(QLabel("Resumen del último cálculo guardado:"))
         caja.addWidget(self.resumen_calculo)
         caja.addWidget(self.tabla, 1)
-        self.refrescar()
 
     # ------------------------------------------------------------------
     def _eliminar_muro(self) -> None:
@@ -506,7 +601,6 @@ class PaginaMuros(QWidget):
         if indice_activo >= 0:
             self.combo_muro_activo.setCurrentIndex(indice_activo)
         self.combo_muro_activo.blockSignals(False)
-        self._actualizar_visor_muro()
 
     def _actualizar_visor_muro(self) -> None:
         """Configura el visor para mostrar el muro activo con sus cargas."""
@@ -588,13 +682,15 @@ class PaginaMuros(QWidget):
 
     @staticmethod
     def _texto_resumen_calculo(nombre: str, datos: dict) -> str:
-        """Resume en la pestaña el último cálculo que se guardó con el muro."""
+        """Muestra el informe guardado del último cálculo del muro."""
         resultado = datos.get("resultado_calculo") or {}
         if not resultado:
             return (
                 f"{nombre}: todavía no hay un resultado guardado. "
                 "Abrí ‘Componer muro / calcular peso propio…’ y guardá la composición."
             )
+        if resultado.get("informe"):
+            return str(resultado["informe"])
         lineas = []
         termica = resultado.get("resistencia_termica") or {}
         if termica:
@@ -739,6 +835,7 @@ class PaginaMuros(QWidget):
         # Guardar la memoria resumida junto con la composición en estructura.json
         # para que el último resultado no dependa de mantener abierto el diálogo.
         muro["resultado_calculo"] = {
+            "informe": resultado.get("informe"),
             "resistencia_termica": resultado.get("resistencia_termica"),
             "cargas_losas": resultado.get("cargas_losas"),
             "combinaciones_axiales": resultado.get("combinaciones_axiales"),

@@ -26,12 +26,16 @@ CRITERIOS DE DISEÑO Y MODELADO DE LOSAS PARA APLICACIÓN ESTRUCTURAL (PYNITE)
   * Espesor mínimo orientativo: Tabla 7.3.1.1 para losas macizas no pretensadas,
     según condición de apoyo (L/20, L/24, L/28 o L/10 en voladizo). No sustituye
     la verificación de flechas cuando corresponda.
+  * Continuidad: Los paños unidireccionales macizos pueden analizarse juntos
+    cuando comparten un borde de apoyo completo, tienen igual cota y espesor,
+    y el usuario confirma que son monolíticos. La continuidad se representa con
+    nodos compartidos entre placas; no se infiere solo por apoyar en un pórtico.
 
 - Losa Maciza Cruzada (Armada en dos direcciones):
   * Cuándo conviene: Planta más cuadrada (Ly / Lx <= 2) apoyada en sus 4 lados.
-  * Continuidad: Si los bordes continúan sobre muros/vigas formando paños adyacentes, 
-    es continua (genera momentos negativos en apoyos). Si es un paño aislado, es 
-    simplemente apoyada.
+  * Continuidad: Se aplican las mismas condiciones explícitas que para la losa
+    maciza unidireccional. Los paños enlazados se resuelven como una malla conjunta.
+  * Las losas alivianadas y casetonadas no forman parte de este análisis continuo.
 
 
 2. CONDICIONES DE BORDE EN ESTRUCTURAS MIXTAS (MUROS VS. PÓRTICOS)
@@ -43,9 +47,11 @@ CRITERIOS DE DISEÑO Y MODELADO DE LOSAS PARA APLICACIÓN ESTRUCTURAL (PYNITE)
     vertical DZ = True), permitiendo el giro libre del borde de la losa.
 
 - Apoyo sobre Pórticos de Hormigón (Vigas y Columnas):
-  * Comportamiento: Las vigas monolíticas otorgan rigidez torsional y continuidad.
-  * Modelado: El borde se vincula compartiendo nodos con la viga o asumiendo 
-    continuidad estructural si hay paños colindantes.
+  * La presencia de un pórtico no basta para asumir empotramiento de la losa.
+  * La rigidez de las vigas no se incluye en el modelo actual de placas.
+  * Los paños macizos explícitamente declarados monolíticos comparten nodos y
+    giro en el borde común; el desplazamiento vertical de ese borde sigue
+    restringido por el apoyo.
 
 
 3. FLUJO DE DATOS REQUERIDO POR EL PROGRAMA (INPUTS)
@@ -79,6 +85,9 @@ valores clave en los puntos críticos de la malla:
 - Fuerzas de corte (Qx, Qy) para verificar la capacidad resistente del hormigón 
     al corte y definir si requiere armadura transversal.
 
-El motor actual informa solicitaciones y reacciones elásticas de paños aislados.
-No dimensiona armaduras, no verifica flecha, fisuración, corte ni continuidad.
+El motor informa solicitaciones elásticas. Para paños con continuidad declarada,
+los momentos de apoyo se estiman con puntos de integración adyacentes al borde,
+no sobre la línea exacta del apoyo. No dimensiona armaduras ni verifica flecha,
+fisuración o resistencia al corte. El análisis continuo no modela la rigidez de
+las vigas ni resuelve la continuidad de losas alivianadas o casetonadas.
 ================================================================================

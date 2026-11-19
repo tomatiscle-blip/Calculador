@@ -26,6 +26,7 @@ from math import cos, radians, tan
 from pathlib import Path
 
 from . import materiales, rutas, muros
+from .formato import numero_local
 from .losas_seccion import componentes_con_hormigon_casetonada
 
 
@@ -252,7 +253,7 @@ class AnalisisCargas:
         lineas.append("-" * 60)
 
         for i in self.items:
-            linea = f"{i['descripcion']:<35} {i['valor']:>7.2f} {i['unidad']} ({i['tipo']})"
+            linea = f"{i['descripcion']:<35} {numero_local(i['valor']):>7} {i['unidad']} ({i['tipo']})"
             lineas.append(linea)
 
             if i["composicion"]:
@@ -273,11 +274,11 @@ class AnalisisCargas:
         lineas.append("-" * 60)
 
         for u, v in D.items():
-            lineas.append(f"D total = {v:.2f} {u}")
+            lineas.append(f"D total = {numero_local(v)} {u}")
         for u, v in L.items():
-            lineas.append(f"L total = {v:.2f} {u}")
+            lineas.append(f"L total = {numero_local(v)} {u}")
         for u, v in W.items():
-            lineas.append(f"W total = {v:.2f} {u}")
+            lineas.append(f"W total = {numero_local(v)} {u}")
 
         return "\n".join(lineas)
 
@@ -360,7 +361,7 @@ def _nombre_componente(componente: dict, material: dict, espesor) -> str:
             return plantilla.format(espesor=metros, espesor_cm=metros * 100)
         return plantilla
     if espesor is not None and material.get("tipo") == "volumetrico":
-        return f"{material['nombre']} {float(espesor):.2f} m"
+        return f"{material['nombre']} {numero_local(float(espesor))} m"
     return material["nombre"]
 
 
@@ -448,8 +449,8 @@ def _items_horizontal(nombre: str, elemento: dict, biblioteca: dict) -> list[dic
         "tipo": "D",
         "valor": carga_lineal_desde_superficie(q_d_total, b),
         "unidad": "kN/m",
-        "composicion": [f"{n:<35} {q:.2f} kN/m2" for n, q in componentes]
-                       + [f"q total = {q_d_total:.2f} kN/m2 · b = {b:.2f} m"],
+        "composicion": [f"{n:<35} {numero_local(q)} kN/m2" for n, q in componentes]
+                       + [f"q total = {numero_local(q_d_total)} kN/m2 · b = {numero_local(b)} m"],
     }]
 
     q_l = valores["L_kNm2"]
@@ -458,7 +459,7 @@ def _items_horizontal(nombre: str, elemento: dict, biblioteca: dict) -> list[dic
         "tipo": "L",
         "valor": carga_lineal_desde_superficie(q_l, b),
         "unidad": "kN/m",
-        "composicion": [f"q = {q_l:.2f} kN/m2 · b = {b:.2f} m"],
+        "composicion": [f"q = {numero_local(q_l)} kN/m2 · b = {numero_local(b)} m"],
     })
 
     if elemento.get("viento_activo"):
@@ -483,7 +484,7 @@ def _item_succion_cubierta(nombre: str, elemento: dict, biblioteca: dict) -> dic
         "tipo": "W",
         "valor": w_succion,
         "unidad": "kN/m",
-        "composicion": f"h = {altura_tributaria:.2f} m · Cd_succion = {cd_succion}",
+        "composicion": f"h = {numero_local(altura_tributaria)} m · Cd_succion = {cd_succion}",
     }
 
 
@@ -493,7 +494,7 @@ def _items_muro(nombre: str, elemento: dict, biblioteca: dict) -> list[dict]:
     espesor = float(elemento["espesor_m"])
     altura = float(elemento["altura_m"])
     items = [{
-        "descripcion": f"Muro de {material['nombre']} (e={int(espesor*100)} cm · h={altura:.2f} m)",
+        "descripcion": f"Muro de {material['nombre']} (e={int(espesor*100)} cm · h={numero_local(altura)} m)",
         "tipo": "D",
         "valor": carga_lineal_muro(gamma, espesor, altura),
         "unidad": "kN/m",
@@ -513,7 +514,7 @@ def _items_muro(nombre: str, elemento: dict, biblioteca: dict) -> list[dict]:
                     "tipo": "D",
                     "valor": carga_lineal_desde_superficie(q_superficial, b),
                     "unidad": "kN/m",
-                    "composicion": f"q = {q_superficial:.2f} kN/m2 · b = {b:.2f} m",
+                    "composicion": f"q = {numero_local(q_superficial)} kN/m2 · b = {numero_local(b)} m",
                 })
             except (KeyError, ValueError, TypeError) as exc:
                 items.append({
@@ -566,11 +567,11 @@ def items_viento_general(datos: dict, biblioteca: dict, ancho_override: float | 
         ancho = float(configuracion.get("ancho_tributario_m", 0.0))
     w_viento = carga_lineal_viento(viento["V"], ancho, viento["Cd"], viento["rho"])
     return [{
-        "descripcion": f"Viento diseño {viento['ciudad']} (V={viento['V']:.0f} m/s) – general",
+        "descripcion": f"Viento diseño {viento['ciudad']} (V={numero_local(viento['V'], 0)} m/s) – general",
         "tipo": "W",
         "valor": w_viento,
         "unidad": "kN/m",
-        "composicion": f"b = {ancho:.2f} m · Cd = {viento['Cd']}",
+        "composicion": f"b = {numero_local(ancho)} m · Cd = {viento['Cd']}",
     }]
 
 
@@ -623,7 +624,7 @@ def informe_completo(analisis: AnalisisCargas) -> str:
     """Resumen + combinaciones de CIRSOC, con el mismo texto de siempre."""
     texto = analisis.resumen_texto() + "\n\nCOMBINACIONES CIRSOC:\n"
     for nombre, valor in combinaciones(analisis.items).items():
-        texto += f"{nombre}: {valor:.2f} kN/m\n"
+        texto += f"{nombre}: {numero_local(valor)} kN/m\n"
     datos = datos_cargas()
     viento_config = (datos.get("viento") or {})
     if viento_config.get("activo"):
@@ -652,17 +653,17 @@ def informe_completo(analisis: AnalisisCargas) -> str:
             estado = "APLICADO" if resumen["aplicado"] else "NO APLICA"
             texto += (
                 f"  {nombre} (orientación {resumen['direccion_portico'].upper()}, "
-                f"sobre línea {resumen['eje_ubicacion'].upper()}={resumen['posicion_ubicacion_m']:.2f} m): {estado} · "
-                f"viento global {resumen['direccion_global'].upper()} · V={resumen['V_basica_ms']:.2f} m/s · "
-                f"b={resumen['ancho_tributario_m']:.2f} m · q·Cd={resumen['presion_modelada_kN_m2']:.3f} kN/m² · "
-                f"w={resumen['carga_lineal_kN_m']:.3f} kN/m\n"
+                f"sobre línea {resumen['eje_ubicacion'].upper()}={numero_local(resumen['posicion_ubicacion_m'])} m): {estado} · "
+                f"viento global {resumen['direccion_global'].upper()} · V={numero_local(resumen['V_basica_ms'])} m/s · "
+                f"b={numero_local(resumen['ancho_tributario_m'])} m · q·Cd={numero_local(resumen['presion_modelada_kN_m2'], 3)} kN/m² · "
+                f"w={numero_local(resumen['carga_lineal_kN_m'], 3)} kN/m\n"
             )
             if resumen["motivo"]:
                 texto += f"    Motivo: {resumen['motivo']}\n"
             for piso in resumen["pisos"]:
                 texto += (
-                    f"    nivel {piso['nivel_m']:.2f} m: F={piso['fuerza_total_kN']:.2f} kN "
-                    f"({piso['cantidad_columnas']} columnas; {piso['fuerza_por_columna_kN']:.2f} kN/columna)\n"
+                    f"    nivel {numero_local(piso['nivel_m'])} m: F={numero_local(piso['fuerza_total_kN'])} kN "
+                    f"({piso['cantidad_columnas']} columnas; {numero_local(piso['fuerza_por_columna_kN'])} kN/columna)\n"
                 )
     return texto
 
@@ -752,16 +753,16 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
         ancho_txt = ""
         if elemento.get("tipo") in ("losa", "cubierta"):
             ancho_txt = (
-                f" · luz completa={float(elemento.get('luz_transversal_m', 0.0)):.2f} m"
-                f" · b tributario={float(elemento['ancho_tributario_m']):.2f} m"
+                f" · luz completa={numero_local(float(elemento.get('luz_transversal_m', 0.0)))} m"
+                f" · b tributario={numero_local(float(elemento['ancho_tributario_m']))} m"
             )
         lineas.append(
             f"{app.get('id', 'Aplicación')} · {app.get('carga_id')} {nombre} → "
             f"{app.get('portico')} / {app.get('tramo_id')} · "
-            f"x={float(app.get('x_inicio_m', 0)):.2f}–{float(app.get('x_fin_m', 0)):.2f} m{ancho_txt}"
+            f"x={numero_local(float(app.get('x_inicio_m', 0)))}–{numero_local(float(app.get('x_fin_m', 0)))} m{ancho_txt}"
         )
         for item in items:
-            lineas.append(f"  {item['tipo']}: {item['valor']:.2f} {item['unidad']} · {item['descripcion']}")
+            lineas.append(f"  {item['tipo']}: {numero_local(item['valor'])} {item['unidad']} · {item['descripcion']}")
             composicion = item.get("composicion")
             if isinstance(composicion, list):
                 lineas.extend(f"    {parte}" for parte in composicion)
@@ -782,7 +783,7 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
             l_previa = float(cargas_previas.get("L_total", 0.0))
         else:
             d_previa = l_previa = 0.0
-        lineas.append(f"\n{portico} · {tramo_id} (L={longitud:.2f} m) · cargas D/L de P00 {'reemplazadas' if reemplaza else 'sumadas'}")
+        lineas.append(f"\n{portico} · {tramo_id} (L={numero_local(longitud)} m) · cargas D/L de P00 {'reemplazadas' if reemplaza else 'sumadas'}")
         ordenados = sorted(puntos)
         for a, b in zip(ordenados, ordenados[1:]):
             medio = (a + b) / 2
@@ -793,10 +794,10 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
                         totales[item["tipo"]] = totales.get(item["tipo"], 0.0) + float(item["valor"])
             combos = combinaciones_de_componentes(totales["D"], totales["L"], totales["W"])
             lineas.append(
-                f"  x={a:.2f}–{b:.2f} m: D={totales['D']:.2f}, L={totales['L']:.2f}, "
-                f"W={totales['W']:.2f} kN/m"
+                f"  x={numero_local(a)}–{numero_local(b)} m: D={numero_local(totales['D'])}; L={numero_local(totales['L'])}; "
+                f"W={numero_local(totales['W'])} kN/m"
             )
-            lineas.extend(f"    {nombre_combo}: {valor:.2f} kN/m" for nombre_combo, valor in combos.items())
+            lineas.extend(f"    {nombre_combo}: {numero_local(valor)} kN/m" for nombre_combo, valor in combos.items())
 
     # --- Viento global del proyecto (informativo, no se suma a D/L) ---
     viento_config = (datos.get("viento") or {})
@@ -824,16 +825,16 @@ def informe_aplicaciones(datos: dict | None = None, biblioteca: dict | None = No
             estado = "APLICADO" if resumen["aplicado"] else "NO APLICA"
             lineas.append(
                 f"  {nombre} (orientación {resumen['direccion_portico'].upper()}, "
-                f"sobre línea {resumen['eje_ubicacion'].upper()}={resumen['posicion_ubicacion_m']:.2f} m): {estado} · "
-                f"dirección global {resumen['direccion_global'].upper()} · V={resumen['V_basica_ms']:.2f} m/s · "
-                f"b={resumen['ancho_tributario_m']:.2f} m · w={resumen['carga_lineal_kN_m']:.3f} kN/m"
+                f"sobre línea {resumen['eje_ubicacion'].upper()}={numero_local(resumen['posicion_ubicacion_m'])} m): {estado} · "
+                f"dirección global {resumen['direccion_global'].upper()} · V={numero_local(resumen['V_basica_ms'])} m/s · "
+                f"b={numero_local(resumen['ancho_tributario_m'])} m · w={numero_local(resumen['carga_lineal_kN_m'], 3)} kN/m"
             )
             if resumen["motivo"]:
                 lineas.append(f"    Motivo: {resumen['motivo']}")
             for piso in resumen["pisos"]:
                 lineas.append(
-                    f"    nivel {piso['nivel_m']:.2f} m: F={piso['fuerza_total_kN']:.2f} kN, "
-                    f"{piso['cantidad_columnas']} columnas × {piso['fuerza_por_columna_kN']:.2f} kN"
+                    f"    nivel {numero_local(piso['nivel_m'])} m: F={numero_local(piso['fuerza_total_kN'])} kN, "
+                    f"{piso['cantidad_columnas']} columnas × {numero_local(piso['fuerza_por_columna_kN'])} kN"
                 )
     return "\n".join(lineas) + "\n"
 

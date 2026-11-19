@@ -84,15 +84,18 @@ def analizar_paño_macizo(elemento: dict, valores: dict, espesor_m: float,
         "inf": lambda n: abs(n.Y) <= tol,
         "sup": lambda n: abs(n.Y - ancho) <= tol,
     }
-    for nodo in nodos:
-        vertical = any(bordes[lado](nodo) for lado in bordes_apoyados)
-        modelo.def_support(nodo.name, support_DZ=vertical)
     # Evitar modos rígidos en el plano sin empotrar la flexión de placa.
     esquina = min(nodos, key=lambda n: n.X**2 + n.Y**2)
     segundo = min((n for n in nodos if n.name != esquina.name),
                   key=lambda n: abs(n.Y) + abs(n.X - min(luz, ancho)))
-    modelo.def_support(esquina.name, support_DX=True, support_DY=True)
-    modelo.def_support(segundo.name, support_DX=True)
+    for nodo in nodos:
+        vertical = any(bordes[lado](nodo) for lado in bordes_apoyados)
+        modelo.def_support(
+            nodo.name,
+            support_DX=nodo.name in {esquina.name, segundo.name},
+            support_DY=nodo.name == esquina.name,
+            support_DZ=vertical,
+        )
 
     D = float(valores["D_kNm2"])
     L = float(valores["L_kNm2"])
@@ -100,7 +103,11 @@ def analizar_paño_macizo(elemento: dict, valores: dict, espesor_m: float,
         modelo.add_quad_surface_pressure(quad.name, -D, case="D")
         if L:
             modelo.add_quad_surface_pressure(quad.name, -L, case="L")
-    combinaciones = cargas.combinaciones_de_componentes(D, L, 0.0)
+    combinaciones = {
+        nombre: fD * D + fL * L
+        for nombre, (fD, fL, fW) in cargas.FACTORES_COMBINACIONES.items()
+        if fW == 0
+    }
     modelo.add_load_combo("D_servicio", {"D": 1.0})
     modelo.add_load_combo("L_servicio", {"L": 1.0})
     for nombre, factores in cargas.FACTORES_COMBINACIONES.items():
@@ -110,6 +117,7 @@ def analizar_paño_macizo(elemento: dict, valores: dict, espesor_m: float,
     modelo.analyze_linear(check_stability=True, check_statics=False)
 
     resultados = {}
+    momentos_apoyos = {}
     coordenadas = (-1 / math.sqrt(3), 0.0, 1 / math.sqrt(3))
     for nombre_combo in combinaciones:
         if nombre_combo not in modelo.load_combos:
@@ -128,6 +136,16 @@ def analizar_paño_macizo(elemento: dict, valores: dict, espesor_m: float,
             k: {"max": max(v, default=0.0), "min": min(v, default=0.0),
                 "max_abs": max((abs(x) for x in v), default=0.0)}
             for k, v in componentes.items()
+        }
+        momentos_apoyos[nombre_combo] = {
+            lado: {
+                "componente": "Mx" if lado in ("izq", "der") else "My",
+                "max": 0.0,
+                "min": 0.0,
+                "max_abs": 0.0,
+                "metodo": "apoyo simple idealizado",
+            }
+            for lado in bordes_apoyados
         }
 
     reacciones = []
@@ -175,6 +193,7 @@ def analizar_paño_macizo(elemento: dict, valores: dict, espesor_m: float,
         "cargas": {"D_kNm2": D, "L_kNm2": L},
         "combinaciones_kNm2": combinaciones,
         "solicitaciones": resultados,
+        "momentos_apoyos": momentos_apoyos,
         "reacciones": reacciones,
         "alcance": "Placa maciza elástica; apoyos simples verticales en los bordes indicados. No dimensiona armaduras, no modela continuidad ni verifica flecha, corte o fisuración.",
     }

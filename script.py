@@ -178,6 +178,10 @@ def _aplicaciones_losas_portico(
         direccion_luz = str(panel.get("direccion_luz", "x"))
         direccion_transversal = "y" if direccion_luz == "x" else "x"
         bidireccional = elemento.get("tipologia") in ("maciza_cruzada", "casetonada")
+        continuidad_maciza = (
+            elemento.get("tipologia") == "maciza"
+            and bool(panel.get("continuidad_con"))
+        )
         luz = float(elemento.get("luz_transversal_m", 0.0) or 0.0)
         ejes_panel = panel.get("ejes", {}) or {}
         ejes_luz = ejes_panel.get(direccion_luz, {}) or {}
@@ -193,11 +197,13 @@ def _aplicaciones_losas_portico(
             avisos.append(f"{nombre_losa}: geometrÃ­a de paÃ±o invÃ¡lida; no se aplicÃ³.")
             continue
 
-        if bidireccional:
+        if bidireccional or continuidad_maciza:
             try:
                 from calc import losas_macizas
 
-                anchos_apoyo = losas_macizas.reacciones_y_anchos_por_borde(elemento)
+                anchos_apoyo = losas_macizas.reacciones_y_anchos_por_borde(
+                    elemento, elementos=elementos
+                )
             except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
                 avisos.append(
                     f"{nombre_losa}: no se pudieron obtener las reacciones "

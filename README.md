@@ -153,12 +153,17 @@ falta, en qué orden y cómo se retoma. Cada vez que volvemos al proyecto, se em
 | Ver si algo cambió respecto de esa foto | `py tools\regresion.py comparar` |
 | Comparar los dos motores (anaStruct vs Pynite) | `py tools\comparar_motores.py` |
 
-La ventana tiene 10 pestañas: **Inicio** (carátula, planta por nivel y referencias), **Cargas**,
-**Pórticos** (selector + esquema de elevación + resumen), **1 · Estado y etapas** (el semáforo en
-colores), **2 · Vigas**, **3 · Columnas**, **4 · Bases**, **5 · Losas**, **6 · Muros** y
-**7 · Archivos** (doble clic abre el archivo con Excel, el visor de DXF, etc.). Columnas requiere
-solicitaciones vigentes; bases requiere además columnas calculadas. Los parámetros
-geotécnicos se ingresan en su formulario y quedan guardados en `datos/terreno.json`.
+La ventana tiene nueve pestañas principales: **Inicio** (carátula, planta por nivel y
+referencias), **1 · Estado y etapas** (semáforo), **Cargas**, **Configuración de obra**,
+**Pórticos**, **Estructura global**, **5 · Losas**, **6 · Muros** y **7 · Archivos**
+(doble clic abre el archivo con su programa asociado). Vigas, columnas y bases son
+subpestañas de **Pórticos**; columnas requiere solicitaciones vigentes y bases requiere
+además columnas calculadas. Abrir o refrescar la app muestra datos guardados; los análisis
+estructurales se ejecutan desde las acciones específicas para evitar cálculos pesados
+implícitos durante el inicio. El doble clic en `calculador.bat` usa `pythonw.exe` del entorno
+`.venv`, sin dejar una consola abierta. Los parámetros
+geotécnicos se ingresan en su formulario y quedan guardados en
+`Obras/<obra>/datos/terreno.json`.
 
 Para crear un pórtico nuevo, definí primero ejes X/Y y al menos dos niveles Z desde **Inicio**.
 > La aplicación está mutando desde un visor de pórticos 2D a una **planta de obra por nivel**:
@@ -358,7 +363,7 @@ campos hasta que un flujo los necesite.
   y se rompían si el programa arrancaba desde otra carpeta).
 - `calc/pipeline.py` — las 10 etapas en orden, con entradas, salidas y **semáforo**.
 - `tools/regresion.py` — la red de seguridad (congela resultados y avisa si cambian).
-- `app/` — la ventana (PySide6, 10 pestañas) + `calculador.bat`; `estado.bat`,
+- `app/` — la ventana (PySide6, 9 pestañas principales) + `calculador.bat`; `estado.bat`,
   `ver_cambios.bat`; `requirements.txt` y `.gitignore`.
 
 ### Sin guardar en git (quedó a medias el 28/09)

@@ -24,12 +24,14 @@ from __future__ import annotations
 
 import csv
 import math
+import os
 import sys
+import tempfile
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from pathlib import Path
 
 from . import cargas, materiales, rutas
+from .formato import numero_local, parse_numero, valor_csv
 
 # ---------------------------------------------------------------------------
 # Constantes del desarrollo clásico (los mismos valores de siempre)
@@ -309,7 +311,7 @@ def calcular(datos: dict, biblioteca: dict | None = None, tabla_viguetas: dict |
     if elegido is None:
         raise ValueError(
             f"Ninguna vigueta de la serie {serie} cumple con el momento requerido "
-            f"({momento_busqueda:.2f} kg·m)"
+            f"({numero_local(momento_busqueda)} kg·m)"
         )
     mom_disponible, tipo, combo = elegido
 
@@ -468,10 +470,10 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
     m.append(f"Losa: {r.nombre}\n")
     if r.carga_id:
         m.append(f"Carga del proyecto: {r.carga_id}\n")
-    m.append(f"Luz libre: {r.luz_libre_m:.2f} m\n")
-    m.append(f"Luz de cálculo (con tolerancia): {r.luz_calculo_m:.2f} m\n\n")
-    m.append(f"Ancho del paño: {r.ancho_losa_m:.2f} m\n")
-    m.append(f"Área para cómputo: {r.area_losa_m2:.2f} m²\n\n")
+    m.append(f"Luz libre: {numero_local(r.luz_libre_m)} m\n")
+    m.append(f"Luz de cálculo (con tolerancia): {numero_local(r.luz_calculo_m)} m\n\n")
+    m.append(f"Ancho del paño: {numero_local(r.ancho_losa_m)} m\n")
+    m.append(f"Área para cómputo: {numero_local(r.area_losa_m2)} m²\n\n")
 
     subtotal_D2 = 0.0
     m.append("Materiales seleccionados:\n")
@@ -488,39 +490,40 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
             else carga_de_material(material)
         )
         subtotal_D2 += carga
-        m.append(f" - {categoria}: {nombre} → {carga:.3f} kN/m²\n")
-    m.append(f"Subtotal cargas accesorias (D2): {subtotal_D2:.3f} kN/m²\n")
-    m.append(f"Total cargas permanentes (D1+D2): {r.D:.3f} kN/m²\n\n")
+        m.append(f" - {categoria}: {nombre} → {numero_local(carga, 3)} kN/m²\n")
+    m.append(f"Subtotal cargas accesorias (D2): {numero_local(subtotal_D2, 3)} kN/m²\n")
+    m.append(f"Total cargas permanentes (D1+D2): {numero_local(r.D, 3)} kN/m²\n\n")
 
     m.append("Cargas consideradas:\n")
-    m.append(f" - D1 (peso propio): {r.D1:.3f} kN/m²\n")
+    m.append(f" - D1 (peso propio): {numero_local(r.D1, 3)} kN/m²\n")
     m.append(" - D1 se toma del forjado base configurado; no se recalibra automáticamente con la vigueta elegida.\n")
-    m.append(f" - D2 (accesoria): {r.D2:.3f} kN/m²\n")
-    m.append(f" - D total: {r.D:.3f} kN/m²\n")
-    m.append(f" - Sobrecarga seleccionada: {r.uso_sobrecarga} → {r.L:.3f} kN/m²\n")
-    m.append(f" - Combinación crítica: {r.combo_critico} → {r.Q:.3f} kN/m²\n\n")
+    m.append(f" - D2 (accesoria): {numero_local(r.D2, 3)} kN/m²\n")
+    m.append(f" - D total: {numero_local(r.D, 3)} kN/m²\n")
+    m.append(f" - Sobrecarga seleccionada: {r.uso_sobrecarga} → {numero_local(r.L, 3)} kN/m²\n")
+    m.append(f" - Combinación crítica: {r.combo_critico} → {numero_local(r.Q, 3)} kN/m²\n\n")
 
     m.append("Selección de vigueta:\n")
     m.append(f" - Serie de vigueta: {r.serie}\n")
     m.append(f" - Tipo de vigueta seleccionada: {r.tipo_vigueta}\n")
     m.append(f" - Combinación bovedilla/losa: {r.combo}\n")
-    m.append(f" - Momento requerido (sin φ): {r.momento_req_kgm:.2f} kg·m\n")
-    m.append(f" - Momento requerido para búsqueda (con φ aplicado): {r.momento_busqueda_kgm:.2f} kg·m\n")
-    m.append(f" - Momento disponible de la vigueta seleccionada: {r.momento_disponible_kgm:.2f} kg·m\n")
-    m.append(f" - Momento reducido aplicado φ={r.phi}: {r.momento_reducido_kgm:.2f} kg·m ({r.momento_reducido_kNm:.2f} kN·m)\n")
+    m.append(f" - Momento requerido (sin φ): {numero_local(r.momento_req_kgm)} kg·m\n")
+    m.append(f" - Momento requerido para búsqueda (con φ aplicado): {numero_local(r.momento_busqueda_kgm)} kg·m\n")
+    m.append(f" - Momento disponible de la vigueta seleccionada: {numero_local(r.momento_disponible_kgm)} kg·m\n")
+    m.append(f" - Momento reducido aplicado φ={numero_local(r.phi)}: {numero_local(r.momento_reducido_kgm)} kg·m ({numero_local(r.momento_reducido_kNm)} kN·m)\n")
     m.append(" - Referencia de capacidad: Tabla 4 – Tensolite\n\n")
 
     m.append("Cómputo de materiales:\n")
-    m.append(f" - Área de losa: {r.area_losa_m2:.2f} m²\n")
-    m.append(f" - Viguetas: {r.n_viguetas} unidades de {r.luz_calculo_m:.2f} m\n")
+    m.append(f" - Área de losa: {numero_local(r.area_losa_m2)} m²\n")
+    m.append(f" - Viguetas: {r.n_viguetas} unidades de {numero_local(r.luz_calculo_m)} m\n")
     m.append(f" - Bovedillas: {r.n_bloques} unidades EPS n°{r.bovedilla_altura}\n")
-    m.append(f" - Hormigón: {r.vol_hormigon_m3:.3f} m³ (capa de compresión)\n\n")
+    m.append(f" - Hormigón: {numero_local(r.vol_hormigon_m3, 3)} m³ (capa de compresión)\n\n")
 
     malla = r.malla
     m.append("Malla electrosoldada SIMA Q-131 / R-131:\n")
-    m.append(f" - Paño comercial: {malla['tamanio_pano']} m (solape {malla['solape_m']:.2f} m)\n")
-    m.append(f" - Área losa: {malla['area_losa_m2']:.2f} m²\n")
-    m.append(f" - Área efectiva de paño: {malla['area_pano_efectiva_m2']:.2f} m²\n")
+    tamanio_pano = str(malla["tamanio_pano"]).replace(".", ",")
+    m.append(f" - Paño comercial: {tamanio_pano} m (solape {numero_local(malla['solape_m'])} m)\n")
+    m.append(f" - Área losa: {numero_local(malla['area_losa_m2'])} m²\n")
+    m.append(f" - Área efectiva de paño: {numero_local(malla['area_pano_efectiva_m2'])} m²\n")
     m.append(f" - Cantidad adoptada: {malla['cantidad_mallas']} unidad(es)\n")
     if malla.get("nota"):
         m.append(f" - Nota: {malla['nota']}\n")
@@ -528,11 +531,11 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
 
     nervios = r.nervios
     m.append("Nervios de refuerzo:\n")
-    m.append(f" - Tramo máximo: {TRAMO_MAX_NERVIO_M:.2f} m\n")
+    m.append(f" - Tramo máximo: {numero_local(TRAMO_MAX_NERVIO_M)} m\n")
     m.append(f" - Nervios requeridos: {nervios['n_nervios']} unidades\n")
-    m.append(f" - Especificación por nervio: {nervios['barras_por_nervio']} barras Ø{nervios['diametro_mm']} de {nervios['largo_por_nervio_m']:.2f} m\n")
+    m.append(f" - Especificación por nervio: {nervios['barras_por_nervio']} barras Ø{nervios['diametro_mm']} de {numero_local(nervios['largo_por_nervio_m'])} m\n")
     m.append(f" - Total barras: {nervios['barras_total']} unidades\n")
-    m.append(f" - Longitud total de barras: {nervios['longitud_total_barras_m']:.2f} m\n\n")
+    m.append(f" - Longitud total de barras: {numero_local(nervios['longitud_total_barras_m'])} m\n\n")
 
     m.append("Reacciones de apoyo (sin combinar; cargas lineales):\n")
     for apoyo in r.reacciones:
@@ -552,11 +555,11 @@ def generar_memoria(resultado: ResultadoLosa, biblioteca: dict | None = None) ->
             nombre_apoyo = ""
         sufijo = f" → {nombre_apoyo}" if nombre_apoyo else ""
         m.append(
-            f" - Borde {apoyo['apoyo']}{sufijo}: D={cargas_apoyo['D']:.3f}, "
-            f"L={cargas_apoyo['L']:.3f}, W={cargas_apoyo['W']:.3f} kN/m\n"
+            f" - Borde {apoyo['apoyo']}{sufijo}: D={numero_local(cargas_apoyo['D'], 3)}; "
+            f"L={numero_local(cargas_apoyo['L'], 3)}; W={numero_local(cargas_apoyo['W'], 3)} kN/m\n"
         )
         for nombre_combo, valor in apoyo["combinaciones"].items():
-            m.append(f"   {nombre_combo}: {valor:.3f} kN/m\n")
+            m.append(f"   {nombre_combo}: {numero_local(valor, 3)} kN/m\n")
     m.append("\n")
 
     m.append("=================================\n")
@@ -590,18 +593,18 @@ def fila_computo(resultado: ResultadoLosa) -> list:
         r.nombre, r.luz_libre_m, r.luz_calculo_m, r.serie, r.tipo_vigueta,
         r.n_viguetas, r.n_bloques, r.vol_hormigon_m3,
         r.momento_req_kgm, r.momento_reducido_kNm, r.area_losa_m2,
-        r.malla["tamanio_pano"], r.malla["area_pano_efectiva_m2"], r.malla["cantidad_mallas"],
+        str(r.malla["tamanio_pano"]).replace(".", ","), r.malla["area_pano_efectiva_m2"], r.malla["cantidad_mallas"],
         r.nervios["n_nervios"], r.nervios["barras_por_nervio"], r.nervios["diametro_mm"],
         r.nervios["largo_por_nervio_m"], r.nervios["barras_total"], r.nervios["longitud_total_barras_m"],
     ]
 
 
 def guardar_memoria(resultado: ResultadoLosa, archivo=None) -> Path:
-    """Guarda la memoria en salidas/losas (nombre con la fecha, como siempre)."""
+    """Guarda la memoria vigente de la losa, reemplazándola al recalcular."""
     if archivo is None:
         rutas.SAL_LOSAS.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        archivo = rutas.SAL_LOSAS / f"memoria_losa_{resultado.nombre}_{timestamp}.txt"
+        base = rutas.nombre_seguro(resultado.nombre)
+        archivo = rutas.SAL_LOSAS / f"memoria_losa_{base}.txt"
     return rutas.guardar_texto(archivo, resultado.memoria)
 
 
@@ -609,16 +612,55 @@ def guardar_computo(resultado: ResultadoLosa, archivo=None) -> Path:
     """Agrega una fila al cómputo de losas (crea el archivo con encabezado si no existe)."""
     camino = Path(archivo) if archivo is not None else rutas.COMPUTO_LOSAS
     camino.parent.mkdir(parents=True, exist_ok=True)
-    nuevo = not camino.exists()
-    with camino.open("a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+    nuevo = not camino.exists() or camino.stat().st_size == 0
+    if not nuevo:
+        _migrar_computo_csv(camino)
+    with camino.open("a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f, delimiter=";")
         if nuevo:
             writer.writerow(COLUMNAS_COMPUTO)
-        writer.writerow(fila_computo(resultado))
+        fila = fila_computo(resultado)
+        decimales = {1: 2, 2: 2, 7: 3, 8: 2, 9: 2, 10: 2, 12: 2, 17: 2, 19: 2}
+        writer.writerow([valor_csv(valor, decimales.get(i, 2)) for i, valor in enumerate(fila)])
     # El CSV se escribe directo (no pasa por guardar_json): las fechas cacheadas
     # ya no valen y hay que avisar al semáforo que cambió la salida.
     rutas.invalidar_cache_firmas()
     return camino
+
+
+def _migrar_computo_csv(camino: Path) -> None:
+    """Convierte el CSV histórico separado por comas al formato regional."""
+    with camino.open("r", encoding="utf-8-sig", newline="") as f:
+        primera_linea = f.readline()
+    if ";" in primera_linea:
+        return
+
+    with camino.open("r", encoding="utf-8-sig", newline="") as f:
+        filas = list(csv.reader(f))
+    if not filas or tuple(filas[0]) != COLUMNAS_COMPUTO:
+        raise ValueError(f"El archivo de cómputo de losas tiene encabezados inesperados: {camino}")
+
+    decimales = {1: 2, 2: 2, 7: 3, 8: 2, 9: 2, 10: 2, 12: 2, 17: 2, 19: 2}
+    ruta_temporal = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8-sig", newline="", dir=camino.parent, delete=False
+        ) as temporal:
+            ruta_temporal = Path(temporal.name)
+            writer = csv.writer(temporal, delimiter=";")
+            writer.writerow(filas[0])
+            for fila in filas[1:]:
+                if len(fila) != len(COLUMNAS_COMPUTO):
+                    raise ValueError(f"Fila inválida en el cómputo de losas: {camino}")
+                for indice, decimales_celda in decimales.items():
+                    if fila[indice]:
+                        fila[indice] = numero_local(parse_numero(fila[indice]), decimales_celda)
+                writer.writerow(fila)
+        os.replace(ruta_temporal, camino)
+    except Exception:
+        if ruta_temporal is not None and ruta_temporal.exists():
+            ruta_temporal.unlink()
+        raise
 
 
 def ruta_losa(nombre: str) -> Path:
@@ -753,7 +795,7 @@ def resumen_reacciones(conjunto: dict) -> str:
     for nombre, elemento in conjunto["elementos"].items():
         lineas.append(
             f"{nombre}  ({elemento['tipo']}, {elemento['direccion']}, "
-            f"L={elemento['luz_calculo_m']:.2f} m)"
+            f"L={numero_local(elemento['luz_calculo_m'])} m)"
         )
         for reaccion in elemento["reacciones"]:
             c = reaccion["cargas"]
@@ -770,15 +812,15 @@ def resumen_reacciones(conjunto: dict) -> str:
             else:
                 donde = ""
             lineas.append(
-                f"    apoyo {reaccion['apoyo']:<4} D={c['D']:7.2f}  L={c['L']:7.2f}  "
-                f"W={c['W']:6.2f}{donde}"
+                f"    apoyo {reaccion['apoyo']:<4} D={numero_local(c['D']):>7}  L={numero_local(c['L']):>7}  "
+                f"W={numero_local(c['W']):>6}{donde}"
             )
     lineas.append("")
     if conjunto["por_viga"]:
         lineas.append("Reparto por viga (suma de reacciones):")
         for clave, acum in conjunto["por_viga"].items():
             lineas.append(
-                f"    {clave:<28} D={acum['D']:7.2f}  L={acum['L']:7.2f}  W={acum['W']:6.2f}"
+                f"    {clave:<28} D={numero_local(acum['D']):>7}  L={numero_local(acum['L']):>7}  W={numero_local(acum['W']):>6}"
             )
     else:
         lineas.append("(ninguna losa declara 'apoya_en' todavía: no hay reparto por viga)")
@@ -810,8 +852,8 @@ def lista_de_losas() -> str:
 def resumen_texto(resultado: ResultadoLosa) -> str:
     return (
         f"{resultado.nombre}: serie {resultado.serie} · {resultado.tipo_vigueta} "
-        f"({resultado.combo}) · L={resultado.luz_calculo_m:.2f} m · "
-        f"Q={resultado.Q:.2f} kN/m² ({resultado.combo_critico}) · "
+        f"({resultado.combo}) · L={numero_local(resultado.luz_calculo_m)} m · "
+        f"Q={numero_local(resultado.Q)} kN/m² ({resultado.combo_critico}) · "
         f"{resultado.n_viguetas} viguetas"
     )
 
@@ -851,7 +893,7 @@ def _main(argv: list[str]) -> int:
         print("Reacciones de apoyo (D / L / W en kN/m):")
         for reaccion in resultado.reacciones:
             c = reaccion["cargas"]
-            print(f"  apoyo {reaccion['apoyo']:<4} D={c['D']:7.2f}  L={c['L']:7.2f}  W={c['W']:6.2f}")
+            print(f"  apoyo {reaccion['apoyo']:<4} D={numero_local(c['D']):>7}  L={numero_local(c['L']):>7}  W={numero_local(c['W']):>6}")
         if "--guardar" in opciones:
             memoria, _computo, json_losa = guardar_resultado(resultado)
             print(f"\nGuardado en: {memoria}")

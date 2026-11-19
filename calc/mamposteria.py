@@ -23,6 +23,7 @@ from __future__ import annotations
 import math
 
 from . import rutas
+from .formato import numero_local
 
 
 def cargar(biblioteca: dict | None = None) -> dict:
@@ -302,7 +303,7 @@ def _recomendar_armadura(datos: dict, armada: bool, es_esbelta: bool,
     as_min_cm2 = rho_min * an_mm2 / 100.0
     recos.append(
         f"Columnas de refuerzo (extremos y encuentros): cuantía {rho_min}–{rho_max} de An "
-        f"→ As mín ≳ {as_min_cm2:.2f} cm² por franja; mínimo {vert.get('minimo_barras', 4)} barras; "
+        f"→ As mín ≳ {numero_local(as_min_cm2)} cm² por franja; mínimo {vert.get('minimo_barras', 4)} barras; "
         f"estribos Ø ≥ {vert.get('estribos_diametro_min_mm', 6)} mm."
     )
     # Dintel sobre vanos.
@@ -319,5 +320,4 @@ def _recomendar_armadura(datos: dict, armada: bool, es_esbelta: bool,
         recos.append("Nota: calculado como mampostería SIMPLE (sin aporte de armadura a Pn). "
                      "En zona 0 el armado no es obligatorio por sismo, pero verificar flexión fuera del plano.")
     return recos
-
 

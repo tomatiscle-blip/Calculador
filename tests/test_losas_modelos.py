@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
@@ -6,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
-from calc import cargas, losas, losas_macizas, muros, portico
+from calc import cargas, losas, losas_continuidad, losas_macizas, muros, portico
 from calc.losas_pynite import analizar_paño_macizo
 from calc.losas_seccion import espesor_equivalente_hormigon_casetonada
 from app.cargas_proyecto import EditorElemento
@@ -82,6 +84,147 @@ class ModelosDeLosasTests(unittest.TestCase):
             }]
         return elemento
 
+    def elemento_contiguo(self, nombre, identificador, x_inicio, x_fin, apoyo_izq, apoyo_der):
+        elemento = self.elemento("maciza")
+        elemento.update({
+            "id": identificador,
+            "luz_transversal_m": x_fin - x_inicio,
+            "ancho_losa_m": 4.0,
+            "panel_ejes": {
+                "direccion_luz": "x",
+                "cota_apoyo_m": 3.0,
+                "coordenada_libre_inicio_m": 0.0,
+                "coordenada_libre_fin_m": 4.0,
+                "ejes": {
+                    "x": {
+                        "inicio": {"id": f"x{x_inicio}", "coordenada_m": x_inicio},
+                        "fin": {"id": f"x{x_fin}", "coordenada_m": x_fin},
+                    },
+                    "y": {
+                        "inicio": {"id": "y0", "coordenada_m": 0.0},
+                        "fin": {"id": "y4", "coordenada_m": 4.0},
+                    },
+                },
+            },
+            "apoya_en": {
+                "izq": {"tipo": "portico", "portico": apoyo_izq, "viga": "V1"},
+                "der": {"tipo": "portico", "portico": apoyo_der, "viga": "V1"},
+            },
+        })
+        return elemento
+
+    def test_continuidad_se_detecta_solo_con_borde_apoyo_completo_compatible(self):
+        primero = self.elemento_contiguo("L1", "L1", 0.0, 3.0, "P1", "P2")
+        segundo = self.elemento_contiguo("L2", "L2", 3.0, 6.0, "P2", "P3")
+        parcial = self.elemento_contiguo("L3", "L3", 3.0, 6.0, "P9", "P3")
+
+        self.assertIsNotNone(losas_continuidad.borde_compartido(primero, segundo))
+        self.assertIsNone(losas_continuidad.borde_compartido(primero, parcial))
+        parcial["panel_ejes"]["coordenada_libre_fin_m"] = 3.0
+        self.assertIsNone(losas_continuidad.borde_compartido(primero, parcial))
+
+    def test_continuidad_enlaza_y_analiza_dos_panos_como_placa_compartida(self):
+        primero = self.elemento_contiguo("L1", "L1", 0.0, 3.0, "P1", "P2")
+        segundo = self.elemento_contiguo("L2", "L2", 3.0, 6.0, "P2", "P3")
+        elementos = {"L1": primero, "L2": segundo}
+        losas_continuidad.actualizar_vinculos(elementos, "L1", {"L2"})
+        self.assertEqual(
+            losas_continuidad.grupo_continuo("L1", elementos),
+            elementos,
+        )
+
+        with patch(
+            "calc.losas_continuidad.configuracion_obra.modulo_elasticidad_hormigon",
+            return_value={"Ec_MPa": 25000.0, "articulo": "prueba"},
+        ):
+            resultados = losas_macizas.calcular_grupo_desde_elementos(
+                elementos, BIBLIOTECA
+            )
+
+        self.assertEqual(set(resultados), {"L1", "L2"})
+        for resultado in resultados.values():
+            analisis = resultado.analisis_pynite
+            self.assertIn("nodos compartidos", analisis["metodo"])
+            self.assertIn("1.2D+1.6L", analisis["solicitaciones"])
+            self.assertEqual(
+                set(analisis["momentos_apoyos"]["1.2D+1.6L"]),
+                {"der"} if resultado.nombre == "L1" else {"izq"},
+            )
+            self.assertIn("Momentos próximos a los apoyos", resultado.memoria)
+        momento_apoyo_interior = resultados["L1"].analisis_pynite[
+            "momentos_apoyos"
+        ]["1.2D+1.6L"]["der"]
+        self.assertNotEqual(momento_apoyo_interior["max_abs"], 0.0)
+        reaccion_total = sum(
+            sum(apoyo["reaccion_total_D_kN"] for apoyo in resultado.reacciones)
+            for resultado in resultados.values()
+        )
+        carga_total = sum(
+            resultado.D_kNm2 * resultado.luz_m * resultado.ancho_m
+            for resultado in resultados.values()
+        )
+        self.assertAlmostEqual(reaccion_total, carga_total, places=5)
+        with patch(
+            "calc.losas_continuidad.configuracion_obra.modulo_elasticidad_hormigon",
+            return_value={"Ec_MPa": 25000.0, "articulo": "prueba"},
+        ):
+            anchos = losas_macizas.reacciones_y_anchos_por_borde(
+                primero, BIBLIOTECA, elementos
+            )
+        self.assertAlmostEqual(
+            anchos["der"]["ancho_tributario_m"],
+            resultados["L1"].reacciones[1]["cargas_kN_m"]["D"]
+            / resultados["L1"].D_kNm2,
+        )
+
+    def test_continuidad_admite_panos_macizos_cruzados(self):
+        primero = self.elemento_contiguo("L1", "L1", 0.0, 3.0, "P1", "P2")
+        segundo = self.elemento_contiguo("L2", "L2", 3.0, 6.0, "P2", "P3")
+        for elemento in (primero, segundo):
+            elemento["tipologia"] = "maciza_cruzada"
+            elemento["apoya_en"].update({
+                "inf": {"tipo": "muro", "nombre": "Muro inferior"},
+                "sup": {"tipo": "muro", "nombre": "Muro superior"},
+            })
+        elementos = {"L1": primero, "L2": segundo}
+        losas_continuidad.actualizar_vinculos(elementos, "L1", {"L2"})
+
+        with patch(
+            "calc.losas_continuidad.configuracion_obra.modulo_elasticidad_hormigon",
+            return_value={"Ec_MPa": 25000.0, "articulo": "prueba"},
+        ):
+            resultados = losas_macizas.calcular_grupo_desde_elementos(
+                elementos, BIBLIOTECA
+            )
+
+        self.assertIn(
+            "bordes declarados continuos",
+            resultados["L1"].analisis_pynite["alcance"],
+        )
+        self.assertEqual(
+            set(resultados["L1"].analisis_pynite["momentos_apoyos"]["1.2D+1.6L"]),
+            {"der"},
+        )
+
+    def test_memoria_maciza_se_actualiza_en_lugar_de_crear_archivos_nuevos(self):
+        primero = self.elemento_contiguo("Losa estable", "L1", 0.0, 3.0, "P1", "P2")
+        with patch(
+            "calc.losas_pynite.configuracion_obra.modulo_elasticidad_hormigon",
+            return_value={"Ec_MPa": 25000.0, "articulo": "prueba"},
+        ):
+            resultado = losas_macizas.calcular_desde_elemento_carga(
+                "Losa estable", primero, BIBLIOTECA
+            )
+        with TemporaryDirectory() as carpeta:
+            with patch.object(losas_macizas.rutas, "SAL_LOSAS", Path(carpeta)):
+                memoria_primera, _ = losas_macizas.guardar_resultado(resultado)
+                memoria_segunda, _ = losas_macizas.guardar_resultado(resultado)
+            self.assertEqual(memoria_primera, memoria_segunda)
+            self.assertEqual(
+                len(list(Path(carpeta).glob("memoria_losa_*.txt"))),
+                1,
+            )
+
     def test_geometria_casetonada_y_limites_cirsoc(self):
         espesor = espesor_equivalente_hormigon_casetonada(SECCION_CASETONADA)
         self.assertAlmostEqual(espesor, 0.1163265306)
@@ -135,6 +278,13 @@ class ModelosDeLosasTests(unittest.TestCase):
                         else {"izq", "der", "inf", "sup"}
                     )
                     self.assertEqual(lados, esperados)
+                    self.assertFalse(any(
+                        "W" in nombre
+                        for nombre in resultado.combinaciones_kNm2
+                    ))
+                    self.assertTrue(resultado.analisis_pynite["momentos_apoyos"])
+                    self.assertIn("paño aislado", resultado.memoria)
+                    self.assertNotIn("Momentos próximos a los apoyos", resultado.memoria)
                     reaccion_total = sum(
                         reaccion["reaccion_total_D_kN"]
                         for reaccion in resultado.reacciones
@@ -576,8 +726,8 @@ class ModelosDeLosasTests(unittest.TestCase):
         )
 
         memoria = losas.generar_memoria(resultado, BIBLIOTECA)
-        self.assertIn("D=1.250, L=1.000, W=0.000 kN/m", memoria)
-        self.assertIn("1.2D+1.6L: 3.100 kN/m", memoria)
+        self.assertIn("D=1,250; L=1,000; W=0,000 kN/m", memoria)
+        self.assertIn("1.2D+1.6L: 3,100 kN/m", memoria)
         self.assertIn("muro Muro 1", memoria)
 
 

@@ -11,6 +11,7 @@ if str(_RAIZ) not in sys.path:
     sys.path.insert(0, str(_RAIZ))
 
 from calc import rutas
+from calc.formato import valor_csv
 
 def _cargar_resultados_globales() -> list[dict]:
     archivo = rutas.SAL_COLUMNAS / "resultados_columnas_globales.json"
@@ -123,7 +124,7 @@ def unificar(criterio: str = "max_ast") -> list[dict]:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(columnas)
         for u in unificados:
-            writer.writerow([
+            writer.writerow([valor_csv(valor) for valor in [
                 u["columna_global"], u["eje_nombre"], u["nivel"],
                 round(u["N_kN"],2), round(u["Mx_kNm"],2), round(u["My_kNm"],2), round(u["Mu_max_kNm"],2),
                 "SI" if u["biaxial"] else "NO",
@@ -132,7 +133,7 @@ def unificar(criterio: str = "max_ast") -> list[dict]:
                 "O" + str(u["estribos"]["diametro_mm"]) + " c/" + str(u["estribos"]["paso_cm"]),
                 u["clasificacion"], u["lambda"], ";".join(u["porticos"]), u["n_porticos"],
                 u["seccion_origen"], u["armadura_origen"],
-            ])
+            ]])
     return unificados
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ if str(_RAIZ) not in sys.path:
     sys.path.insert(0, str(_RAIZ))
 
 from calc import rutas
+from calc.formato import valor_csv
 
 
 def generar() -> Path:
@@ -54,7 +55,7 @@ def generar() -> Path:
                 estado_verif = "CUMPLE" if verif.get("cumple") else "NO CUMPLE"
             else:
                 estado_verif = "No aplica: uniaxial" if fin else "Pendiente"
-            writer.writerow([
+            writer.writerow([valor_csv(valor) for valor in [
                 gid,
                 cat.get("eje_nombre", u.get("eje_nombre", "")),
                 cat.get("X", cat.get("x", "")),
@@ -76,7 +77,7 @@ def generar() -> Path:
                 "Biaxial" if biaxial else "Uniaxial",
                 u.get("estado_dimensionado", "Pendiente de dimensionado"),
                 estado_verif,
-            ])
+            ]])
     print("Planilla maestra de columnas generada:", ruta_csv)
     return ruta_csv
 

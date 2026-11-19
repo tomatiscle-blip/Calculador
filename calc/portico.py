@@ -38,6 +38,7 @@ from pathlib import Path
 from Pynite import FEModel3D
 
 from . import cargas, configuracion_obra, materiales, rutas
+from .formato import numero_local
 
 # G=0,40Ec equivale a nu=0,25 para un material elastico isotropico.
 POISSON = 0.25
@@ -179,6 +180,10 @@ def _aplicaciones_losas_portico(
         direccion_luz = str(panel.get("direccion_luz", "x"))
         direccion_transversal = "y" if direccion_luz == "x" else "x"
         bidireccional = elemento.get("tipologia") in ("maciza_cruzada", "casetonada")
+        continuidad_maciza = (
+            elemento.get("tipologia") == "maciza"
+            and bool(panel.get("continuidad_con"))
+        )
         luz = float(elemento.get("luz_transversal_m", 0.0) or 0.0)
         ejes_panel = panel.get("ejes", {}) or {}
         ejes_luz = ejes_panel.get(direccion_luz, {}) or {}
@@ -194,11 +199,13 @@ def _aplicaciones_losas_portico(
             avisos.append(f"{nombre_losa}: geometría de paño inválida; no se aplicó.")
             continue
 
-        if bidireccional:
+        if bidireccional or continuidad_maciza:
             try:
                 from . import losas_macizas
 
-                anchos_apoyo = losas_macizas.reacciones_y_anchos_por_borde(elemento)
+                anchos_apoyo = losas_macizas.reacciones_y_anchos_por_borde(
+                    elemento, elementos=elementos
+                )
             except (KeyError, TypeError, ValueError, FileNotFoundError) as exc:
                 avisos.append(
                     f"{nombre_losa}: no se pudieron obtener las reacciones "
@@ -761,10 +768,10 @@ def _construir_con_rigidez(portico: dict, nombre: str, lateral: bool = False):
                 -peso_propio_columna_kN_m, case="D",
             )
             if forma in ("circular", "circular con sunchos"):
-                detalle_seccion = f"Ø{dimensiones['diametro_cm']:g} cm"
+                detalle_seccion = f"Ø{numero_local(dimensiones['diametro_cm'])} cm"
             else:
                 detalle_seccion = (
-                    f"{dimensiones['lado_x_cm']:g}×{dimensiones['lado_y_cm']:g} cm"
+                    f"{numero_local(dimensiones['lado_x_cm'])}×{numero_local(dimensiones['lado_y_cm'])} cm"
                 )
             mapa["cargas_aplicadas"].append({
                 "aplicacion_id": f"peso-propio:{miembro_columna}",
@@ -981,7 +988,7 @@ def _construir_con_rigidez(portico: dict, nombre: str, lateral: bool = False):
                     "carga_id": f"peso-propio:{viga_id}",
                     "descripcion": (
                         f"Peso propio {viga_id} · "
-                        f"{ancho_cm:g}×{peralte_cm:g} cm"
+                        f"{numero_local(ancho_cm)}×{numero_local(peralte_cm)} cm"
                         + (" · h predimensionado L/12,5" if peralte_predimensionado else "")
                     ),
                     "tipo": "D",
@@ -1297,7 +1304,7 @@ def informe(resultado: dict) -> str:
             "",
             "MATERIAL Y RIGIDEZ DEL MODELO:",
             f"  Reglamento activo: {propiedades.get('reglamento', VERSION_MOTOR)}",
-            f"  Hormigón H{gravedad.get('fc_MPa')} · Ec={gravedad.get('Ec_MPa', 0):.0f} MPa · "
+            f"  Hormigón H{gravedad.get('fc_MPa')} · Ec={numero_local(gravedad.get('Ec_MPa', 0), 0)} MPa · "
             f"{gravedad.get('formula_Ec', '')} · {gravedad.get('articulo_Ec', '')}",
             f"  Gravedad: {gravedad.get('criterio_inercia', '')}; G=0,40 Ec (ν=0,25 asumido para el solver).",
         ])
@@ -1307,15 +1314,15 @@ def informe(resultado: dict) -> str:
         lineas.append("  Las dimensiones de secciones sin detalle ingresado son predimensionados iniciales del modelo.")
         for sec in gravedad.get("secciones", []):
             if sec.get("tipo") == "circular":
-                geometria = f"Ø{sec.get('diametro_cm', 0):g} cm"
+                geometria = f"Ø{numero_local(sec.get('diametro_cm', 0))} cm"
             else:
                 geometria = (
-                    f"{sec.get('lado_x_cm', sec.get('ancho_cm', 0)):g}×"
-                    f"{sec.get('lado_y_cm', sec.get('peralte_cm', 0)):g} cm"
+                    f"{numero_local(sec.get('lado_x_cm', sec.get('ancho_cm', 0)))}×"
+                    f"{numero_local(sec.get('lado_y_cm', sec.get('peralte_cm', 0)))} cm"
                 )
             lineas.append(
-                f"    {sec.get('elemento')}: {geometria}; A={sec.get('A_m2', 0):.5f} m²; "
-                f"factor I={sec.get('factor_I', 0):.2f}."
+                f"    {sec.get('elemento')}: {geometria}; A={numero_local(sec.get('A_m2', 0), 5)} m²; "
+                f"factor I={numero_local(sec.get('factor_I', 0))}."
             )
     for aviso in resultado["avisos"]:
         lineas.append(f"[AVISO] {aviso}")
@@ -1326,12 +1333,12 @@ def informe(resultado: dict) -> str:
         for carga in aplicaciones:
             linea = (
                 f"{carga.get('carga_id', '?')} · {carga.get('descripcion', '?')} → {carga.get('tramo_id', '?')} "
-                f"x={float(carga.get('x_inicio_m', 0.0)):.2f}–{float(carga.get('x_fin_m', 0.0)):.2f} m: "
-                f"{float(carga.get('valor_kN_m', 0.0)):.2f} kN/m ({carga.get('tipo', '?')}); "
+                f"x={numero_local(float(carga.get('x_inicio_m', 0.0)))}–{numero_local(float(carga.get('x_fin_m', 0.0)))} m: "
+                f"{numero_local(float(carga.get('valor_kN_m', 0.0)))} kN/m ({carga.get('tipo', '?')}); "
                 f"P00: {carga.get('modo_cargas_previas', '?')}"
             )
             if carga.get("ancho_tributario_m") is not None:
-                linea += f"; b trib.={carga['ancho_tributario_m']:.2f} m"
+                linea += f"; b trib.={numero_local(carga['ancho_tributario_m'])} m"
             lineas.append(linea)
         lineas.append("Las cargas puntuales guardadas previamente en P00 se conservaron.")
 
@@ -1341,19 +1348,19 @@ def informe(resultado: dict) -> str:
             "",
             "VIENTO HORIZONTAL DEL PROYECTO:",
             f"  Estado: {'APLICADO' if viento.get('aplicado') else 'NO APLICA A ESTE PÓRTICO'}",
-            f"  Viento global: {str(viento.get('direccion_global', '?')).upper()} · orientación longitudinal: {str(viento.get('direccion_portico', '?')).upper()} · ubicado sobre línea {str(viento.get('eje_ubicacion', '?')).upper()}={float(viento.get('posicion_ubicacion_m', 0.0)):.2f} m · solver: FX local",
-            f"  {viento.get('ciudad', '')} · V básica={float(viento.get('V_basica_ms', 0.0)):.2f} m/s · b tributario={float(viento.get('ancho_tributario_m', 0.0)):.2f} m",
-            f"  Carga lineal={float(viento.get('carga_lineal_kN_m', 0.0)):.3f} kN/m · presión modelada={float(viento.get('presion_modelada_kN_m2', 0.0)):.3f} kN/m²",
+            f"  Viento global: {str(viento.get('direccion_global', '?')).upper()} · orientación longitudinal: {str(viento.get('direccion_portico', '?')).upper()} · ubicado sobre línea {str(viento.get('eje_ubicacion', '?')).upper()}={numero_local(float(viento.get('posicion_ubicacion_m', 0.0)))} m · solver: FX local",
+            f"  {viento.get('ciudad', '')} · V básica={numero_local(float(viento.get('V_basica_ms', 0.0)))} m/s · b tributario={numero_local(float(viento.get('ancho_tributario_m', 0.0)))} m",
+            f"  Carga lineal={numero_local(float(viento.get('carga_lineal_kN_m', 0.0)), 3)} kN/m · presión modelada={numero_local(float(viento.get('presion_modelada_kN_m2', 0.0)), 3)} kN/m²",
             f"  Método simplificado: {viento.get('metodo', '')}",
         ])
         if viento.get("motivo"):
             lineas.append(f"  Motivo: {viento['motivo']}")
         for piso in viento.get("pisos", []):
             lineas.append(
-                f"  Nivel {float(piso.get('nivel_m', 0.0)):.2f} m: H={float(piso.get('altura_m', 0.0)):.2f} m, "
-                f"F={float(piso.get('fuerza_total_kN', 0.0)):.2f} kN, "
+                f"  Nivel {numero_local(float(piso.get('nivel_m', 0.0)))} m: H={numero_local(float(piso.get('altura_m', 0.0)))} m, "
+                f"F={numero_local(float(piso.get('fuerza_total_kN', 0.0)))} kN, "
                 f"{piso.get('cantidad_columnas', 0)} columnas, "
-                f"{float(piso.get('fuerza_por_columna_kN', 0.0)):.2f} kN/columna"
+                f"{numero_local(float(piso.get('fuerza_por_columna_kN', 0.0)))} kN/columna"
             )
         if viento.get("aplicado"):
             lineas.append("Se resuelven combinaciones con W en ambos sentidos (+W y W reverso).")
@@ -1367,8 +1374,8 @@ def informe(resultado: dict) -> str:
             lineas.append("  Columnas:   barra        M_base     M_punta          N      deriva")
             for cid, d in bloque["columnas"].items():
                 lineas.append(
-                    f"    {cid:<10} {d['M_inf']:>10.2f} {d['M_sup']:>11.2f} "
-                    f"{d['N']:>10.2f} {d['deriva']:>11.5f}"
+                    f"    {cid:<10} {numero_local(d['M_inf']):>10} {numero_local(d['M_sup']):>11} "
+                    f"{numero_local(d['N']):>10} {numero_local(d['deriva'], 5):>11}"
                 )
 
         for titulo, grupo in (("Vigas", "vigas"), ("Voladizos", "voladizos")):
@@ -1377,26 +1384,26 @@ def informe(resultado: dict) -> str:
             lineas.append(f"  {titulo}:     tramo        M_izq      M_der    M_campo      V_izq      V_der")
             for clave, d in bloque[grupo].items():
                 lineas.append(
-                    f"    {clave:<12} {d['M_izq']:>8.2f} {d['M_der']:>10.2f} {d['M_campo']:>10.2f} "
-                    f"{d['V_izq']:>10.2f} {d['V_der']:>10.2f}"
+                    f"    {clave:<12} {numero_local(d['M_izq']):>8} {numero_local(d['M_der']):>10} {numero_local(d['M_campo']):>10} "
+                    f"{numero_local(d['V_izq']):>10} {numero_local(d['V_der']):>10}"
                 )
 
         if bloque["bases"]:
             lineas.append("  Bases:      base             Fx         Fy         Mz")
             for base_id, d in bloque["bases"].items():
-                lineas.append(f"    {base_id:<10} {d['Fx']:>10.2f} {d['Fy']:>10.2f} {d['Mz']:>10.2f}")
+                lineas.append(f"    {base_id:<10} {numero_local(d['Fx']):>10} {numero_local(d['Fy']):>10} {numero_local(d['Mz']):>10}")
 
     lineas.append("\nENVOLVENTE (máximos en módulo, para el dimensionado)")
     lineas.append("-" * 74)
     for cid, d in resultado["envolvente"]["columnas"].items():
         if d:
-            lineas.append(f"    {cid:<10} |M| máx = {max(d.get('M_inf', 0.0), d.get('M_sup', 0.0)):8.2f} kNm"
-                          f"   |N| máx = {d.get('N', 0.0):8.2f} kN")
+            lineas.append(f"    {cid:<10} |M| máx = {numero_local(max(d.get('M_inf', 0.0), d.get('M_sup', 0.0))):>8} kNm"
+                          f"   |N| máx = {numero_local(d.get('N', 0.0)):>8} kN")
     for grupo in ("vigas", "voladizos"):
         for clave, d in resultado["envolvente"][grupo].items():
             if d:
-                lineas.append(f"    {clave:<12} |M| máx = {d.get('M_campo', 0.0):8.2f} kNm"
-                              f"   |V| máx = {d.get('V_izq', 0.0):8.2f} kN")
+                lineas.append(f"    {clave:<12} |M| máx = {numero_local(d.get('M_campo', 0.0)):>8} kNm"
+                              f"   |V| máx = {numero_local(d.get('V_izq', 0.0)):>8} kN")
     return "\n".join(lineas)
 
 

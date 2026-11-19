@@ -10,19 +10,20 @@ if str(_RAIZ) not in sys.path:
 
 from calc import rutas
 from calc import columnas_diagramas as cd
+from calc.formato import parse_numero
 
 def _parse_dimensiones(texto):
-    m = re.search(r"b\s*=\s*([\d.]+)\s*,\s*h\s*=\s*([\d.]+)", str(texto))
+    m = re.search(r"b\s*=\s*([\d.,]+)\s*,\s*h\s*=\s*([\d.,]+)", str(texto))
     if not m:
         return 0.0, 0.0
-    return float(m.group(1)), float(m.group(2))
+    return parse_numero(m.group(1)), parse_numero(m.group(2))
 
 def _parse_nota(texto):
     out = {"gamma": 0.0, "X": 0.0, "Y": 0.0, "rho": 0.0}
     for clave, key in (("γ", "gamma"), ("X", "X"), ("Y", "Y"), ("ρg", "rho")):
-        m = re.search(rf"{re.escape(clave)}\s*=\s*([\d.]+)", str(texto))
+        m = re.search(rf"{re.escape(clave)}\s*=\s*([\d.,]+)", str(texto))
         if m:
-            out[key] = float(m.group(1))
+            out[key] = parse_numero(m.group(1))
     return out
 
 def _leer_csv():
@@ -36,16 +37,16 @@ def _leer_csv():
 def _fila_a_dimensionado(row):
     b, h = _parse_dimensiones(row.get("Dimensiones", ""))
     nota = _parse_nota(row.get("Nota_diagrama", ""))
-    n_barras = int(float(row.get("n_barras", 0) or 0))
-    diam_long = float(row.get("diam_long(cm)", 0) or 0)
-    diam_estribo = float(row.get("diam_estribo(cm)", 0) or 0)
-    paso_estribo = float(row.get("paso_estribo(cm)", 0) or 0)
-    rec = float(row.get("Recubrimiento(cm)", 4) or 4)
+    n_barras = int(parse_numero(row.get("n_barras"), 0))
+    diam_long = parse_numero(row.get("diam_long(cm)"), 0)
+    diam_estribo = parse_numero(row.get("diam_estribo(cm)"), 0)
+    paso_estribo = parse_numero(row.get("paso_estribo(cm)"), 0)
+    rec = parse_numero(row.get("Recubrimiento(cm)"), 4)
     gamma = (h - 2*rec)/h if h > 0 else 0.8
     seccion = row.get("Tipo_seccion", "I") or "I"
-    fck = float(row.get("f'c(MPa)", 0) or 0)
-    ast = float(row.get("Ast(cm²)", 0) or 0)
-    mu = float(row.get("Mu(kNm)", 0) or 0)
+    fck = parse_numero(row.get("f'c(MPa)"), 0)
+    ast = parse_numero(row.get("Ast(cm²)"), 0)
+    mu = parse_numero(row.get("Mu(kNm)"), 0)
     pn = cd.pn_uniaxial(seccion, fck, gamma, b, h, ast, mu)
     return {
         "portico_origen": row.get("Pórtico", ""),
@@ -56,14 +57,14 @@ def _fila_a_dimensionado(row):
         "h_cm": h,
         "lado_x_cm": h,
         "lado_y_cm": b,
-        "altura_libre_m": float(row.get("Altura_libre(m)", 0) or 0),
-        "recubrimiento_cm": float(row.get("Recubrimiento(cm)", 0) or 0),
-        "Pu_kN": float(row.get("Pu(kN)", 0) or 0),
-        "Mu_kNm": float(row.get("Mu(kNm)", 0) or 0),
-        "fck_MPa": float(row.get("f'c(MPa)", 0) or 0),
-        "lambda": float(row.get("λ", 0) or 0),
+        "altura_libre_m": parse_numero(row.get("Altura_libre(m)"), 0),
+        "recubrimiento_cm": parse_numero(row.get("Recubrimiento(cm)"), 0),
+        "Pu_kN": parse_numero(row.get("Pu(kN)"), 0),
+        "Mu_kNm": parse_numero(row.get("Mu(kNm)"), 0),
+        "fck_MPa": parse_numero(row.get("f'c(MPa)"), 0),
+        "lambda": parse_numero(row.get("λ"), 0),
         "clasificacion": row.get("Clasificación", ""),
-        "Ast_cm2": float(row.get("Ast(cm²)", 0) or 0),
+        "Ast_cm2": parse_numero(row.get("Ast(cm²)"), 0),
         "armadura_longitudinal": {
             "n_barras": n_barras,
             "diametro_mm": diam_long,

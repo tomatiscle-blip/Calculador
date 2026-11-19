@@ -145,6 +145,50 @@ class EditorCapasMuroTests(unittest.TestCase):
         self.assertAlmostEqual(res["peso_propio_kN_m2"], 2.92, places=6)
         d.close()
 
+    def test_informe_detalla_cargas_analisis_termico_y_se_guarda(self):
+        cargas_losas = {
+            "D_kN_m": 4.0,
+            "L_kN_m": 1.0,
+            "losas": [{"nombre": "Losa 1", "D_kN_m": 4.0, "L_kN_m": 1.0}],
+            "avisos": [],
+        }
+        cimiento = {
+            "ok": True,
+            "carga_servicio_kN_m": 13.76,
+            "q_adm_kPa": 100.0,
+            "ancho_minimo_m": 0.1376,
+            "profundidad_m": None,
+            "pendiente": "Predimensionado centrado por presión admisible.",
+        }
+        with (
+            patch("app.muros_proyecto.muros.cargas_losas_en_muro", return_value=cargas_losas),
+            patch("app.muros_proyecto.muros.verificar_zapata_corrida", return_value=cimiento),
+        ):
+            d = EditorCapasMuro("Muro 1", self._capas(), altura_m=3.0, longitud_m=7.9)
+
+        texto = d.resultado.toPlainText()
+        self.assertIn("ANÁLISIS DE CARGAS DEL MURO «Muro 1»", texto)
+        self.assertIn(
+            "21,00 kN/m³ × 0,020 m = 0,420 kN/m²; × 3,00 m = 1,260 kN/m",
+            texto,
+        )
+        self.assertIn("R = 0,020 / 1,400 = 0,014 m²·K/W", texto)
+        self.assertIn("U = 1/Rtotal", texto)
+        self.assertIn("D total = propio 8,76 + losas/cubiertas 4,00 = 12,76 kN/m", texto)
+        self.assertIn("Total transferido: D=4,00, L=1,00 kN/m.", texto)
+        self.assertIn("profundidad = no informada.", texto)
+        self.assertIn("No se calcula momento flector", texto)
+
+        _capas_out, _alt, _lon, resultado = d.datos_guardar()
+        self.assertEqual(resultado["informe"], texto)
+        self.assertEqual(
+            PaginaMuros._texto_resumen_calculo(
+                "Muro 1", {"resultado_calculo": {"informe": texto}},
+            ),
+            texto,
+        )
+        d.close()
+
     def test_espesor_en_cm_se_guarda_en_metros(self):
         # La UI carga/muestra cm; el cálculo y el guardado usan metros.
         d = EditorCapasMuro("Muro 1", self._capas(), altura_m=3.0, longitud_m=7.9)

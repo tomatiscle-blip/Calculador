@@ -13,7 +13,9 @@ from datetime import datetime
 from pathlib import Path
 
 from . import cargas, materiales, rutas
+from .formato import numero_local
 from .losas_pynite import analizar_paño_macizo
+from .losas_continuidad import analizar_grupo, grupo_continuo
 from .losas_seccion import (
     componentes_con_hormigon_casetonada,
     espesor_equivalente_hormigon_casetonada,
@@ -101,7 +103,7 @@ def validar_seccion_casetonada(datos: dict) -> dict:
         incumplimientos.append("separación libre entre nervios no mayor que 750 mm")
     if capa < espesor_minimo_capa:
         incumplimientos.append(
-            f"capa superior mínima de {espesor_minimo_capa * 100:.1f} cm"
+            f"capa superior mínima de {numero_local(espesor_minimo_capa * 100, 1)} cm"
         )
     if incumplimientos:
         articulos = "8.8.1.2–8.8.1.4 y 8.8.2.1.1" if aligeramiento_estructural else "8.8.1.2–8.8.1.4 y 8.8.3.1"
@@ -152,7 +154,10 @@ def _espesor_hormigon(elemento: dict) -> float:
 
 
 def calcular_desde_elemento_carga(
-    nombre: str, elemento: dict, biblioteca: dict | None = None
+    nombre: str,
+    elemento: dict,
+    biblioteca: dict | None = None,
+    analisis_override: dict | None = None,
 ) -> ResultadoLosaMaciza:
     """Calcula solicitaciones y reacciones de losas macizas o casetonadas."""
     tipologia = elemento.get("tipologia")
@@ -207,7 +212,9 @@ def calcular_desde_elemento_carga(
         for item in bib.get("Sobrecargas", [])
         if item.get("clave") == elemento.get("sobrecarga")
     ), str(elemento.get("sobrecarga", "")))
-    analisis = analizar_paño_macizo(elemento_calculo, valores, espesor)
+    analisis = analisis_override or analizar_paño_macizo(
+        elemento_calculo, valores, espesor
+    )
     combinaciones = analisis["combinaciones_kNm2"]
     combo = max(
         analisis["solicitaciones"],
@@ -264,13 +271,73 @@ def calcular_desde_elemento_carga(
     return resultado
 
 
+def calcular_grupo_desde_elementos(
+    elementos: dict[str, dict], biblioteca: dict | None = None
+) -> dict[str, ResultadoLosaMaciza]:
+    """Calcula juntas losas macizas enlazadas como continuas."""
+    if len(elementos) < 2:
+        raise ValueError("El grupo continuo debe contener al menos dos paños.")
+    bib = biblioteca if biblioteca is not None else materiales.cargar()
+    panos = []
+    for nombre, elemento in elementos.items():
+        if elemento.get("tipo") != "losa" or elemento.get("tipologia") not in (
+            "maciza", "maciza_cruzada"
+        ):
+            raise ValueError(
+                f"El grupo continuo solo admite losas macizas; revisar {nombre}."
+            )
+        espesor = _espesor_hormigon(elemento)
+        valores = cargas.valores_superficiales(elemento, bib)
+        panos.append({
+            "nombre": nombre,
+            "elemento": elemento,
+            "espesor_m": espesor,
+            "D_kNm2": float(valores["D_kNm2"]),
+            "L_kNm2": float(valores["L_kNm2"]),
+        })
+    analisis_por_nombre = analizar_grupo(panos)
+    return {
+        nombre: calcular_desde_elemento_carga(
+            nombre,
+            elemento,
+            bib,
+            analisis_override=analisis_por_nombre[nombre],
+        )
+        for nombre, elemento in elementos.items()
+    }
+
+
 def reacciones_y_anchos_por_borde(
-    elemento: dict, biblioteca: dict | None = None
+    elemento: dict,
+    biblioteca: dict | None = None,
+    elementos: dict[str, dict] | None = None,
 ) -> dict[str, dict]:
     """Devuelve reacciones lineales y anchos equivalentes para cada borde apoyado."""
-    resultado = calcular_desde_elemento_carga(
-        str(elemento.get("id", "losa")), elemento, biblioteca
-    )
+    nombre = str(elemento.get("id", "losa"))
+    if elementos is not None:
+        nombre = next(
+            (
+                nombre_elemento
+                for nombre_elemento, otro in elementos.items()
+                if str(otro.get("id", "")) == str(elemento.get("id", ""))
+                and elemento.get("id")
+            ),
+            nombre,
+        )
+        grupo = grupo_continuo(nombre, elementos) if nombre in elementos else {}
+        grupo_activo = {
+            nombre_grupo: losa
+            for nombre_grupo, losa in grupo.items()
+            if losa.get("activo", True)
+        }
+        if nombre in grupo_activo and len(grupo_activo) > 1:
+            resultado = calcular_grupo_desde_elementos(
+                grupo_activo, biblioteca
+            )[nombre]
+        else:
+            resultado = calcular_desde_elemento_carga(nombre, elemento, biblioteca)
+    else:
+        resultado = calcular_desde_elemento_carga(nombre, elemento, biblioteca)
     carga_referencia = (
         resultado.D_kNm2 if resultado.D_kNm2 > 0
         else resultado.L_kNm2
@@ -310,63 +377,82 @@ def generar_memoria(r: ResultadoLosaMaciza) -> str:
         "",
         f"Losa: {r.nombre}",
         f"Carga del proyecto: {r.carga_id or '(sin ID)' }",
-        f"Luz entre apoyos: {r.luz_m:.2f} m",
-        f"Ancho del paño: {r.ancho_m:.2f} m",
-        f"Espesor adoptado: {r.espesor_m * 100:.1f} cm",
+        f"Luz entre apoyos: {numero_local(r.luz_m)} m",
+        f"Ancho del paño: {numero_local(r.ancho_m)} m",
+        f"Espesor adoptado: {numero_local(r.espesor_m * 100, 1)} cm",
         f"Criterio de espesor: {r.criterio_espesor}",
         "",
         "Composición y cargas:",
     ]
     for item in r.componentes:
         tipo = "hormigón estructural" if item["estructural"] else "carga accesoria"
-        lineas.append(f" - {item['descripcion']} ({tipo}) → {item['valor_kNm2']:.3f} kN/m²")
+        lineas.append(f" - {item['descripcion']} ({tipo}) → {numero_local(item['valor_kNm2'], 3)} kN/m²")
     if r.seccion_casetonada:
         s = r.seccion_casetonada
         lineas.extend([
             "",
             "Geometría de la sección casetonada:",
-            f" - Canto total: {s['altura_total_m'] * 100:.1f} cm",
-            f" - Capa superior: {s['espesor_capa_m'] * 100:.1f} cm "
-            f"(mínimo aplicado: {s['espesor_minimo_capa_m'] * 100:.1f} cm)",
-            f" - Nervios X/Y: {s['ancho_nervio_x_m'] * 100:.1f} / "
-            f"{s['ancho_nervio_y_m'] * 100:.1f} cm",
-            f" - Separación libre X/Y: {s['separacion_libre_x_m'] * 100:.1f} / "
-            f"{s['separacion_libre_y_m'] * 100:.1f} cm",
-            f" - Rigidez equivalente de hormigón: {s['espesor_equivalente_hormigon_m'] * 100:.2f} cm "
+            f" - Canto total: {numero_local(s['altura_total_m'] * 100, 1)} cm",
+            f" - Capa superior: {numero_local(s['espesor_capa_m'] * 100, 1)} cm "
+            f"(mínimo aplicado: {numero_local(s['espesor_minimo_capa_m'] * 100, 1)} cm)",
+            f" - Nervios X/Y: {numero_local(s['ancho_nervio_x_m'] * 100, 1)} / "
+            f"{numero_local(s['ancho_nervio_y_m'] * 100, 1)} cm",
+            f" - Separación libre X/Y: {numero_local(s['separacion_libre_x_m'] * 100, 1)} / "
+            f"{numero_local(s['separacion_libre_y_m'] * 100, 1)} cm",
+            f" - Rigidez equivalente de hormigón: {numero_local(s['espesor_equivalente_hormigon_m'] * 100)} cm "
             "(para peso propio)",
             f" - Aligeramientos estructurales según 8.8.2.1: "
             f"{'sí' if s['aligeramiento_estructural'] else 'no'}",
             f" - Factores ortótropos ingresados por el usuario: "
-            f"kx={s['kx_mod']:.3f}, ky={s['ky_mod']:.3f}",
+            f"kx={numero_local(s['kx_mod'], 3)}; ky={numero_local(s['ky_mod'], 3)}",
             f" - Hipótesis: nervios y capa superior monolíticos; "
             f"{'trabajo unidireccional equivalente' if casetonada_unidireccional else 'trabajo en dos direcciones (8.8.1.1)'}",
             f" - Verificación geométrica: {s['referencia_cirsoc']}",
         ])
     lineas.extend([
-        f"Subtotal cargas accesorias (D2): {r.D2_kNm2:.3f} kN/m²",
-        f"Total cargas permanentes (D1+D2): {r.D_kNm2:.3f} kN/m²",
+        f"Subtotal cargas accesorias (D2): {numero_local(r.D2_kNm2, 3)} kN/m²",
+        f"Total cargas permanentes (D1+D2): {numero_local(r.D_kNm2, 3)} kN/m²",
         "",
         "Cargas consideradas:",
-        f" - D1 (peso propio): {r.peso_propio_kNm2:.3f} kN/m²",
-        f" - D2 (accesoria): {r.D2_kNm2:.3f} kN/m²",
-        f" - D total: {r.D_kNm2:.3f} kN/m²",
-        f" - Sobrecarga seleccionada: {r.uso_sobrecarga} → {r.L_kNm2:.3f} kN/m²",
-        f" - Carga de servicio (D+L): {r.q_servicio_kNm2:.3f} kN/m²",
+        f" - D1 (peso propio): {numero_local(r.peso_propio_kNm2, 3)} kN/m²",
+        f" - D2 (accesoria): {numero_local(r.D2_kNm2, 3)} kN/m²",
+        f" - D total: {numero_local(r.D_kNm2, 3)} kN/m²",
+        f" - Sobrecarga seleccionada: {r.uso_sobrecarga} → {numero_local(r.L_kNm2, 3)} kN/m²",
+        f" - Carga de servicio (D+L): {numero_local(r.q_servicio_kNm2, 3)} kN/m²",
         "",
         f"Modelo de análisis: {r.metodo}",
         "Combinaciones consideradas (kN/m²):",
     ])
-    lineas.extend(f" - {nombre}: {valor:.3f}" for nombre, valor in r.combinaciones_kNm2.items())
+    lineas.extend(f" - {nombre}: {numero_local(valor, 3)}" for nombre, valor in r.combinaciones_kNm2.items())
     lineas.extend([
         "",
         f"Combinación crítica: {r.combo_critica}",
-        f"Momento último requerido: {r.momento_ultimo_kNm_m:.3f} kN·m/m",
-        f"Corte último: {r.corte_ultimo_kN_m:.3f} kN/m",
+        f"Momento último requerido: {numero_local(r.momento_ultimo_kNm_m, 3)} kN·m/m",
+        f"Corte último: {numero_local(r.corte_ultimo_kN_m, 3)} kN/m",
+    ])
+    continuidad_modelada = "conjunta" in str(r.analisis_pynite.get("metodo", ""))
+    momentos_apoyos = (
+        r.analisis_pynite.get("momentos_apoyos", {})
+        if continuidad_modelada else {}
+    )
+    if momentos_apoyos:
+        lineas.extend([
+            "",
+            f"Momentos próximos a los apoyos ({r.combo_critica}; kN·m/m):",
+        ])
+        for lado, momento in momentos_apoyos.get(r.combo_critica, {}).items():
+            lineas.append(
+                f" - {lado} ({momento['componente']}): "
+                f"máx. {numero_local(momento['max'], 3)}; mín. {numero_local(momento['min'], 3)}; "
+                f"máx. abs. {numero_local(momento['max_abs'], 3)} "
+                f"[{momento.get('metodo', 'resultado de placa')}]"
+            )
+    lineas.extend([
         "",
         "Análisis de placa en PyNite:",
-        f" - Ec = {r.analisis_pynite['Ec_MPa']:.0f} MPa ({r.analisis_pynite['Ec_referencia']})",
+        f" - Ec = {numero_local(r.analisis_pynite['Ec_MPa'], 0)} MPa ({r.analisis_pynite['Ec_referencia']})",
         f" - Malla: {r.analisis_pynite['cantidad_elementos']} elementos Quad; paso aproximado "
-        f"{r.analisis_pynite['malla_aproximada_m']:.2f} m",
+        f"{numero_local(r.analisis_pynite['malla_aproximada_m'])} m",
         f" - Alcance: {r.analisis_pynite['alcance']}",
         "",
         "Reacciones de apoyo (sin combinar; cargas lineales):",
@@ -387,17 +473,31 @@ def generar_memoria(r: ResultadoLosaMaciza) -> str:
             )
         longitud = r.ancho_m if apoyo["apoyo"] in ("izq", "der") else r.luz_m
         lineas.append(
-            f" - {apoyo['apoyo']}{referencia}: D={c['D']:.3f}, L={c['L']:.3f} kN/m "
-            f"(reacción total D={apoyo['reaccion_total_D_kN']:.3f}, "
-            f"L={apoyo['reaccion_total_L_kN']:.3f} kN en {longitud:.2f} m)"
+            f" - {apoyo['apoyo']}{referencia}: D={numero_local(c['D'], 3)}; L={numero_local(c['L'], 3)} kN/m "
+            f"(reacción total D={numero_local(apoyo['reaccion_total_D_kN'], 3)}, "
+            f"L={numero_local(apoyo['reaccion_total_L_kN'], 3)} kN en {numero_local(longitud)} m)"
         )
     lineas.extend([
         "",
         "=================================",
-        "Alcance: solicitaciones elásticas de un paño aislado.",
-        "Los factores kx/ky de la casetonada son parámetros ingresados por el usuario; "
-        "CIRSOC no prescribe esos factores.",
-        "No dimensiona armadura ni verifica flecha, corte o continuidad entre paños.",
+        (
+            "Alcance: solicitaciones elásticas de un grupo de paños conectados."
+            if continuidad_modelada
+            else "Alcance: solicitaciones elásticas de un paño aislado."
+        ),
+    ])
+    if r.tipologia == "casetonada":
+        lineas.append(
+            "Los factores kx/ky de la casetonada son parámetros ingresados por el usuario; "
+            "CIRSOC no prescribe esos factores."
+        )
+    lineas.extend([
+        (
+            "No dimensiona armadura ni verifica flecha, corte o fisuración; "
+            "la continuidad declarada se modela solo mediante placas conectadas."
+            if continuidad_modelada
+            else "No dimensiona armadura ni verifica flecha, corte o continuidad entre paños."
+        ),
         "Fin de la memoria de cálculo",
     ])
     return "\n".join(lineas) + "\n"
@@ -413,9 +513,7 @@ def guardar_resultado(resultado: ResultadoLosaMaciza) -> tuple[Path, Path]:
     rutas.SAL_LOSAS.mkdir(parents=True, exist_ok=True)
     base = rutas.nombre_seguro(resultado.nombre)
     json_path = carpeta / f"{base}.json"
-    txt_path = rutas.SAL_LOSAS / (
-        f"memoria_losa_{tipo_archivo}_{base}_{datetime.now():%Y%m%d_%H%M%S}.txt"
-    )
+    txt_path = rutas.SAL_LOSAS / f"memoria_losa_{base}.txt"
     datos = asdict(resultado)
     datos.pop("memoria", None)
     rutas.guardar_json(json_path, datos)

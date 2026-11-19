@@ -385,7 +385,7 @@ class VistaPortico(QWidget):
                 return datos
         return None
 
-    def actualizar(self, nombre: str) -> None:
+    def actualizar(self, nombre: str, calcular_cargas: bool = True) -> None:
         self.nombre = nombre
         self.viento_global_dir = "x"
         self.viento_aplicado = False
@@ -483,10 +483,14 @@ class VistaPortico(QWidget):
         self.viento_nodos = []
         if nombre and self.tipo != "muro":
             try:
-                from calc.portico import _cargas_asignadas
+                if calcular_cargas:
+                    from calc.portico import _cargas_asignadas
 
-                self.cargas, avisos = _cargas_asignadas(nombre)
-                self.aviso = "; ".join(avisos)
+                    self.cargas, avisos = _cargas_asignadas(nombre)
+                    self.aviso = "; ".join(avisos)
+                else:
+                    self.cargas = {}
+                    self.aviso = "Cargas automáticas diferidas; se actualizarán al recalcular."
             except Exception as exc:
                 self.aviso = f"No se pudieron leer las cargas: {exc}"
         elif self.tipo == "muro":

@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import rutas
+from .formato import numero_local
 
 # ---------------------------------------------------------------------------
 # Definición de una etapa
@@ -147,8 +148,8 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
             luz_declarada = float(tramo.get("longitud_m", 0.0))
             if abs(luz_real - luz_declarada) > 0.01:
                 problemas.append(
-                    f"{tramo_id}: declara {luz_declarada:g} m, pero las columnas separan "
-                    f"{luz_real:g} m"
+                    f"{tramo_id}: declara {numero_local(luz_declarada)} m, pero las columnas separan "
+                    f"{numero_local(luz_real)} m"
                 )
     if datos.get("niveles_geometria"):
         vigas_por_piso = {
@@ -178,7 +179,7 @@ def _marca_geometria(portico: str = "") -> tuple[bool, str]:
                         )))
             if not any(a - 0.01 <= x <= b + 0.01 for a, b in intervalos):
                 problemas.append(
-                    f"{cid}: su base en x={x:g} m, cota {nivel:g} m, no cae sobre una "
+                    f"{cid}: su base en x={numero_local(x)} m, cota {numero_local(nivel)} m, no cae sobre una "
                     "viga o voladizo del nivel inferior"
                 )
     resumen = f"{len(estructura)} pórtico(s); {nombre}: {n_columnas} columnas, {n_tramos} tramos"
@@ -328,9 +329,9 @@ def _marca_terreno(_portico: str = "") -> tuple[bool, str]:
     prof = datos.get("profundidad_fundacion_m")
     detalle = "datos/terreno.json cargado"
     if q not in (None, ""):
-        detalle += f" · q_adm = {float(q):.1f} kPa"
+        detalle += f" · q_adm = {numero_local(float(q), 1)} kPa"
     if prof is not None:
-        detalle += f" · prof. = {float(prof):.2f} m"
+        detalle += f" · prof. = {numero_local(float(prof))} m"
     if q in (None, ""):
         return False, "falta q_adm del informe geotécnico"
     return True, detalle

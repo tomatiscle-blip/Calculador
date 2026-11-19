@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from calc import cargas, losas, losas_macizas, rutas
+from calc import cargas, losas, losas_continuidad, losas_macizas, rutas
 from app.ejes import cargar_ejes, cargar_niveles
 from app.losas_ejes import EditorLosaDesdeEjes
 
@@ -1064,7 +1064,6 @@ class PaginaCargas(QWidget):
         fila.addWidget(self.boton_guardar)
         caja_elementos.addLayout(fila)
         caja_elementos.addWidget(self.boton_editar_apoyos_losa)
-        caja_elementos.addWidget(self.boton_disenar_losa)
         acciones = QHBoxLayout()
         acciones.addWidget(self.boton_informe)
         acciones.addWidget(self.boton_abrir)
@@ -1126,7 +1125,6 @@ class PaginaCargas(QWidget):
         self.boton_quitar_aplicacion.clicked.connect(self.quitar_aplicacion_seleccionada)
         self.boton_informe.clicked.connect(self.generar_informe)
         self.boton_abrir.clicked.connect(self.abrir_informe)
-        self.boton_disenar_losa.clicked.connect(self.disenar_losa_seleccionada)
         self.boton_editar_apoyos_losa.clicked.connect(self.editar_paño_losa)
         self._actualizar_boton_aplicaciones()
         self.recargar()
@@ -1299,12 +1297,16 @@ class PaginaCargas(QWidget):
                 "Requiere luz, ancho y hormigón armado con espesor. Si el paño se definió desde ejes, "
                 "sus reacciones se transfieren automáticamente a las vigas de apoyo."
             )
+            if (elemento.get("panel_ejes") or {}).get("continuidad_con"):
+                ayuda += " Tiene continuidad confirmada: se recalcularán conjuntamente todos los paños vinculados."
         elif tipologia == "maciza_cruzada":
             self.boton_disenar_losa.setText("Calcular solicitaciones de losa maciza cruzada")
             ayuda = (
                 "Analiza una placa con apoyos simples en tres o cuatro bordes. "
                 "Requiere espesor estructural y al menos tres apoyos válidos."
             )
+            if (elemento.get("panel_ejes") or {}).get("continuidad_con"):
+                ayuda += " Tiene continuidad confirmada: se recalcularán conjuntamente todos los paños vinculados."
         elif tipologia == "alivianada":
             self.boton_disenar_losa.setText("Calcular viguetas de losa alivianada")
             ayuda = "Dimensiona viguetas con esta misma composición."
@@ -1332,6 +1334,72 @@ class PaginaCargas(QWidget):
         )
         disponible = elemento.get("tipo") == "losa"
         self.boton_editar_apoyos_losa.setEnabled(disponible)
+
+    def _configurar_continuidad_losa(
+        self, nombre: str, elemento: dict, elementos: dict[str, dict]
+    ) -> None:
+        if elemento.get("tipologia") not in ("maciza", "maciza_cruzada"):
+            losas_continuidad.actualizar_vinculos(elementos, nombre, set())
+            return
+        panel_previo = elemento.get("panel_ejes") or {}
+        ids_previos = {
+            str(vinculo) for vinculo in panel_previo.get("continuidad_con", []) or []
+        }
+        nombres_aceptados = set()
+        for candidato in losas_continuidad.candidatos(
+            elemento, elementos, excluir=nombre
+        ):
+            id_candidato = str(elementos[candidato].get("id", ""))
+            if id_candidato in ids_previos:
+                nombres_aceptados.add(candidato)
+                continue
+            borde = losas_continuidad.borde_compartido(
+                elemento, elementos[candidato]
+            )
+            if borde is None:
+                continue
+            apoyo = borde["apoyo"]
+            apoyo_texto = (
+                f"pórtico {apoyo.get('portico')}, viga {apoyo.get('viga')}"
+                if apoyo.get("tipo") == "portico"
+                else f"muro {apoyo.get('nombre')}"
+            )
+            respuesta = QMessageBox.question(
+                self,
+                "¿Paños con continuidad?",
+                (
+                    "Este vínculo ya está activo. "
+                    if id_candidato in ids_previos else ""
+                )
+                + f"«{nombre}» y «{candidato}» comparten el borde apoyado en "
+                f"{apoyo_texto}.\n\n"
+                "¿Se hormigonan monolíticamente y querés que se analicen como "
+                "paños continuos? Al confirmar, la próxima vez que calcules "
+                "cualquiera de los dos se recalculará el grupo. Si elegís No, "
+                "se calcularán por separado.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                (
+                    QMessageBox.StandardButton.Yes
+                    if id_candidato in ids_previos
+                    else QMessageBox.StandardButton.No
+                ),
+            )
+            if respuesta == QMessageBox.StandardButton.Yes:
+                nombres_aceptados.add(candidato)
+        ids_actuales = {
+            str(elementos[otro].get("id", ""))
+            for otro in nombres_aceptados
+        }
+        if ids_previos - ids_actuales:
+            QMessageBox.warning(
+                self,
+                "Continuidad actualizada",
+                "Se quitó la continuidad de uno o más paños porque ya no cumplen "
+                "las condiciones de geometría, nivel, espesor o apoyo compartido.",
+            )
+        losas_continuidad.actualizar_vinculos(
+            elementos, nombre, nombres_aceptados
+        )
 
     def nueva_losa_desde_ejes(self) -> None:
         self._guardar_datos()
@@ -1378,6 +1446,9 @@ class PaginaCargas(QWidget):
             )
             return
         elementos[nuevo_nombre] = elemento
+        self._configurar_continuidad_losa(
+            nuevo_nombre, elemento, elementos
+        )
         rutas.guardar_json(rutas.CARGAS, datos)
         self.recargar()
         fila = next(
@@ -1430,13 +1501,16 @@ class PaginaCargas(QWidget):
         if nuevo_nombre != nombre:
             elementos.pop(nombre)
         elementos[nuevo_nombre] = elemento
+        self._configurar_continuidad_losa(
+            nuevo_nombre, elemento, elementos
+        )
         rutas.guardar_json(rutas.CARGAS, datos)
         self.recargar()
         if self.al_guardar:
             self.al_guardar()
 
-    def disenar_losa_seleccionada(self) -> None:
-        nombre = self._fila_nombre()
+    def disenar_losa_seleccionada(self, nombre: str | None = None) -> None:
+        nombre = nombre or self._fila_nombre()
         if not nombre:
             return
         datos = cargas.datos_cargas()
@@ -1455,11 +1529,20 @@ class PaginaCargas(QWidget):
             except (TypeError, ValueError):
                 espesor = 0.0
             if espesor <= 0.0:
+                id_losa = elemento.get("id")
                 if not self._editar_elemento(nombre):
                     return
-                elemento = (
-                    (cargas.datos_cargas().get("elementos", {}) or {}).get(nombre)
-                )
+                datos = cargas.datos_cargas()
+                elementos = datos.get("elementos", {}) or {}
+                elemento = elementos.get(nombre)
+                if elemento is None:
+                    elemento = next(
+                        (
+                            item for item in elementos.values()
+                            if item.get("id") == id_losa
+                        ),
+                        None,
+                    )
                 if elemento is None:
                     QMessageBox.information(
                         self,
@@ -1467,6 +1550,11 @@ class PaginaCargas(QWidget):
                         "La losa se renombró. Seleccionala nuevamente para iniciar el cálculo.",
                     )
                     return
+                nombre = next(
+                    nombre_elemento
+                    for nombre_elemento, item in elementos.items()
+                    if item is elemento
+                )
                 componente_estructural = next((
                     componente for componente in (elemento.get("componentes", []) or [])
                     if (componente.get("grupo"), componente.get("clave")) in {
@@ -1488,14 +1576,37 @@ class PaginaCargas(QWidget):
                     return
         try:
             if elemento.get("tipologia") in ("maciza", "maciza_cruzada", "casetonada"):
-                resultado = losas_macizas.calcular_desde_elemento_carga(nombre, elemento)
-                memoria, archivo = losas_macizas.guardar_resultado(resultado)
-                detalle = (
-                    f"Se calcularon las solicitaciones de {nombre}.\n\n"
-                    f"Memoria: {memoria}\nResultado: {archivo}\n\n"
-                    "El resultado no dimensiona armaduras ni contempla continuidad."
+                grupo = losas_continuidad.grupo_continuo(
+                    nombre, datos.get("elementos", {}) or {}
                 )
-                memoria_detallada = resultado.memoria
+                if len(grupo) > 1:
+                    resultados = losas_macizas.calcular_grupo_desde_elementos(grupo)
+                    archivos = []
+                    for nombre_resultado, resultado in resultados.items():
+                        memoria, archivo = losas_macizas.guardar_resultado(resultado)
+                        archivos.append(
+                            f"{nombre_resultado}: {memoria}\nResultado: {archivo}"
+                        )
+                    detalle = (
+                        f"Se calcularon conjuntamente {len(resultados)} paños "
+                        "macizos con continuidad explícita.\n\n"
+                        + "\n\n".join(archivos)
+                    )
+                    memoria_detallada = "\n\n".join(
+                        f"--- {resultado.nombre} ---\n{resultado.memoria}"
+                        for resultado in resultados.values()
+                    )
+                else:
+                    resultado = losas_macizas.calcular_desde_elemento_carga(
+                        nombre, elemento
+                    )
+                    memoria, archivo = losas_macizas.guardar_resultado(resultado)
+                    detalle = (
+                        f"Se calcularon las solicitaciones de {nombre}.\n\n"
+                        f"Memoria: {memoria}\nResultado: {archivo}\n\n"
+                        "El resultado no dimensiona armaduras ni verifica continuidad."
+                    )
+                    memoria_detallada = resultado.memoria
             else:
                 resultado = losas.calcular_desde_elemento_carga(nombre, elemento)
                 memoria, computo, archivo = losas.guardar_resultado(resultado)
@@ -1766,6 +1877,10 @@ class PaginaCargas(QWidget):
             return False
         elementos.pop(nombre)
         elementos[nuevo_nombre] = actualizado
+        if actualizado.get("tipo") == "losa":
+            self._configurar_continuidad_losa(
+                nuevo_nombre, actualizado, elementos
+            )
         rutas.guardar_json(rutas.CARGAS, datos)
         self.recargar()
         indice = self.selector_aplicaciones.findData(nuevo_nombre)
@@ -1806,6 +1921,10 @@ class PaginaCargas(QWidget):
         self._guardar_datos()
         datos = cargas.datos_cargas()
         datos.get("elementos", {}).pop(nombre, None)
+        if carga_id:
+            losas_continuidad.quitar_vinculos(
+                datos.get("elementos", {}) or {}, str(carga_id)
+            )
         datos["aplicaciones"] = [
             aplicacion for aplicacion in datos.get("aplicaciones", [])
             if aplicacion.get("carga_id") != carga_id

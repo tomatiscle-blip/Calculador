@@ -6,15 +6,11 @@ REM ============================================================
 chcp 65001 >nul
 cd /d "%~dp0"
 
-if not exist ".venv\Scripts\python.exe" (
+if not exist ".venv\Scripts\pythonw.exe" (
     echo No se encontro el entorno virtual en .venv
     pause
     exit /b 1
 )
 
-start "" pyw -m app
-
-echo.
-echo (La aplicacion se cerro. Codigo: %ERRORLEVEL%)
-pause
-
+start "" "%~dp0.venv\Scripts\pythonw.exe" -m app
+exit /b

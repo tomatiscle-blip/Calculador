@@ -350,9 +350,23 @@ def datos_solicitaciones(portico: str):
 # Losas y resumen general
 # ---------------------------------------------------------------------------
 def memorias_losas() -> list[Path]:
-    """Memorias de losa existentes, de la más nueva a la más vieja."""
+    """Devuelve la memoria más reciente por losa, omitiendo versiones históricas."""
     memorias = rutas.listar(rutas.SAL_LOSAS, "memoria_losa_*.txt")
-    return sorted(memorias, key=lambda p: p.stat().st_mtime, reverse=True)
+    recientes: dict[str, Path] = {}
+    for memoria in sorted(
+        memorias, key=lambda p: p.stat().st_mtime, reverse=True
+    ):
+        contenido = rutas.leer_texto(memoria, "")
+        nombre = next(
+            (
+                linea.partition(":")[2].strip()
+                for linea in contenido.splitlines()
+                if linea.startswith("Losa:")
+            ),
+            memoria.stem,
+        )
+        recientes.setdefault(nombre, memoria)
+    return list(recientes.values())
 
 
 def resumen_etapas(portico: str) -> str:
@@ -595,6 +609,14 @@ class VentanaPrincipal(QMainWindow):
         self.lista_losas = QListWidget()
         self.texto_losa = QPlainTextEdit()
         self.texto_losa.setReadOnly(True)
+        self.selector_losa_calculo = QComboBox()
+        self.boton_calcular_losa = QPushButton("Calcular losa seleccionada")
+        self.boton_calcular_losa.setProperty("role", "primary")
+        self.boton_calcular_losa.setEnabled(False)
+        self.etiqueta_calculo_losa = QLabel(
+            "Elegí un paño para calcular sus solicitaciones o viguetas."
+        )
+        self.etiqueta_calculo_losa.setWordWrap(True)
         self.arbol = QTreeWidget()
         self.arbol.setHeaderLabels(("Archivo", "Tamaño"))
 
@@ -1219,7 +1241,16 @@ class VentanaPrincipal(QMainWindow):
     def _pagina_losas(self) -> QWidget:
         pagina = QWidget()
         caja = QVBoxLayout(pagina)
-        self.etiqueta_losas = QLabel("Doble clic en una memoria para leerla acá al lado.")
+        controles = QHBoxLayout()
+        controles.addWidget(QLabel("Paño:"))
+        controles.addWidget(self.selector_losa_calculo, 1)
+        controles.addWidget(self.boton_calcular_losa)
+        caja.addLayout(controles)
+        self.etiqueta_calculo_losa.setStyleSheet("color: #475569;")
+        caja.addWidget(self.etiqueta_calculo_losa)
+        self.etiqueta_losas = QLabel(
+            "Memorias vigentes. Seleccioná una para leerla."
+        )
         caja.addWidget(self.etiqueta_losas)
         division = QSplitter(Qt.Orientation.Horizontal)
         division.addWidget(self.lista_losas)
@@ -1728,6 +1759,12 @@ class VentanaPrincipal(QMainWindow):
         self.boton_ejecutar.clicked.connect(self._ejecutar_etapa)
         self.boton_abrir_salida.clicked.connect(self._abrir_salida_etapa)
         self.lista_losas.currentItemChanged.connect(self._al_elegir_losa)
+        self.selector_losa_calculo.currentIndexChanged.connect(
+            self._actualizar_boton_calcular_losa
+        )
+        self.boton_calcular_losa.clicked.connect(
+            self._calcular_losa_desde_pestana
+        )
         self.lista_planillas_vigas.currentItemChanged.connect(self._al_elegir_planilla_viga)
         self.lista_planillas_columnas.currentItemChanged.connect(
             self._al_elegir_planilla_columnas
@@ -1906,7 +1943,7 @@ class VentanaPrincipal(QMainWindow):
         portico = self._portico()
 
         self.vista_portico.establecer_niveles(self.niveles)
-        self.vista_portico.actualizar(portico)
+        self.vista_portico.actualizar(portico, calcular_cargas=False)
         self.pagina_cargas.actualizar_portico()
         if porticos:
             self.etiqueta_resumen.setText(resumen_etapas(portico))
@@ -3509,6 +3546,23 @@ class VentanaPrincipal(QMainWindow):
     # Pestaña 5: losas
     # ------------------------------------------------------------------
     def _cargar_losas(self) -> None:
+        memoria_seleccionada = (
+            self.lista_losas.currentItem().data(Qt.ItemDataRole.UserRole)
+            if self.lista_losas.currentItem() else None
+        )
+        seleccion_previa = self.selector_losa_calculo.currentData()
+        self.selector_losa_calculo.blockSignals(True)
+        self.selector_losa_calculo.clear()
+        elementos = cargas.datos_cargas().get("elementos", {}) or {}
+        for nombre, elemento in elementos.items():
+            if elemento.get("tipo") == "losa" and elemento.get("activo", True):
+                self.selector_losa_calculo.addItem(nombre, nombre)
+        indice = self.selector_losa_calculo.findData(seleccion_previa)
+        if indice >= 0:
+            self.selector_losa_calculo.setCurrentIndex(indice)
+        self.selector_losa_calculo.blockSignals(False)
+        self._actualizar_boton_calcular_losa()
+
         self.lista_losas.clear()
         memorias = memorias_losas()
         for memoria in memorias:
@@ -3518,12 +3572,34 @@ class VentanaPrincipal(QMainWindow):
             self.lista_losas.addItem(item)
         if memorias:
             self.etiqueta_losas.setText(
-                f"{len(memorias)} memoria(s) de losa en salidas/losas — elegí una para leerla acá al lado."
+                f"{len(memorias)} memoria(s) vigente(s), una por losa — "
+                "elegí una para leerla acá al lado."
             )
-            self.lista_losas.setCurrentRow(0)
+            fila_previa = next(
+                (
+                    indice for indice in range(self.lista_losas.count())
+                    if self.lista_losas.item(indice).data(
+                        Qt.ItemDataRole.UserRole
+                    ) == memoria_seleccionada
+                ),
+                0,
+            )
+            self.lista_losas.setCurrentRow(fila_previa)
         else:
-            self.etiqueta_losas.setText("Todavía no hay memorias de losa (etapa 10).")
+            self.etiqueta_losas.setText(
+                "Todavía no hay memorias de cálculo de losas."
+            )
             self.texto_losa.setPlainText("")
+
+    def _actualizar_boton_calcular_losa(self, *_args) -> None:
+        disponible = self.selector_losa_calculo.currentIndex() >= 0
+        self.boton_calcular_losa.setEnabled(disponible)
+
+    def _calcular_losa_desde_pestana(self) -> None:
+        nombre = self.selector_losa_calculo.currentData()
+        if not nombre:
+            return
+        self.pagina_cargas.disenar_losa_seleccionada(str(nombre))
 
     def _al_elegir_losa(self, actual, _anterior=None) -> None:
         if actual is None:
